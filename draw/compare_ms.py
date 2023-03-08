@@ -29,7 +29,6 @@ def find_peak(p0_mz, spectrum_1, _error_range):
         f2 = False
 
         mz = float(spectrum_1[mid][0])
-        print(spectrum_1[mid][0])
         f1 = (float(mz) <= float(p0_mz + e))
 
         f2 = (float(mz) >= float(p0_mz - e))
@@ -37,10 +36,8 @@ def find_peak(p0_mz, spectrum_1, _error_range):
         if f1 and f2:
             return True
 
-        print(str(f1) + '  ' + str(f2))
-
         if mz > p0_mz:
-            end = mid - 1  ## 이렇게 해도 되냐..
+            end = mid - 1
 
         if mz < p0_mz:
             start = mid + 1

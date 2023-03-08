@@ -24,15 +24,22 @@ class MyApp(QMainWindow):
         with open("light_mode", 'r') as f:
             self.setStyleSheet(f.read())
 
-        self.dialog = QDialog()
-        self.dialog.textEdit = QTextEdit()
+        # self.dialog = QDialog()
+        # self.dialog.textEdit = QTextEdit()
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
 
-        btn1 = QPushButton('&Button1', self)
+        sample = [
+            ['title1'],
+            ['title2'],
+            ['내일은 꼭 일찍'],
+            ['일어나야지'],
+            ['b1906_293T_proteinID_01A_QE3_122212.56082']
+        ]
+        file_combo_box = custom_widgets.SpectrumCombobox(self, sample)
 
         self.vbox = QVBoxLayout(self.main_widget)
-        self.vbox.addWidget(btn1)
+
 
         #########
         #menubar#
@@ -58,10 +65,15 @@ class MyApp(QMainWindow):
         filemenu.addAction(openFileAction)
         filemenu.addAction(exitAction)
 
+        ##
 
-        # canvas = FigureCanvas(Figure(figsize=(4, 3))) ## 이게 뭘 의미하는 걸까.. 바뀌지도 않는데..
+        custom_widgets.Toolbar(self)
 
-        self.vbox.addWidget(plotWidget.Plot_Widget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))) # arg0 : parent / arg1: ms_data
+        # arg0 : parent / arg1: ms_data
+        plot_widget = plotWidget.Plot_Widget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))
+        self.vbox.addWidget(file_combo_box)
+        self.vbox.addWidget(plot_widget)
+
 
         self.setWindowTitle('Mass Spectrometry Analysis Tool')
         img_path = cur_path + '/ui/image/icon.png'
