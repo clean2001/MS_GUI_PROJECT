@@ -62,7 +62,6 @@ class Plot_Widget(QWidget):
 
         self.setLayout(lay)
 
-        self.setGeometry(100, 20, 1000, 500)
 
     def get_spectrum(self, ms_data):
         return ms_data[3];

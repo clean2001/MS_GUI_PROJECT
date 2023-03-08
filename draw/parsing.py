@@ -45,3 +45,6 @@ while idx < line_len - 1:
     newlist.append(data)
     data = []   # 다시 빈 list로 만들어주기
     flag = True
+
+for i in newlist:
+    print(i)

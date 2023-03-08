@@ -3,7 +3,6 @@
 from PyQt5 import QtGui
 
 
-
 import sample_data
 
 import sys, os
@@ -30,7 +29,10 @@ class MyApp(QMainWindow):
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
 
+        btn1 = QPushButton('&Button1', self)
 
+        self.vbox = QVBoxLayout(self.main_widget)
+        self.vbox.addWidget(btn1)
 
         #########
         #menubar#
@@ -57,16 +59,9 @@ class MyApp(QMainWindow):
         filemenu.addAction(exitAction)
 
 
-        #
-
-
-        # self.btn = colorThemeBtn.ColorThemeBtn()
-
         # canvas = FigureCanvas(Figure(figsize=(4, 3))) ## 이게 뭘 의미하는 걸까.. 바뀌지도 않는데..
-        vbox = QVBoxLayout(self.main_widget)
-        # vbox.addWidget(self.btn)
 
-        plotWidget.Plot_Widget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2)) # arg0 : parent / arg1: ms_data
+        self.vbox.addWidget(plotWidget.Plot_Widget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))) # arg0 : parent / arg1: ms_data
 
         self.setWindowTitle('Mass Spectrometry Analysis Tool')
         img_path = cur_path + '/ui/image/icon.png'
@@ -74,7 +69,10 @@ class MyApp(QMainWindow):
 
         # self.changeFont()
         self.setWindowIcon(QIcon(img_path))
+        self.setLayout(self.vbox)
+
         self.resize(1200, 800)
+
         self.show()
 
     def center(self):
