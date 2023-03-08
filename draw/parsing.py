@@ -5,7 +5,7 @@ with open(filename) as f:
 
 line_len = len(lines)
 
-data = []   # 작은 list
+data = [' ' for i in range(5)]   # 작은 list
 newlist = []
 flag = True
 idx = 0     # 큰 list의 index
@@ -21,19 +21,28 @@ while idx < line_len - 1:
             idx += 1
         elif lines[idx][0] == 'T':
             split_str = lines[idx].split('=')
-            data.append(split_str[1])
+            data[0] = split_str[1]
+            # data.append(split_str[1])
             idx += 1
         elif lines[idx][0] == 'C':
             split_str = lines[idx].split('=')
-            data.append(split_str[1])
+            data[1] = split_str[1]
+            # data.append(split_str[1])
             idx += 1
         elif lines[idx][0] == 'P':
             split_str = lines[idx].split('=')
-            data.append(split_str[1])
+            data[2] = split_str[1]
+            # data.append(split_str[1])
             idx += 1
         elif lines[idx][0] == 'S':
             split_str = lines[idx].split('=')
-            data.append(split_str[1])
+            if split_str[0] == 'SCANS':
+                data[3] = split_str[1]
+                # data.append(split_str[1])
+            if split_str[0] == 'SEQ':
+                data[4] = split_str[1]
+                # data.append(split_str[1])
+            # data.append(split_str[1])
             idx += 1
         elif lines[idx] == 'END IONS':
             idx += 1
@@ -43,8 +52,15 @@ while idx < line_len - 1:
             idx += 1
 
     newlist.append(data)
-    data = []   # 다시 빈 list로 만들어주기
+    data = [' ' for i in range(5)]   # 다시 빈 list로 만들어주기
     flag = True
 
 for i in newlist:
     print(i)
+    print(len(i))
+
+
+
+
+
+
