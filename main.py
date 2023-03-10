@@ -1,6 +1,10 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 from PyQt5 import QtGui
+from PyQt5 import QtCore, QtWidgets, QtWebEngineWidgets
+
+import plotly.express as px
+import plotly.graph_objects as go
 
 
 import sample_data
@@ -8,8 +12,9 @@ import sample_data
 import sys, os
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
-from draw import plotWidget
+from draw import plotWidget, plotlyWidget, bokehWidget
 from ui import custom_widgets
+
 
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
@@ -69,10 +74,13 @@ class MyApp(QMainWindow):
 
         custom_widgets.Toolbar(self)
 
-        # arg0 : parent / arg1: ms_data
-        plot_widget = plotWidget.Plot_Widget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))
+        # arg0 : parent / arg1: ms_data / arg2: comparative ms data / error_range
+        self.browser = QtWebEngineWidgets.QWebEngineView(self)
+        plot_widget = bokehWidget.BokehWidget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))
+
         self.vbox.addWidget(file_combo_box)
-        self.vbox.addWidget(plot_widget)
+        # self.vbox.addWidget(plot_widget)
+        self.vbox.addWidget(self.browser)
 
 
         self.setWindowTitle('Mass Spectrometry Analysis Tool')
@@ -93,14 +101,6 @@ class MyApp(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topleft())
 
-    # def changeFont(self):
-    #     font = QFont("KIMM_Bold", 10, QFont.Bold);
-    #     # font.setBold(True)
-    #     # font.setPointSize(45)
-    #     # font.setUnderline(True)
-    #     self.setFont(font)
-    #     self.menubar.setFont(font)
-
     def openFile(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
 
@@ -110,7 +110,7 @@ class MyApp(QMainWindow):
             with f:
 
                 self.dialog.setWindowTitle('Dialog')
-                self.dialog.resize(700, 500)
+                self.dialog.resize(700, 500)    
 
                 data = f.read()
                 self.dialog.textEdit.setText(data)
@@ -123,5 +123,3 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = MyApp()
     sys.exit(app.exec_())
-
-
