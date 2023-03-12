@@ -50,11 +50,9 @@ def get_spectrum(p):
 
 
 def classify_peaks(p0, p1, _error_range):
-    gray = 0
-    blue = 1
     # array to return
-    arr = np.empty((0, 3), float) # color: 0-gray, 1-blue
-    # blue = np.empty((0, 2), float)
+    gray = np.empty((0, 2), float)
+    blue = np.empty((0, 2), float)
 
     error_range = _error_range
 
@@ -68,9 +66,11 @@ def classify_peaks(p0, p1, _error_range):
         cur_intensity = spectrum_0[i][1]
 
         if find_peak(cur_mz, spectrum_1, error_range):
-            arr = np.append(arr, np.array([[cur_mz, cur_intensity, arr]]), axis=0)
+            blue = np.append(blue, np.array([[cur_mz, cur_intensity]]), axis=0)
         else:
-            arr = np.append(arr, np.array([[cur_mz, cur_intensity, arr]]), axis=0)
+            gray = np.append(gray, np.array([[cur_mz, cur_intensity]]), axis=0)
 
     print(len(spectrum_0))
-    return arr
+    print(len(blue))
+    print(len(gray))
+    return [blue, gray]
