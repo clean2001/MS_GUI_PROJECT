@@ -1,23 +1,17 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-from PyQt5 import QtGui
-from PyQt5 import QtCore, QtWidgets, QtWebEngineWidgets
-
-import plotly.express as px
-import plotly.graph_objects as go
-
+from PyQt5 import QtWebEngineWidgets
 
 import sample_data
 
 import sys, os
+sys.path.append(os.getcwd())
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon, QFont
-from draw import plotWidget, plotlyWidget, bokehWidget
-from ui import custom_widgets
 
+from PyQt5.QtGui import QIcon
+from draw import bokehWidget
+from draw import custom_widgets
 import help_functions
-
-
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
 
