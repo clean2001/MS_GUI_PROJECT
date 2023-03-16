@@ -12,17 +12,6 @@ from bokeh.models import ColumnDataSource
 from bokeh.palettes import Spectral3
 import sample_data
 import numpy as np
-# output_file('simple_timeseries_plot.html')
-
-# df = pd.read_csv('thor_wwii.csv')
-
-#make sure MSNDATE is a datetime format
-# df['MSNDATE'] = pd.to_datetime(df['MSNDATE'], format='%m/%d/%Y')
-
-# grouped = df.groupby('MSNDATE')['TOTAL_TONS', 'TONS_IC', 'TONS_FRAG'].sum()
-# grouped = grouped/1000
-
-# source = ColumnDataSource(grouped)
 
 def convert_spectrum_to_xy(spectrum):
     size_of_spectrum = len(spectrum)
@@ -47,20 +36,25 @@ def convert_spectrum_to_xy2(spectrum):
     return [x, y]
 
 
-p = figure()
+def make_title_list_for_combobox(entire_peptides):
+    num_of_peptides = len(entire_peptides)
 
-spec = sample_data.return_data1()
+    title_list = []
+    for i in range(0, num_of_peptides):
+        title = entire_peptides[0]
+        title_list.append(title)
 
-[xv, yv] = convert_spectrum_to_xy(spec[3])
+    return title_list
 
-df = pd.DataFrame({
-    'mz':xv,
-    'intensity':yv
-})
 
-grouped = df.groupby('mz').sum()
-source = ColumnDataSource(grouped)
+def get_peptide_data(index, entire_peptides):
+    return entire_peptides[index]
 
-p.vbar(x='mz', top='intensity', source=source)
-# print(spec[3][1])
-show(p)
+def get_peptide_title(peptide):
+    return peptide[0]
+
+def get_peptide_mz(peptide):
+    return peptide(4)
+
+def get_peptide_intensity(peptide):
+    return peptide(5)
