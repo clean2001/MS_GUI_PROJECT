@@ -76,8 +76,8 @@ class BokehWidget(QtWidgets.QWidget):
         grouped = gray_df.groupby('mz').sum()
         gray_source = ColumnDataSource(grouped)
 
-        p.vbar(x='mz', top='intensity', source=blue_source, width=3, color='red')
-        p.vbar(x='mz', top='intensity', source=gray_source, width=3, color='gray')
+        p.vbar(x='mz', top='intensity', source=blue_source, width=1.5, color='red')
+        p.vbar(x='mz', top='intensity', source=gray_source, width=0.7, color='gray')
         url = return_cur_dir() + '/boekehWidget.html'
         print(url)
         html = file_html(p, CDN, "my plot")

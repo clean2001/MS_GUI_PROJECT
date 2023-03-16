@@ -7,9 +7,11 @@ import sample_data
 import sys, os
 sys.path.append(os.getcwd())
 from PyQt5.QtWidgets import *
+
 from PyQt5.QtGui import QIcon
 from draw import bokehWidget
 from draw import custom_widgets
+import help_functions
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -28,21 +30,20 @@ class MyApp(QMainWindow):
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
 
-        sample = [
-            ['title1'],
-            ['title2'],
-            ['내일은 꼭 일찍'],
-            ['일어나야지'],
-            ['b1906_293T_proteinID_01A_QE3_122212.56082']
-        ]
-        file_combo_box = custom_widgets.SpectrumCombobox(self, sample)
+
+        ###############################
+        #일단 임시로 toy.mgf 데이터만   #
+        ###############################
+        peptide_data_of_file = [] #여기에 mgf
+        title_list = help_functions.make_title_list_for_combobox(peptide_data_of_file)
+        file_combo_box = custom_widgets.SpectrumCombobox(self, title_list)
 
         self.vbox = QVBoxLayout(self.main_widget)
 
 
-        #########
-        #menubar#
-        #########
+        ###########
+        # menubar #
+        ###########
         exitAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Exit', self)
 
         exitAction.setShortcut('Ctrl+Q')
@@ -73,7 +74,6 @@ class MyApp(QMainWindow):
         plot_widget = bokehWidget.BokehWidget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))
 
         self.vbox.addWidget(file_combo_box)
-        # self.vbox.addWidget(plot_widget)
         self.vbox.addWidget(self.browser)
 
 

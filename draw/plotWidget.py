@@ -135,6 +135,7 @@ class PlotlyWidget(QtWidgets.QWidget):
     def get_spectrum(self, ms_data):
         return ms_data[3]
 
+
     def convert_spectrum_to_xy(self, spectrum):
         size_of_spectrum = len(spectrum)
 

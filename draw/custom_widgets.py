@@ -9,6 +9,7 @@ module_path = os.path.abspath(os.getcwd() + '\\..')
 if module_path not in sys.path:
     sys.path.append(module_path)
 
+
 cur_path = os.path.dirname(os.path.realpath(__file__))
 cur_path = cur_path.replace('\\', '/')
 
@@ -38,11 +39,11 @@ class SpectrumCombobox(QWidget):
 
         self.spectrumComboBox.activated[str].connect(self.onActivated)
         self.setFixedHeight(22)
-        # self.spectrumComboBox.setFixedHeight(10)
-        # self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-    def onActivated(self, text):
+    def onActivated(self, parent, text):
         print(text)
+        print(self.spectrumComboBox.currentIndex())
+        parent.plot_widget.display_peptide_date() ##여기를 고쳐줘야함. 
 
 
 class Toolbar(QWidget):
