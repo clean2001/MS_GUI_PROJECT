@@ -28,22 +28,22 @@ class ColorThemeBtn(QPushButton):
 
 
 class SpectrumCombobox(QWidget):
-    def __init__(self, parent=None, list_of_spectrum=None):
+    def __init__(self, parent=None, list_of_title=None):
         super().__init__(parent)
 
         self.spectrumComboBox = QComboBox(self)
-        num_of_spectrum = len(list_of_spectrum)
+        num_of_spectrum = len(list_of_title)
 
         for i in range(0, num_of_spectrum):
-            self.spectrumComboBox.addItem(str(list_of_spectrum[i][0]))
+            self.spectrumComboBox.addItem(str(list_of_title[i]))
 
         self.spectrumComboBox.activated[str].connect(self.onActivated)
         self.setFixedHeight(22)
 
-    def onActivated(self, parent, text):
-        print(text)
+    def onActivated(self):
+        # print(text)
         print(self.spectrumComboBox.currentIndex())
-        parent.plot_widget.display_peptide_date() ##여기를 고쳐줘야함. 
+        # parent.plot_widget.display_peptide_date() ##여기를 고쳐줘야함. 
 
 
 class Toolbar(QWidget):

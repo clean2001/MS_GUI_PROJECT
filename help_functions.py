@@ -41,8 +41,9 @@ def make_title_list_for_combobox(entire_peptides):
 
     title_list = []
     for i in range(0, num_of_peptides):
-        title = entire_peptides[0]
-        title_list.append(title)
+        title = entire_peptides[i][0]
+        print("!" + title)
+        title_list.append(str(title))
 
     return title_list
 

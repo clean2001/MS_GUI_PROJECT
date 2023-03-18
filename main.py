@@ -1,16 +1,19 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 from PyQt5 import QtWebEngineWidgets
+import sys, os
+
+import pandas as pd
 
 import sample_data
 
-import sys, os
 sys.path.append(os.getcwd())
 from PyQt5.QtWidgets import *
 
 from PyQt5.QtGui import QIcon
 from draw import bokehWidget
 from draw import custom_widgets
+from draw import parsing_tmp
 import help_functions
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
@@ -25,8 +28,6 @@ class MyApp(QMainWindow):
         with open("light_mode", 'r') as f:
             self.setStyleSheet(f.read())
 
-        # self.dialog = QDialog()
-        # self.dialog.textEdit = QTextEdit()
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
 
@@ -34,9 +35,11 @@ class MyApp(QMainWindow):
         ###############################
         #일단 임시로 toy.mgf 데이터만   #
         ###############################
-        peptide_data_of_file = [] #여기에 mgf
-        title_list = help_functions.make_title_list_for_combobox(peptide_data_of_file)
-        file_combo_box = custom_widgets.SpectrumCombobox(self, title_list)
+        peptide_data = parsing_tmp.return_data()
+
+        df = pd.DataFrame(peptide_data)
+
+        file_combo_box = custom_widgets.SpectrumCombobox(self, df['title'])
 
         self.vbox = QVBoxLayout(self.main_widget)
 
