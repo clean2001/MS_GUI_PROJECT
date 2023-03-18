@@ -4,6 +4,8 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
+from . import bokehWidget 
+
 # sys.path.append(os.getcwd())
 module_path = os.path.abspath(os.getcwd() + '\\..')
 if module_path not in sys.path:
@@ -30,6 +32,7 @@ class ColorThemeBtn(QPushButton):
 class SpectrumCombobox(QWidget):
     def __init__(self, parent=None, list_of_title=None):
         super().__init__(parent)
+        self.parent = parent
 
         self.spectrumComboBox = QComboBox(self)
         num_of_spectrum = len(list_of_title)
@@ -42,8 +45,9 @@ class SpectrumCombobox(QWidget):
 
     def onActivated(self):
         # print(text)
-        print(self.spectrumComboBox.currentIndex())
-        # parent.plot_widget.display_peptide_date() ##여기를 고쳐줘야함. 
+        comparison_idx = self.spectrumComboBox.currentIndex()
+        self.parent.comparison = (self.parent.df.loc[comparison_idx])
+        bokehWidget.BokehWidget(self.parent, self.parent.query, self.parent.comparison, self.parent.e)
 
 
 class Toolbar(QWidget):

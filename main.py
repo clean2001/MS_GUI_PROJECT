@@ -37,9 +37,11 @@ class MyApp(QMainWindow):
         ###############################
         peptide_data = parsing_tmp.return_data()
 
-        df = pd.DataFrame(peptide_data)
+        self.df = pd.DataFrame(peptide_data)
+        self.query = self.df.loc[0]
+        self.comparison = self.df.loc[0]
 
-        file_combo_box = custom_widgets.SpectrumCombobox(self, df['title'])
+        file_combo_box = custom_widgets.SpectrumCombobox(self, self.df['title'])
 
         self.vbox = QVBoxLayout(self.main_widget)
 
@@ -73,8 +75,9 @@ class MyApp(QMainWindow):
         custom_widgets.Toolbar(self)
 
         # arg0 : parent / arg1: ms_data / arg2: comparative ms data / error_range
+        self.e = float(0.2)
         self.browser = QtWebEngineWidgets.QWebEngineView(self)
-        plot_widget = bokehWidget.BokehWidget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))
+        plot_widget = bokehWidget.BokehWidget(self, self.query, self.comparison, self.e)
 
         self.vbox.addWidget(file_combo_box)
         self.vbox.addWidget(self.browser)
