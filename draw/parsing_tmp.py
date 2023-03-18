@@ -6,8 +6,9 @@
 #
 # seq_len = []    # 각 sequence의 길이를 저장하는 list
 # pep_info = []   # 각 peptide의 정보 [title, charge, pep_mass, scans, seq, x, y] 저장하는 list
+import pandas as pd
 
-filename = './toy.mgf'
+filename = 'c:\\Users\\somso\\Documents\\hyu\\4_1\\MS_GUI_PROJECT\\draw\\toy.mgf'
 # filename = 'MS_GUI_PROJECT/draw/toy.mgf'
 
 
@@ -69,5 +70,45 @@ while idx < line_len - 1:
     flag = True
 
 def return_data():
-    print(newlist)
-    return newlist
+    # print(newlist)
+    return convert_to_dataframe(newlist)
+
+
+def print_data():
+    list = return_data()
+
+    for i in range(len(list)):
+        print(len(list[i]))
+        print(list[i][0])
+        print(list[i][1])
+
+#Title, charge, pepmass, scan, seq, x, y
+def convert_to_dataframe(data_list):
+    title_list, charge_list, pepmass_list, scan_list, seq_list, x_list, y_list = [],[],[],[],[],[],[]
+    print(len(data_list))
+    for i in range (0, len(data_list)):
+        title_list.append(data_list[i][0])
+        charge_list.append(data_list[i][1])
+        pepmass_list.append(data_list[i][2])
+        scan_list.append(data_list[i][3])
+        seq_list.append(data_list[i][4])
+        x_list.append(data_list[i][5])
+        y_list.append(data_list[i][6])
+
+    data = {
+        'title': title_list,
+        'charge': charge_list,
+        'pepmass': pepmass_list,
+        'scan': scan_list,
+        'seq': seq_list,
+        'm/z': x_list,
+        'intensity': y_list,
+    }
+
+    return data
+    # df = pd.DataFrame(data)
+    # print(df)
+
+
+
+# convert_to_dataframe(newlist)
