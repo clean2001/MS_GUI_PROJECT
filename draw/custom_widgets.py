@@ -46,15 +46,15 @@ class SpectrumCombobox(QWidget):
 
         self.spectrumComboBox.activated[str].connect(self.onActivated)
         self.setFixedHeight(22)
+        self.spectrumComboBox.setMinimumWidth(500)
+
 
     def changeContents(self, title_list):
         self.spectrumComboBox.clear()
         for i in range(0, len(title_list)):
             self.spectrumComboBox.addItem(title_list[i])
-
+        self.spectrumComboBox.setMinimumWidth(500)
         self.spectrumComboBox.update()
-
-
 
     def onActivated(self):
         print(self.spectrumComboBox.currentIndex())
@@ -116,6 +116,9 @@ class Toolbar(QWidget):
 
         title_list = self.parent.df['title']
         self.parent.file_combo_box.changeContents(title_list)
+
+        bokehWidget.BokehWidget(self.parent, self.parent.query, self.parent.comparison, self.parent.e)
+
 
 
 

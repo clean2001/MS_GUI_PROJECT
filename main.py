@@ -38,17 +38,17 @@ class MyApp(QMainWindow):
         # peptide_data = data.return_data()
 
  
-        # self.data = {
-        #     'title': [],
-        #     'charge': [],
-        #     'pepmass': [],
-        #     'scan': [],
-        #     'seq': [],
-        #     'm/z': [],
-        #     'intensity': []
-        # }
+        self.data = {
+            'title': ["Open a mgf file."],
+            'charge': [" "],
+            'pepmass': [" "],
+            'scan': [" "],
+            'seq': [" "],
+            'm/z': ["0"],
+            'intensity': ["0"]
+        }
 
-        self.data = convert_data.return_data()
+        # self.data = convert_data.return_data()
 
         self.df = pd.DataFrame(self.data)
         self.query = self.df.loc[0]
