@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 from draw import bokehWidget
 from draw import custom_widgets
-from draw import parsing_tmp
+from draw import convert_data
 import help_functions
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
@@ -35,13 +35,26 @@ class MyApp(QMainWindow):
         ###############################
         #일단 임시로 toy.mgf 데이터만   #
         ###############################
-        peptide_data = parsing_tmp.return_data()
+        # peptide_data = data.return_data()
 
-        self.df = pd.DataFrame(peptide_data)
+ 
+        # self.data = {
+        #     'title': [],
+        #     'charge': [],
+        #     'pepmass': [],
+        #     'scan': [],
+        #     'seq': [],
+        #     'm/z': [],
+        #     'intensity': []
+        # }
+
+        self.data = convert_data.return_data()
+
+        self.df = pd.DataFrame(self.data)
         self.query = self.df.loc[0]
         self.comparison = self.df.loc[0]
 
-        file_combo_box = custom_widgets.SpectrumCombobox(self, self.df['title'])
+        self.file_combo_box = custom_widgets.SpectrumCombobox(self, self.df['title'])
 
         self.vbox = QVBoxLayout(self.main_widget)
 
@@ -79,7 +92,7 @@ class MyApp(QMainWindow):
         self.browser = QtWebEngineWidgets.QWebEngineView(self)
         plot_widget = bokehWidget.BokehWidget(self, self.query, self.comparison, self.e)
 
-        self.vbox.addWidget(file_combo_box)
+        self.vbox.addWidget(self.file_combo_box)
         self.vbox.addWidget(self.browser)
 
 

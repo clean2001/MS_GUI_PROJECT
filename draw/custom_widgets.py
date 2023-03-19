@@ -4,8 +4,11 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
-import MS_GUI_PROJECT.draw.custom_widgets
-from . import bokehWidget 
+import pandas as pd
+
+# import MS_GUI_PROJECT.draw.custom_widgets
+from . import bokehWidget, convert_data
+from . import custom_widgets
 
 # sys.path.append(os.getcwd())
 module_path = os.path.abspath(os.getcwd() + '\\..')
@@ -44,8 +47,17 @@ class SpectrumCombobox(QWidget):
         self.spectrumComboBox.activated[str].connect(self.onActivated)
         self.setFixedHeight(22)
 
+    def changeContents(self, title_list):
+        self.spectrumComboBox.clear()
+        for i in range(0, len(title_list)):
+            self.spectrumComboBox.addItem(title_list[i])
+
+        self.spectrumComboBox.update()
+
+
+
     def onActivated(self):
-        # print(text)
+        print(self.spectrumComboBox.currentIndex())
         comparison_idx = self.spectrumComboBox.currentIndex()
         self.parent.comparison = (self.parent.df.loc[comparison_idx])
         bokehWidget.BokehWidget(self.parent, self.parent.query, self.parent.comparison, self.parent.e)
@@ -54,6 +66,7 @@ class SpectrumCombobox(QWidget):
 class Toolbar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.parent = parent
         exitAction = QAction(QIcon(cur_path + '/image/exit-btn.png'), 'Exit', parent)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
@@ -69,7 +82,7 @@ class Toolbar(QWidget):
         self.toolbar = parent.addToolBar('Open File')
         self.toolbar.addAction(openAction)
 
-    def openFile(self, parent):
+    def openFile(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
         seq_list = Toolbar.parsing_file(self, fname[0])
         print('file name: ', fname[0])
@@ -96,7 +109,17 @@ class Toolbar(QWidget):
         # print("split x: ", x)
         # print("split y: ", y)
 
-        return split
+        data = convert_data.convert_to_dataframe(split)
+        self.parent.df = pd.DataFrame(data)
+        self.parent.query = self.parent.df.loc[0]
+        self.parent.comparison = self.parent.df.loc[0]
+
+        title_list = self.parent.df['title']
+        self.parent.file_combo_box.changeContents(title_list)
+
+
+
+        # parent.file_combo_box.__init__(parent,)
 
     def parsing_file(self, filename):
         # filename = 'toy.mgf'
@@ -181,12 +204,12 @@ class Toolbar(QWidget):
             x.append(seq_list[i][5])
             y.append(seq_list[i][6])
 
-        print(title)
-        print(charge)
-        print(pep_mass)
-        print(scans)
-        print(seq)
-        print(x)
-        print(y)
+        print(len(title))
+        print(len(charge))
+        print(len(pep_mass))
+        print(len(scans))
+        print(len(seq))
+        print(len(x))
+        print(len(y))
 
         return title, charge, pep_mass, scans, seq, x, y

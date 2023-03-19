@@ -7,6 +7,7 @@
 # seq_len = []    # 각 sequence의 길이를 저장하는 list
 # pep_info = []   # 각 peptide의 정보 [title, charge, pep_mass, scans, seq, x, y] 저장하는 list
 import pandas as pd
+from . import custom_widgets
 
 filename = 'c:\\Users\\somso\\Documents\\hyu\\4_1\\MS_GUI_PROJECT\\draw\\toy.mgf'
 # filename = 'MS_GUI_PROJECT/draw/toy.mgf'
@@ -70,8 +71,26 @@ while idx < line_len - 1:
     flag = True
 
 def return_data():
-    # print(newlist)
-    return convert_to_dataframe(newlist)
+    title = []
+    charge = []
+    pep_mass = []
+    scans = []
+    seq = []
+    x = []
+    y = []
+    print(len(newlist))
+
+    for i in range(len(newlist)):
+        title.append(newlist[i][0])
+        charge.append(newlist[i][1])
+        pep_mass.append(newlist[i][2])
+        scans.append(newlist[i][3])
+        seq.append(newlist[i][4])
+        x.append(newlist[i][5])
+        y.append(newlist[i][6])
+
+    list = [title, charge, pep_mass, scans, seq, x, y]
+    return convert_to_dataframe(list)
 
 
 def print_data():
@@ -84,25 +103,26 @@ def print_data():
 
 #Title, charge, pepmass, scan, seq, x, y
 def convert_to_dataframe(data_list):
-    title_list, charge_list, pepmass_list, scan_list, seq_list, x_list, y_list = [],[],[],[],[],[],[]
+    # print(len(data_list))
+    # for i in range (0, len(data_list)):
+    #     title_list.append(data_list[i][0])
+    #     charge_list.append(data_list[i][1])
+    #     pepmass_list.append(data_list[i][2])
+    #     scan_list.append(data_list[i][3])
+    #     seq_list.append(data_list[i][4])
+    #     x_list.append(data_list[i][5])
+    #     y_list.append(data_list[i][6])
+    print(len(newlist))
     print(len(data_list))
-    for i in range (0, len(data_list)):
-        title_list.append(data_list[i][0])
-        charge_list.append(data_list[i][1])
-        pepmass_list.append(data_list[i][2])
-        scan_list.append(data_list[i][3])
-        seq_list.append(data_list[i][4])
-        x_list.append(data_list[i][5])
-        y_list.append(data_list[i][6])
-
+    
     data = {
-        'title': title_list,
-        'charge': charge_list,
-        'pepmass': pepmass_list,
-        'scan': scan_list,
-        'seq': seq_list,
-        'm/z': x_list,
-        'intensity': y_list,
+        'title': data_list[0],
+        'charge': data_list[1],
+        'pepmass': data_list[2],
+        'scan': data_list[3],
+        'seq': data_list[4],
+        'm/z': data_list[5],
+        'intensity': data_list[6]
     }
 
     return data
