@@ -4,6 +4,8 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
+import MS_GUI_PROJECT.draw.custom_widgets
+
 # sys.path.append(os.getcwd())
 module_path = os.path.abspath(os.getcwd() + '\\..')
 if module_path not in sys.path:
@@ -65,23 +67,37 @@ class Toolbar(QWidget):
 
     def openFile(self, parent):
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
+        seq_list = Toolbar.parsing_file(self, fname[0])
+        print('file name: ', fname[0])
 
-        if fname[0]:
-            f = open(fname[0], 'r')
+        # if fname[0]:
+        #     f = open(fname[0], 'r')
+        #
+        #     with f:
+        #         self.dialog.setWindowTitle('Dialog')
+        #         self.dialog.resize(700, 500)
+        #
+        #         data = f.read()
+        #         self.dialog.textEdit.setText(data)
+        #
+        #         self.dialog.show()
 
-            with f:
-                self.dialog.setWindowTitle('Dialog')
-                self.dialog.resize(700, 500)
+        split = Toolbar.split_list(self, seq_list)
+        title, charge, pep_mass, scans, seq, x, y = Toolbar.split_list(self, seq_list)
+        # print("split title: ", title)
+        # print("split charge: ", charge)
+        # print("split pep_mass: ", pep_mass)
+        # print("split scans: ", scans)
+        # print("split seq: ", seq)
+        # print("split x: ", x)
+        # print("split y: ", y)
 
-                data = f.read()
-                self.dialog.textEdit.setText(data)
+        return split
 
-                self.dialog.show()
-
-
-    def parsing(self, filename):
-        filename = 'toy.mgf'
+    def parsing_file(self, filename):
+        # filename = 'toy.mgf'
         # filename = 'MS_GUI_PROJECT/draw/toy.mgf'
+        print("parsing function")
 
         with open(filename) as f:
             lines = f.read().splitlines()
@@ -140,4 +156,33 @@ class Toolbar(QWidget):
             data = [' ' for i in range(5)]  # 다시 빈 list로 만들어주기
             flag = True
 
-        return  newlist
+        return newlist
+
+    def split_list(self, seq_list):
+        title = []
+        charge = []
+        pep_mass = []
+        scans = []
+        seq = []
+        x = []
+        y = []
+        print(len(seq_list))
+
+        for i in range(len(seq_list)):
+            title.append(seq_list[i][0])
+            charge.append(seq_list[i][1])
+            pep_mass.append(seq_list[i][2])
+            scans.append(seq_list[i][3])
+            seq.append(seq_list[i][4])
+            x.append(seq_list[i][5])
+            y.append(seq_list[i][6])
+
+        print(title)
+        print(charge)
+        print(pep_mass)
+        print(scans)
+        print(seq)
+        print(x)
+        print(y)
+
+        return title, charge, pep_mass, scans, seq, x, y
