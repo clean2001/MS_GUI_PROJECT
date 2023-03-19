@@ -1,15 +1,20 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 from PyQt5 import QtWebEngineWidgets
+import sys, os
+
+import pandas as pd
 
 import sample_data
 
-import sys, os
 sys.path.append(os.getcwd())
 from PyQt5.QtWidgets import *
+
 from PyQt5.QtGui import QIcon
 from draw import bokehWidget
 from draw import custom_widgets
+from draw import parsing_tmp
+import help_functions
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -23,26 +28,27 @@ class MyApp(QMainWindow):
         with open("light_mode", 'r') as f:
             self.setStyleSheet(f.read())
 
-        # self.dialog = QDialog()
-        # self.dialog.textEdit = QTextEdit()
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
 
-        sample = [
-            ['title1'],
-            ['title2'],
-            ['내일은 꼭 일찍'],
-            ['일어나야지'],
-            ['b1906_293T_proteinID_01A_QE3_122212.56082']
-        ]
-        file_combo_box = custom_widgets.SpectrumCombobox(self, sample)
+
+        ###############################
+        #일단 임시로 toy.mgf 데이터만   #
+        ###############################
+        peptide_data = parsing_tmp.return_data()
+
+        self.df = pd.DataFrame(peptide_data)
+        self.query = self.df.loc[0]
+        self.comparison = self.df.loc[0]
+
+        file_combo_box = custom_widgets.SpectrumCombobox(self, self.df['title'])
 
         self.vbox = QVBoxLayout(self.main_widget)
 
 
-        #########
-        #menubar#
-        #########
+        ###########
+        # menubar #
+        ###########
         exitAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Exit', self)
 
         exitAction.setShortcut('Ctrl+Q')
@@ -69,11 +75,11 @@ class MyApp(QMainWindow):
         custom_widgets.Toolbar(self)
 
         # arg0 : parent / arg1: ms_data / arg2: comparative ms data / error_range
+        self.e = float(0.2)
         self.browser = QtWebEngineWidgets.QWebEngineView(self)
-        plot_widget = bokehWidget.BokehWidget(self, sample_data.return_data1(), sample_data.return_data2(), float(0.2))
+        plot_widget = bokehWidget.BokehWidget(self, self.query, self.comparison, self.e)
 
         self.vbox.addWidget(file_combo_box)
-        # self.vbox.addWidget(plot_widget)
         self.vbox.addWidget(self.browser)
 
 

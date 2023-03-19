@@ -5,11 +5,13 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
 import MS_GUI_PROJECT.draw.custom_widgets
+from . import bokehWidget 
 
 # sys.path.append(os.getcwd())
 module_path = os.path.abspath(os.getcwd() + '\\..')
 if module_path not in sys.path:
     sys.path.append(module_path)
+
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
 cur_path = cur_path.replace('\\', '/')
@@ -29,22 +31,24 @@ class ColorThemeBtn(QPushButton):
 
 
 class SpectrumCombobox(QWidget):
-    def __init__(self, parent=None, list_of_spectrum=None):
+    def __init__(self, parent=None, list_of_title=None):
         super().__init__(parent)
+        self.parent = parent
 
         self.spectrumComboBox = QComboBox(self)
-        num_of_spectrum = len(list_of_spectrum)
+        num_of_spectrum = len(list_of_title)
 
         for i in range(0, num_of_spectrum):
-            self.spectrumComboBox.addItem(str(list_of_spectrum[i][0]))
+            self.spectrumComboBox.addItem(str(list_of_title[i]))
 
         self.spectrumComboBox.activated[str].connect(self.onActivated)
         self.setFixedHeight(22)
-        # self.spectrumComboBox.setFixedHeight(10)
-        # self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-    def onActivated(self, text):
-        print(text)
+    def onActivated(self):
+        # print(text)
+        comparison_idx = self.spectrumComboBox.currentIndex()
+        self.parent.comparison = (self.parent.df.loc[comparison_idx])
+        bokehWidget.BokehWidget(self.parent, self.parent.query, self.parent.comparison, self.parent.e)
 
 
 class Toolbar(QWidget):

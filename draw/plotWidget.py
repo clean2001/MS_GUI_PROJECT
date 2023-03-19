@@ -39,7 +39,7 @@ class Plot_Widget(QWidget):
         [gray_x, gray_y] = self.convert_spectrum_to_xy(self.gray)
 
         plt.bar(blue_x, blue_y, color='#FF0000', width=1.5)
-        plt.bar(gray_x, gray_y, color='#BDBDBD', width=1.3)
+        plt.bar(gray_x, gray_y, color='#BDBDBD', width=1.0)
         plt.axis('on')
         # plt.margins(x=-3, y=-3)
 
@@ -134,6 +134,7 @@ class PlotlyWidget(QtWidgets.QWidget):
 
     def get_spectrum(self, ms_data):
         return ms_data[3]
+
 
     def convert_spectrum_to_xy(self, spectrum):
         size_of_spectrum = len(spectrum)

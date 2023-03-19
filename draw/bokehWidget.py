@@ -24,41 +24,35 @@ def convert_spectrum_to_xy(spectrum):
     x = np.array([])  # m/z
     y = np.array([])  # intensity
     for i in range(0, size_of_spectrum):
-        x = np.append(x, spectrum[i][0])
-        y = np.append(y, spectrum[i][1])
+        x = np.append(x, float(spectrum[i][0]))
+        y = np.append(y, float(spectrum[i][1]))
 
     return [x, y]
 
 
 class BokehWidget(QtWidgets.QWidget):
     
-    def __init__(self, parent=None, p0=None, p1=None, error_range=None):
+    # p0, p1은 각각 하나의 스펙트럼의 df 데이터 p0['mz'] 이런식으로 접근가능
+    def __init__(self, parent=None, p0=None, p1=None, error_range=None): 
         super().__init__(parent)
-        self.p0 = p0
-        self.p1 = p1
+        self.display_spectrum(parent, p0, p1, error_range)
+        
 
-        spec = sample_data.return_data1()
-
-        # [xv, yv] = convert_spectrum_to_xy(spec[3])
-
+    def display_spectrum(self, parent=None, p0=None, p1=None, error_range=None):
         [self.blue, self.gray] = compare_ms.classify_peaks(p0, p1, error_range)
-
-        [title, pep_mass] = (self.p0[0], self.p0[1])
+        # [title, pep_mass] = (self.p0[0], self.p0[1])
         [blue_x, blue_y] = convert_spectrum_to_xy(self.blue)
         [gray_x, gray_y] = convert_spectrum_to_xy(self.gray)
-
+        # p0, p1은 data frame이다.
 
         hoverTool = HoverTool(
             tooltips=[
                 ("m/z = ", "@mz"),
                 ("intensity = ", "@intensity"),
-    
             ]
         )
             
         p = figure(width=900, height=400, sizing_mode='stretch_both', tools=[hoverTool],)
-
-        spec = sample_data.return_data1()
 
         blue_df = pd.DataFrame({
             'mz':blue_x,
@@ -76,8 +70,8 @@ class BokehWidget(QtWidgets.QWidget):
         grouped = gray_df.groupby('mz').sum()
         gray_source = ColumnDataSource(grouped)
 
-        p.vbar(x='mz', top='intensity', source=blue_source, width=3, color='red')
-        p.vbar(x='mz', top='intensity', source=gray_source, width=3, color='gray')
+        p.vbar(x='mz', top='intensity', source=blue_source, width=1.5, color='red')
+        p.vbar(x='mz', top='intensity', source=gray_source, width=0.7, color='gray')
         url = return_cur_dir() + '/boekehWidget.html'
         print(url)
         html = file_html(p, CDN, "my plot")
@@ -85,5 +79,3 @@ class BokehWidget(QtWidgets.QWidget):
         # p.add_tools(HoverTool(hoverTool))
 
         parent.browser.setHtml(html)
-
-        # show(p)
