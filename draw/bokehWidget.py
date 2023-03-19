@@ -9,7 +9,7 @@ import sample_data
 from PyQt5 import QtWidgets, QtCore
 import numpy as np
 
-from bokeh.models import HoverTool
+from bokeh.models import HoverTool, BoxZoomTool, ResetTool, WheelZoomTool, PanTool
 
 import compare_ms
 
@@ -52,7 +52,11 @@ class BokehWidget(QtWidgets.QWidget):
             ]
         )
             
-        p = figure(width=900, height=400, sizing_mode='stretch_both', tools=[hoverTool],)
+        p = figure(max_height=1000,
+                   sizing_mode='stretch_width',
+                #    sizing_mode='scale_height',
+                   tools=[hoverTool, BoxZoomTool(), ResetTool(), WheelZoomTool(zoom_on_axis=False), PanTool()],
+                   toolbar_location="below",)
 
         blue_df = pd.DataFrame({
             'mz':blue_x,
@@ -76,6 +80,5 @@ class BokehWidget(QtWidgets.QWidget):
         print(url)
         html = file_html(p, CDN, "my plot")
 
-        # p.add_tools(HoverTool(hoverTool))
 
         parent.browser.setHtml(html)

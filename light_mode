@@ -1,3 +1,11 @@
 MyApp{
     background-color: white;
 }
+
+QVBoxLayout {
+    margin: 30px;
+}
+
+QtWebEngineWidgets {
+    padding: 30px;
+}
