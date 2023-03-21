@@ -31,13 +31,6 @@ class MyApp(QMainWindow):
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
 
-
-        ###############################
-        #일단 임시로 toy.mgf 데이터만   #
-        ###############################
-        # peptide_data = data.return_data()
-
- 
         self.data = {
             'title': ["Open a mgf file."],
             'charge': [" "],
@@ -100,9 +93,7 @@ class MyApp(QMainWindow):
         img_path = cur_path + '/ui/image/icon.png'
         img_path = img_path.replace('\\', '/')
 
-        # self.changeFont()
         self.setWindowIcon(QIcon(img_path))
-        self.setLayout(self.vbox)
 
         self.resize(1200, 800)
 
