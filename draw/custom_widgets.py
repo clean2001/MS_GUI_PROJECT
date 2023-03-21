@@ -120,13 +120,7 @@ class Toolbar(QWidget):
         bokehWidget.BokehWidget(self.parent, self.parent.query, self.parent.comparison, self.parent.e)
 
 
-
-
-        # parent.file_combo_box.__init__(parent,)
-
     def parsing_file(self, filename):
-        # filename = 'toy.mgf'
-        # filename = 'MS_GUI_PROJECT/draw/toy.mgf'
         print("parsing function")
 
         with open(filename) as f:
