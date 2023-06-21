@@ -5,7 +5,6 @@ from bokeh.models import ColumnDataSource
 from bokeh.palettes import Spectral3
 from bokeh.embed import file_html
 from bokeh.resources import CDN
-import sample_data
 from PyQt5 import QtWidgets, QtCore
 import numpy as np
 

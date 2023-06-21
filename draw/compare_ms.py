@@ -72,5 +72,4 @@ def classify_peaks(p0, p1, _error_range):
         else:
             arr = np.append(arr, np.array([[cur_mz, cur_intensity, arr]]), axis=0)
 
-    print(len(spectrum_0))
     return arr

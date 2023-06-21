@@ -78,7 +78,6 @@ def return_data():
     seq = []
     x = []
     y = []
-    print(len(newlist))
 
     for i in range(len(newlist)):
         title.append(newlist[i][0])
@@ -103,17 +102,6 @@ def print_data():
 
 #Title, charge, pepmass, scan, seq, x, y
 def convert_to_dataframe(data_list):
-    # print(len(data_list))
-    # for i in range (0, len(data_list)):
-    #     title_list.append(data_list[i][0])
-    #     charge_list.append(data_list[i][1])
-    #     pepmass_list.append(data_list[i][2])
-    #     scan_list.append(data_list[i][3])
-    #     seq_list.append(data_list[i][4])
-    #     x_list.append(data_list[i][5])
-    #     y_list.append(data_list[i][6])
-    print(len(newlist))
-    print(len(data_list))
     
     data = {
         'title': data_list[0],
@@ -126,9 +114,4 @@ def convert_to_dataframe(data_list):
     }
 
     return data
-    # df = pd.DataFrame(data)
-    # print(df)
 
-
-
-# convert_to_dataframe(newlist)

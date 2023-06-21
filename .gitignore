@@ -44,6 +44,14 @@
 # *.iml
 # *.ipr
 
+# venv
+myvenv/
+
+#
+__pycache__
+
+
+
 # CMake
 cmake-build-*/
 

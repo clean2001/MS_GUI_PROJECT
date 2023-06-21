@@ -121,7 +121,6 @@ class Toolbar(QWidget):
 
 
     def parsing_file(self, filename):
-        print("parsing function")
 
         with open(filename) as f:
             lines = f.read().splitlines()
@@ -190,7 +189,6 @@ class Toolbar(QWidget):
         seq = []
         x = []
         y = []
-        print(len(seq_list))
 
         for i in range(len(seq_list)):
             title.append(seq_list[i][0])
@@ -200,13 +198,5 @@ class Toolbar(QWidget):
             seq.append(seq_list[i][4])
             x.append(seq_list[i][5])
             y.append(seq_list[i][6])
-
-        print(len(title))
-        print(len(charge))
-        print(len(pep_mass))
-        print(len(scans))
-        print(len(seq))
-        print(len(x))
-        print(len(y))
 
         return title, charge, pep_mass, scans, seq, x, y
