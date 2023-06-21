@@ -57,7 +57,6 @@ class SpectrumCombobox(QWidget):
         self.spectrumComboBox.update()
 
     def onActivated(self):
-        print(self.spectrumComboBox.currentIndex())
         comparison_idx = self.spectrumComboBox.currentIndex()
         self.parent.comparison = (self.parent.df.loc[comparison_idx])
         bokehWidget.BokehWidget(self.parent, self.parent.query, self.parent.comparison, self.parent.e)
@@ -85,29 +84,10 @@ class Toolbar(QWidget):
     def openFile(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', './')
         seq_list = Toolbar.parsing_file(self, fname[0])
-        print('file name: ', fname[0])
 
-        # if fname[0]:
-        #     f = open(fname[0], 'r')
-        #
-        #     with f:
-        #         self.dialog.setWindowTitle('Dialog')
-        #         self.dialog.resize(700, 500)
-        #
-        #         data = f.read()
-        #         self.dialog.textEdit.setText(data)
-        #
-        #         self.dialog.show()
 
         split = Toolbar.split_list(self, seq_list)
         title, charge, pep_mass, scans, seq, x, y = Toolbar.split_list(self, seq_list)
-        # print("split title: ", title)
-        # print("split charge: ", charge)
-        # print("split pep_mass: ", pep_mass)
-        # print("split scans: ", scans)
-        # print("split seq: ", seq)
-        # print("split x: ", x)
-        # print("split y: ", y)
 
         data = convert_data.convert_to_dataframe(split)
         self.parent.df = pd.DataFrame(data)

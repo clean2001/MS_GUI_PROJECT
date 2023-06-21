@@ -69,5 +69,4 @@ while idx < line_len - 1:
     flag = True
 
 def return_data():
-    print(newlist)
     return newlist

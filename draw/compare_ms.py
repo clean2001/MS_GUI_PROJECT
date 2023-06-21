@@ -12,14 +12,16 @@ def find_peak(p0_mz, spectrum_1, _error_range):
     e = float(_error_range)
 
     p0_mz = float(p0_mz)
+    mz_1 = spectrum_1['m/z']
 
     start = 0
-    end = len(spectrum_1)
-
+    end = len(mz_1)
+    i = 0
     while start <= end:
+        i += 1
         mid = int((start + end) / 2)
 
-        if mid >= len(spectrum_1):
+        if mid >= len(mz_1):
             break
 
         if start < 0:
@@ -28,7 +30,7 @@ def find_peak(p0_mz, spectrum_1, _error_range):
         f1 = False
         f2 = False
 
-        mz = float(spectrum_1[mid][0])
+        mz = float(mz_1[mid])
         f1 = (float(mz) <= float(p0_mz + e))
 
         f2 = (float(mz) >= float(p0_mz - e))
@@ -45,31 +47,42 @@ def find_peak(p0_mz, spectrum_1, _error_range):
     return False
 
 
+def get_mz(p):
+    return p['m/z']
+
+def get_intensity(p):
+    return p['intensity']
+
 def get_spectrum(p):
-    return p[3]
+    return p[['m/z', 'intensity']]
 
 
 def classify_peaks(p0, p1, _error_range):
-    gray = 0
-    blue = 1
     # array to return
-    arr = np.empty((0, 3), float) # color: 0-gray, 1-blue
-    # blue = np.empty((0, 2), float)
+    gray = np.empty((0, 2), float)
+    blue = np.empty((0, 2), float)
 
     error_range = _error_range
 
-    spectrum_0 = get_spectrum(p0)
-    spectrum_1 = get_spectrum(p1)
+    mz_0 = get_mz(p0) # query의 mz list
+    mz_1 = get_mz(p1) # comparision의 mz list 
+    intensity_0 = get_intensity(p0)
+    intensity_1 = get_intensity(p1)
 
-    num_of_peaks = len(spectrum_0)
+    sp_0 = get_spectrum(p0)
+    sp_1 = get_spectrum(p1)
+
+
+
+    num_of_peaks = len(mz_0)
 
     for i in range(0, num_of_peaks):
-        cur_mz = spectrum_0[i][0]
-        cur_intensity = spectrum_0[i][1]
+        cur_mz = sp_0['m/z'][i]
+        cur_intensity = sp_0['intensity'][i]
 
-        if find_peak(cur_mz, spectrum_1, error_range):
-            arr = np.append(arr, np.array([[cur_mz, cur_intensity, arr]]), axis=0)
+        if find_peak(cur_mz, sp_1, error_range):
+            blue = np.append(blue, np.array([[cur_mz, cur_intensity]]), axis=0)
         else:
-            arr = np.append(arr, np.array([[cur_mz, cur_intensity, arr]]), axis=0)
+            gray = np.append(gray, np.array([[cur_mz, cur_intensity]]), axis=0)
 
-    return arr
+    return [blue, gray]

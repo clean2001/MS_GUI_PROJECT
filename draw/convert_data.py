@@ -92,14 +92,6 @@ def return_data():
     return convert_to_dataframe(list)
 
 
-def print_data():
-    list = return_data()
-
-    for i in range(len(list)):
-        print(len(list[i]))
-        print(list[i][0])
-        print(list[i][1])
-
 #Title, charge, pepmass, scan, seq, x, y
 def convert_to_dataframe(data_list):
     
