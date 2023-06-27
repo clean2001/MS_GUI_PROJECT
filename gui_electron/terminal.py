@@ -43,3 +43,52 @@ def make_cterm_list(seq: str) -> list:
         c_term.append(sum)
     
     return c_term
+
+# _tol만큼의 오차를 허용하여 일치하는 피크를 찾기
+def find_peak(_term: float, _mz: list, _tol: float) -> bool:
+    e = float(_tol)
+
+    start = 0
+    end = len(_mz)
+    i = 0
+    while start <= end:
+        i += 1
+        mid = int((start + end) / 2)
+
+        if mid >= len(_mz):
+            break
+
+        if start < 0:
+            break
+
+        f1 = False
+        f2 = False
+
+        mz = float(_mz[mid])
+        f1 = (float(mz) <= float(_term + e))
+
+        f2 = (float(mz) >= float(_term - e))
+
+        if f1 and f2:
+            return True
+
+        if mz > _term:
+            end = mid - 1
+
+        if mz < _term:
+            start = mid + 1
+
+    return False
+
+
+def make_opacity_list(mz: list, term: list, tol: float) -> list:
+    opacity = [0]
+    term = term[1:]
+    for val in term:
+        rslt = find_peak(float(val), mz, tol)
+        if rslt:
+            opacity.append(1)
+        else:
+            opacity.append(0)
+    
+    return opacity

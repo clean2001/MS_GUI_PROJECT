@@ -10,6 +10,8 @@ import numpy as np
 
 import terminal
 
+tol = 0.5
+
 def parse_file(filename : str) :
     with open(filename) as f:
         lines = f.read().splitlines()
@@ -116,22 +118,23 @@ def display_graph(data, idx : int):
 
     nterm_color = ['blue' for i in range(len(nterm_list))]
     cterm_color = ['red' for i in range(len(cterm_list))]
-    nterm_opa = [0.9 for i in range(len(nterm_list))]
 
-    dashed = [0]
-    for i in range(len(cterm_list)-1) :
-        dashed.append(1)
+    nterm_opacity = terminal.make_opacity_list(dict['mz'], nterm_list, tol) # tol은 전역변수이므로, 나중에 수정하기
+    cterm_opacity = terminal.make_opacity_list(dict['mz'], cterm_list, tol)
+
+    print(len(nterm_list), len(nterm_opacity))
+
 
     cterm_df = pd.DataFrame({
         'w': cterm_list,
         'color': cterm_color,
-        'dash': dashed
+        'opacity': cterm_opacity
     })
 
     nterm_df = pd.DataFrame({
         'w': nterm_list,
         'color': nterm_color,
-        'dash': dashed
+        'opacity': nterm_opacity
     })
 
     cterm_chart += (
@@ -141,8 +144,8 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('dash:N'),
-            opacity = alt.Opacity('dash:Q', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N'),
+            opacity = alt.Opacity('opacity:Q', scale=None),
         ).interactive()
     )
 
@@ -153,8 +156,8 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('dash:N'),
-            opacity = alt.Opacity('dash:Q', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N'),
+            opacity = alt.Opacity('opacity:Q', scale=None),
         ).interactive()
     )
 
@@ -165,8 +168,8 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('dash:N'),
-            opacity = alt.Opacity('dash:Q', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N'),
+            opacity = alt.Opacity('opacity:Q', scale=None),
         ).interactive()
     )
 
@@ -177,8 +180,8 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('dash:N'),
-            opacity = alt.Opacity('dash:Q', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N'),
+            opacity = alt.Opacity('opacity:Q', scale=None),
         ).interactive()
     )
 
