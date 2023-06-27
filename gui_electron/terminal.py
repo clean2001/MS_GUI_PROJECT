@@ -24,11 +24,9 @@ amino_acid = pd.DataFrame({ 'AA Codes_1' : ['Gly', 'Ala', 'Ser', 'Pro', 'Val', '
 
 def make_nterm_list(seq : str) -> list:
     sum = proton
-    n_term = []
+    n_term = [float(amino_acid.loc[amino_acid['AA Codes_2'] == seq[0]]['Mono.'].iloc[0])]
     for animo in seq:
         w = float(amino_acid.loc[amino_acid['AA Codes_2'] == animo]['Mono.'].iloc[0])
-
-        print(w)
 
         sum += w
         n_term.append(sum)
@@ -45,9 +43,3 @@ def make_cterm_list(seq: str) -> list:
         c_term.append(sum)
     
     return c_term
-
-rslt = make_nterm_list('AGQKE')
-rslt2 = make_cterm_list('AGQKE')
-
-print(rslt)
-print(rslt2)

@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-
+import terminal
 
 def parse_file(filename : str) :
     with open(filename) as f:
@@ -108,8 +108,85 @@ def display_graph(data, idx : int):
     chart = sup.spectrum(spectrum)
     nterm_chart = sup.spectrum(spectrum)
     cterm_chart = sup.spectrum(spectrum)
+    ncterm_chart = sup.spectrum(spectrum)
+
+    ### n-term, c-term
+    nterm_list = terminal.make_nterm_list(dict['seq'])
+    cterm_list = terminal.make_cterm_list(dict['seq'])
+
+    nterm_color = ['blue' for i in range(len(nterm_list))]
+    cterm_color = ['red' for i in range(len(cterm_list))]
+    nterm_opa = [0.9 for i in range(len(nterm_list))]
+
+    dashed = [0]
+    for i in range(len(cterm_list)-1) :
+        dashed.append(1)
+
+    cterm_df = pd.DataFrame({
+        'w': cterm_list,
+        'color': cterm_color,
+        'dash': dashed
+    })
+
+    nterm_df = pd.DataFrame({
+        'w': nterm_list,
+        'color': nterm_color,
+        'dash': dashed
+    })
+
+    cterm_chart += (
+        alt.Chart(cterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+            strokeDash=alt.StrokeDash('dash:N'),
+            opacity = alt.Opacity('dash:Q', scale=None),
+        ).interactive()
+    )
+
+    nterm_chart += (
+        alt.Chart(nterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+            strokeDash=alt.StrokeDash('dash:N'),
+            opacity = alt.Opacity('dash:Q', scale=None),
+        ).interactive()
+    )
+
+    ncterm_chart += (
+        alt.Chart(nterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+            strokeDash=alt.StrokeDash('dash:N'),
+            opacity = alt.Opacity('dash:Q', scale=None),
+        ).interactive()
+    )
+
+    ncterm_chart += (
+        alt.Chart(cterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+            strokeDash=alt.StrokeDash('dash:N'),
+            opacity = alt.Opacity('dash:Q', scale=None),
+        ).interactive()
+    )
 
     chart.properties(width=1100, height=400).save("spectrum_naive.html")
+    cterm_chart.properties(width=1100, height=400).save("spectrum_cterm.html")
+    nterm_chart.properties(width=1100, height=400).save("spectrum_nterm.html")
+    ncterm_chart.properties(width=1100, height=400).save("spectrum_ncterm.html")
+
 
     
 def main():
@@ -117,7 +194,7 @@ def main():
         print("[ERROR]: Insufficient args")
         sys.exit()
     
-    print(sys.argv[0], sys.argv[1])
+    # print(sys.argv[0], sys.argv[1])
 
     data = parse_file(sys.argv[1])
     display_graph(data, 0)
