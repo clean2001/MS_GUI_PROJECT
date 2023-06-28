@@ -1,5 +1,6 @@
 # data frame 형식으로 table 만들기
 import pandas as pd
+import custom_widgets
 
 # global 변수로 놓기
 Proton = 1.007276035
@@ -40,16 +41,16 @@ sum_of_amino_acids_avg = 0
 # print(amino_acid_table['AA Codes_2'])
 
 row = amino_acid.loc[amino_acid['AA Codes_2'] == 'S']
-print(row)
-print(row['Mono.'].values[0])
+# print(row)
+# print(row['Mono.'].values[0])
 
 for i in seq_list:
     row = amino_acid.loc[amino_acid['AA Codes_2'] == 'S']
     sum_of_amino_acids_mono += row['Mono.'].values[0]
     sum_of_amino_acids_avg += row['Avg.'].values[0]
 
-print(sum_of_amino_acids_mono)
-print(sum_of_amino_acids_avg)
+# print(sum_of_amino_acids_mono)
+# print(sum_of_amino_acids_avg)
 
 # Mono. 로 계산 한것
 B_ion = sum_of_amino_acids_mono + Proton
@@ -64,3 +65,6 @@ Y_ion_avg = sum_of_amino_acids_avg + H20 + Proton
 
 print(B_ion_avg)
 print(Y_ion_avg)
+
+# custom_wideget에 있는 parsing한 file에서 title~y값까지 각각 리스트로 반환한 것을
+# 여기로 불러와서 일반화 시켜야됨
