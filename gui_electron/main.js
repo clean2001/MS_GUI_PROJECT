@@ -5,7 +5,6 @@ const path = require('path');
 const spawn = require('child_process').spawn; // python code 실행을 위한
 
 
-const isDev = require('electron-is-dev');
 const remote = require('@electron/remote/main');
 
 
@@ -101,11 +100,10 @@ function createWindow() {
     })
  
     win.loadURL(
-        isDev
-          ? 'http://localhost:3000'
-          : `file://${path.join(__dirname, '../build/index.html')}`
-      )
- 
+        `file://${path.join(__dirname, './index.html')}`
+    )
+    win.webContents.openDevTools();
+
     remote.enable(win.webContents);
 }
  
