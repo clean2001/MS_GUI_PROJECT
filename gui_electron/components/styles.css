@@ -1,0 +1,19 @@
+.container {
+    display: flex;
+  }
+  
+  .sidebar {
+    width: 25%;
+    background-color: #ccc;
+  }
+  
+  .header {
+    flex: 1;
+    background-color: lightgray;
+  }
+  
+  .main-content {
+    flex: 3;
+    background-color: white;
+  }
+  
