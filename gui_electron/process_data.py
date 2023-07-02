@@ -1,24 +1,24 @@
-import sys
+import sys, json
 import spectrum_utils.iplot as sup
 import spectrum_utils.spectrum as sus
 import numpy as np
 import altair as alt
 
 import pandas as pd
-import numpy as np
 
 
 import terminal
 
-tol = 0.5
 
 def parse_file(filename : str) :
     with open(filename) as f:
         lines = f.read().splitlines()
 
         line_len = len(lines)
-
+    
+    spectrum_index = 0
     data = {
+            'idx': spectrum_index,
             'title':' ',
             'charge': ' ',
             'pepmass': ' ',
@@ -82,7 +82,9 @@ def parse_file(filename : str) :
         data['intensity'] = y
         newlist.append(data)
 
+        spectrum_index += 1
         data = {
+            'idx': spectrum_index,
             'title':' ',
             'charge': ' ',
             'pepmass': ' ',
@@ -95,9 +97,17 @@ def parse_file(filename : str) :
         flag = True
     return newlist
 
+def transparent_background(*args, **kwargs):
+    return {
+            "background": "transparent",
+          }
+
 # make naive, cterm, nterm graph as a html file
-def display_graph(data, idx : int):
+def display_graph(data, idx : int, tol : float):
     dict = data[idx] # dictionary
+
+    # alt.themes.register('transparent_background', transparent_background)
+    # alt.themes.enable('transparent_background')
 
     spectrum = sus.MsmsSpectrum(
         dict['title'],
@@ -119,23 +129,48 @@ def display_graph(data, idx : int):
     nterm_color = ['blue' for i in range(len(nterm_list))]
     cterm_color = ['red' for i in range(len(cterm_list))]
 
-    nterm_opacity = terminal.make_opacity_list(dict['mz'], nterm_list, tol) # tol은 전역변수이므로, 나중에 수정하기
+    nterm_opacity = terminal.make_opacity_list(dict['mz'], nterm_list, tol) # tol은 전역변수이므로, 나중에 수정하기. 일단 0.5
     cterm_opacity = terminal.make_opacity_list(dict['mz'], cterm_list, tol)
 
-    print(len(nterm_list), len(nterm_opacity))
+    naive_w = [nterm_list[0] for i in range(len(nterm_list))]
+    naive_opacity = [0 for i in range(len(nterm_list))]
 
+    naive_df = pd.DataFrame({
+        'w': naive_w,
+        'opacity': naive_opacity
+    })
+    seq_to_list = [' ']
+    reverse_seq_to_list = [' ']
+    seq_to_list += list(dict['seq'])
+    reverse_seq_to_list += list(dict['seq'][::-1])
+    print(seq_to_list)
 
     cterm_df = pd.DataFrame({
         'w': cterm_list,
         'color': cterm_color,
-        'opacity': cterm_opacity
+        'opacity': cterm_opacity,
+        'text': reverse_seq_to_list
     })
+
 
     nterm_df = pd.DataFrame({
         'w': nterm_list,
         'color': nterm_color,
-        'opacity': nterm_opacity
+        'opacity': nterm_opacity,
+        'text': seq_to_list
     })
+
+
+    chart += (
+        alt.Chart(naive_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            opacity = alt.Opacity('opacity', scale=None, legend=None)
+        ).interactive()
+    )
+
 
     cterm_chart += (
         alt.Chart(cterm_df)
@@ -144,8 +179,34 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('opacity:N'),
-            opacity = alt.Opacity('opacity:Q', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N', legend=None),
+            opacity = alt.Opacity('opacity:Q', scale=None, legend=None),
+        ).interactive()
+    )
+
+    cterm_chart += (
+        alt.Chart(cterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+        ).mark_text(
+            dx = -20,
+            dy = -200,
+            fontSize= 15
+        ).encode(text='text').interactive()
+    )
+
+    nterm_chart += (
+        alt.Chart(nterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N', legend=None),
+            opacity = alt.Opacity('opacity:Q', scale=None, legend=None),
         ).interactive()
     )
 
@@ -156,9 +217,11 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('opacity:N'),
-            opacity = alt.Opacity('opacity:Q', scale=None),
-        ).interactive()
+        ).mark_text(
+            dx = -20,
+            dy = -230,
+            fontSize = 15,
+        ).encode(text='text').interactive()
     )
 
     ncterm_chart += (
@@ -168,8 +231,8 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('opacity:N'),
-            opacity = alt.Opacity('opacity:Q', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N', legend=None),
+            opacity = alt.Opacity('opacity:Q', scale=None, legend=None),
         ).interactive()
     )
 
@@ -180,27 +243,84 @@ def display_graph(data, idx : int):
         .encode(
             x='w',
             color=alt.Color('color:N', scale=None),
-            strokeDash=alt.StrokeDash('opacity:N'),
-            opacity = alt.Opacity('opacity:Q', scale=None),
+            strokeDash=alt.StrokeDash('opacity:N', legend=None),
+            opacity = alt.Opacity('opacity:Q', scale=None, legend=None),
         ).interactive()
     )
 
-    chart.properties(width=1100, height=400).save("spectrum_naive.html")
-    cterm_chart.properties(width=1100, height=400).save("spectrum_cterm.html")
-    nterm_chart.properties(width=1100, height=400).save("spectrum_nterm.html")
-    ncterm_chart.properties(width=1100, height=400).save("spectrum_ncterm.html")
 
+    ncterm_chart += (
+        alt.Chart(nterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+        ).mark_text(
+            dx = -20,
+            dy = -230,
+            fontSize = 15,
+        ).encode(text='text').interactive()
+    )
+
+    ncterm_chart += (
+        alt.Chart(cterm_df)
+        .mark_line()
+        .mark_rule()
+        .encode(
+            x='w',
+            color=alt.Color('color:N', scale=None),
+        ).mark_text(
+            dx = -20,
+            dy = -200,
+            fontSize = 15,
+        ).encode(text='text').interactive()
+    )
+
+    chart.properties(width=1000, height=500).save("./spectrums/spectrum_naive"+str(idx)+".html")
+    cterm_chart.properties(width=1000, height=500).save("./spectrums/spectrum_cterm"+str(idx)+".html")
+    nterm_chart.properties(width=1000, height=500).save("./spectrums/spectrum_nterm"+str(idx)+".html")
+    ncterm_chart.properties(width=1000, height=500).save("./spectrums/spectrum_ncterm"+str(idx)+".html")
+
+
+# 파일 직렬화
+def serialize_spectrums_for_py(data: any, json_file: str) :
+    with open(json_file, "w") as outfile:
+        json.dump(data, outfile)
+    # outfile.close()
+
+def serialize_spectrums(data: any, json_file: str) :
+    result = json.dumps(data)
+    result = 'data = ' + result
+    out = open(json_file, 'w')
+    out.write(result)
+    out.close()
+
+def unserialize_spectrums(json_file: str):
+    with open(json_file, "r") as file:
+        rslt = json.load(file)
+    
+    return rslt
+###
 
     
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         print("[ERROR]: Insufficient args")
         sys.exit()
-    
-    # print(sys.argv[0], sys.argv[1])
 
     data = parse_file(sys.argv[1])
-    display_graph(data, 0)
+    tol = float(sys.argv[2])
+
+    serialize_spectrums(data, "./objects/spectrums.json") # 직렬화
+    # serialize_spectrums_for_py(data, "./spectrums/spectrums_for_python.json")
+
+    # for i in range (len(data)):
+    #     print(data[i])
+
+    # rslt = unseialize_spectrums("spectrums.json") # 성공
+    for i in range(len(data)):
+        display_graph(data, i, tol) # html 생성
 
 if __name__ == "__main__":
     main()

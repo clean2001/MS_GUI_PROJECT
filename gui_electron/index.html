@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="./components/sidebar_style.css">
     <link rel="stylesheet" href="./components/styles.css">
 
+    <script src="./objects/spectrums.json" type="text/javascript"></script>
+
+
     <title>MS GUI</title>
 </head>
 <body>
@@ -24,6 +27,11 @@
             <div id="tab_s">
 
             </div>
+            <div id="graph-window">
+                <h2 id="spectrum_title">-</h2>
+                <h3 id="spectrum_seq">-</h3>
+        
+            </div>    
         </div>
     </div>
 </body>
@@ -32,14 +40,22 @@
     
     <script type="text/babel" data-type="module">
         import { createRoot } from 'react-dom/client';
+
+        let mydata = JSON.parse(JSON.stringify(data));
+        console.log(mydata);
         
         const tab_style = createRoot(document.getElementById('tab_s'));
         tab_style.render(<Tab />);
 
         const sidebar = createRoot(document.getElementById('sidebar'));
-        sidebar.render(<Sidebar />);
+        sidebar.render(<Sidebar data={mydata}/>);
 
-        // const sidebar = createRoot(document.getElementById('sidebar'));
-        // sidebar.render(<SideBar/>);
+        let spectrum_title = document.querySelector('#spectrum_title');
+        let spectrum_seq = document.querySelector('#spectrum_seq');
+        let graph_window = document.getElementById('graph_window');
+        spectrum_title.innerHTML = `${mydata[0].title}`;
+        spectrum_seq.innerHTML = `${mydata[0].seq}`;
+
+
     </script>
 </html>

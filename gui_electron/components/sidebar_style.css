@@ -1,6 +1,6 @@
 ul {
     list-style-type: none;
-    background-color: #ccc;
+    background-color: #eceeef;
     width: 25%;
     padding: 0;
     margin: 0;
@@ -9,17 +9,23 @@ ul {
     overflow: auto;
   }
   
-  li a {
+  .not-current {
     text-decoration: none;
     display: block;
-    color: #000;
+    color: #000000;
     padding: 8px 15px 8px 15px;
-    font-weight: bold;
+    font-size: 14px;
   }
   
-  li a.query {
-    background-color: tomato;
-    color: #fff;
+ .current-spectrum {
+    /* background-color: #5aa7de; */
+    color: black;
+    width: 100%;
+    font-size: 14px;
+    padding: 8px 15px 8px 15px;
+    border-bottom: solid 3px #5aa7de;
+    font-weight: bold;
+
   }
   
   li a:hover:not(.query) {

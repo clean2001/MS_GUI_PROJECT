@@ -2,14 +2,14 @@
     display: flex;
   }
   
-  .sidebar {
-    width: 25%;
-    background-color: #ccc;
+  .sidebar { /* 전체 사이드 바*/
+    width: 20vw;
+    background-color: #FFFFFF;
   }
   
   .header {
     flex: 1;
-    background-color: lightgray;
+    background-color: #FFFFFF;
   }
   
   .main-content {

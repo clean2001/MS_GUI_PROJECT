@@ -43,7 +43,6 @@ function Tab() {
     
     return (
       <div>
-        <p>hello!</p>
         <TabMenu>
           {menuArr.map((ele, index)=>{
             return (
@@ -64,5 +63,3 @@ function Tab() {
       </div>
     );
 }
-
-export default Tab;

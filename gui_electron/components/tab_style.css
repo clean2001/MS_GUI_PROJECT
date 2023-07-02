@@ -1,26 +1,43 @@
 .TabMenu {
-    background-color: #dcdcdc;
     font-weight: bold;
     display: flex;
     flex-direction: row;
     justify-items: center;
     align-items: center;
     list-style: none;
+    width: 80vw;
+    background-color: #FFFFFF;
 }
 
 .TabMenu .submenu {
-    width: 100% auto;
+    width: 100%;
     padding: 15px 10px;
     cursor: pointer;
+    border-radius: 12px 12px 0px 0px;   
+    background-color: #eceeef;
+ 
+}
+
+.TabMenu .submenu:hover{
+    background-color: #dee1e3;
+    opacity: 0.5;
 }
 
 .TabMenu .focused {
-    background-color: darkblue;
+    background-color: #374047;
     color: white;
 }
+
+.TabMenu .focused:hover {
+    background-color: #374047;
+    color: white;
+    opacity: 1;
+}
+
 
 .Desc {
     padding-top: 180px;
     min-height: 100vh;
+    width: 80vw;
     display: flex;
 }
