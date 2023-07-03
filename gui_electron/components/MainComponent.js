@@ -25,6 +25,13 @@ const sidebar_content_notCurrent = { // 선택되지 않은 일반 리스트
     padding: "5px",
     margin: "5px"
 
+};
+
+const sidebar_content_notCurrent_hovered = { // 선택되지 않은 일반 리스트
+    width: "100%",
+    padding: "5px",
+    margin: "5px",
+    opacity: "0.5"
 }
 
 const sidebar_content_current = { // 선택이 된 리스트 항목 (파란 밑줄)
@@ -33,6 +40,8 @@ const sidebar_content_current = { // 선택이 된 리스트 항목 (파란 밑�
     padding: "5px",
     margin: "5px",
 };
+
+
 
 
 const tab_menu_style = { // 탭 메뉴 전체를 감싸고 있는 탭
@@ -65,9 +74,17 @@ const tab_menu_component = {
     padding: "10px",
     background: "#374047",
     color: "white",
-    float: "bottom",
 
 };
+
+const tab_menu_component_hovered = {
+    opacity: "0.5",
+    padding: "10px",
+    background: "#374047",
+    color: "white",
+
+}
+
 
 const tab_menu_component_current = {
     padding: "10px",
@@ -75,8 +92,8 @@ const tab_menu_component_current = {
     color: "black",
     borderBottom: "solid 10px white",
     borderTop: "solid 2px #374047",
-    margin: "0px"
-
+    margin: "0px",
+    
 };
 
 const Nbtn = {
@@ -103,12 +120,15 @@ const Cbtn = {
     margin: "5px"
 };
 
+
 const Cbtn_pushed = {
     width: "30px",
     height: "30px",
     background: "#85000b",
     margin: "5px"
 }
+
+
 
 // end styles
 
@@ -118,6 +138,27 @@ function showGraph(terminal) {
     tmp.src = `${terminal}`;
 }
 
+function TabBtn ({idx, name, curIdx, func}) {
+    const [hovering, setHovering] = useState(false);
+    return (
+        <div style={curIdx===idx? tab_menu_component_current : hovering? tab_menu_component_hovered: tab_menu_component}
+         onClick={()=>{func(idx)}}
+         onMouseOver={()=>{setHovering(true)}}
+         onMouseLeave={()=>{setHovering(false)}}>{ name }</div>
+    );
+}
+
+function spectrum_list_component({obj, reShowGraph}) {
+    const [hovering, setHovering] = useState(false);
+
+    return (
+    <div key={obj.title}
+        onClick={() => reShowGraph(obj.idx, obj.title, obj.seq)}
+        onMouseOver={()=>{setHovering(true)}}
+        onMouseLeave={()=>{setHovering(false)}}
+        style={spectrumIdx===obj.idx ? sidebar_content_current: hovering? sidebar_content_notCurrent_hovered : sidebar_content_notCurrent}>{obj.title}</div>
+    );
+}
 
 function MainComponent(props) {
     const [ spectrumIdx, setSpectrumIdx ] = useState(0); 
@@ -128,6 +169,9 @@ function MainComponent(props) {
     const [graphUrl, setGraphUrl] = useState(false);
 
     const [tabIdx, setTabIdx] = useState(0);
+
+    const [hovering, setHovering] = useState(null);
+
     let terminal;
 
     useEffect(()=>{
@@ -172,9 +216,9 @@ function MainComponent(props) {
     
     
     const spectrum_list = props.data.map((obj) => 
-            <div key={obj.title}
-            onClick={() => reShowGraph(obj.idx, obj.title, obj.seq)}
-            style={spectrumIdx===obj.idx ? sidebar_content_current: sidebar_content_notCurrent}>{obj.title}</div>
+        <div key={obj.title}
+        onClick={() => reShowGraph(obj.idx, obj.title, obj.seq)}
+        style={spectrumIdx===obj.idx ? sidebar_content_current: sidebar_content_notCurrent}>{obj.title}</div>
     );
     return (
         <div>
@@ -186,10 +230,9 @@ function MainComponent(props) {
         </div>
         <div id="tab-container" style={tab_container}>
             <div id="tab_menu" style={tab_menu_style}>
-                <div style={tabIdx===0? tab_menu_component_current : tab_menu_component} onClick={()=>{setTabIdx(0)}}>View Spectrums</div>
-                <div style={tabIdx===1? tab_menu_component_current : tab_menu_component} onClick={()=>{setTabIdx(1)}}>Library matching</div>
+                <TabBtn name="View Spectrum" idx={0} curIdx={tabIdx} func={setTabIdx}/>
+                <TabBtn name="Library matching" idx={1} curIdx={tabIdx} func={setTabIdx}/>
             </div>
-
             <div id='content_0' style={tabIdx === 0? current_tab : not_current_tab}>
                 <div id="spectrum-info">
                     <h3>Title: {data[spectrumIdx].title}</h3>
