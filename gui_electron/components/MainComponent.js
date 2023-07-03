@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 
-// styles
+// begin styles
 const graph_iframe_style = {
     width: "75vw",
-    height: "75vh"
+    height: "75vh",
+    border: "0px",
 };
 
 const sidebar_style = {
-    width: "20vw",
+    width: "18vw",
     height: "100vh",
     float: "left",
     background: "#ECEEEF",
@@ -26,40 +27,90 @@ const sidebar_content_notCurrent = { // 선택되지 않은 일반 리스트
 
 }
 
-const sidebar_content_current = { // 선택이 된 리스트 항목
-    width: "100%",
+const sidebar_content_current = { // 선택이 된 리스트 항목 (파란 밑줄)
+    width: "25vw",
     borderBottom: "solid 2px #7dbae5",
     padding: "5px",
-    margin: "5px"
+    margin: "5px",
 };
 
 
-const tab_menu_style = {
+const tab_menu_style = { // 탭 메뉴 전체를 감싸고 있는 탭
     width: "75vw",
-    height: "10vh",
-    background: "blue",
+    height: "7vh",
+    margin: "0px",
+    background: "#374047",
+    display: "flex"
+};
+
+const current_tab = { // 선택된 탭
     margin: "0px"
 };
 
-const current_tab = {
-    margin: "0px"
-};
-
-const not_current_tab = {
+const not_current_tab = { // 선택되지 않은 탭
     width: "75vw",
     height: "100vh",
     float: "right",
     display: "none",
 }
 
-const tab_container = {
-    width: "75vw",
+const tab_container = { // tab menu와 tab content 전체를 감싸고 있는 요소
+    width: "78vw",
     height: "89vh",
     float: "right",
     margin: "0px"
 }
 
-//
+const tab_menu_component = {
+    padding: "10px",
+    background: "#374047",
+    color: "white",
+    float: "bottom",
+
+};
+
+const tab_menu_component_current = {
+    padding: "10px",
+    background: "white",
+    color: "black",
+    borderBottom: "solid 10px white",
+    borderTop: "solid 2px #374047",
+    margin: "0px"
+
+};
+
+const Nbtn = {
+    width: "30px",
+    height: "30px",
+    border: "solid 3px #2d8fd5",
+    background: "white",
+    margin: "5px"
+};
+
+const Nbtn_pushed = {
+    width: "30px",
+    height: "30px",
+    background: "#004170",
+    margin: "5px"
+};
+
+
+const Cbtn = {
+    width: "30px",
+    height: "30px",
+    border: "solid 3px #e6838b",
+    background: "white",
+    margin: "5px"
+};
+
+const Cbtn_pushed = {
+    width: "30px",
+    height: "30px",
+    background: "#85000b",
+    margin: "5px"
+}
+
+// end styles
 
 function showGraph(terminal) {
     let tmp = document.querySelector('#graph-iframe');
@@ -130,31 +181,31 @@ function MainComponent(props) {
         <div id="sidebar" style={sidebar_style}>
             <h3>Spectrums</h3>
             <div style={sidebar_list}>
-                {spectrum_list}
+                {tabIdx === 0? spectrum_list : "준비중입니다."}
             </div>
         </div>
         <div id="tab-container" style={tab_container}>
-        <div id="tab_menu" style={tab_menu_style}>
-            <button onClick={()=>{setTabIdx(1)}}>hihi</button>
-            <button onClick={()=>{setTabIdx(0)}}>bye</button>
-        </div>
-
-        <div id='content_0' style={tabIdx === 0? current_tab : not_current_tab}>
-            <div id="spectrum-info">
-                <h3>{data[spectrumIdx].title}</h3>
-                <h4>{data[spectrumIdx].seq}</h4>
+            <div id="tab_menu" style={tab_menu_style}>
+                <div style={tabIdx===0? tab_menu_component_current : tab_menu_component} onClick={()=>{setTabIdx(0)}}>View Spectrums</div>
+                <div style={tabIdx===1? tab_menu_component_current : tab_menu_component} onClick={()=>{setTabIdx(1)}}>Library matching</div>
             </div>
-            <div id='term-btns'>
-                <button id='n-btn' onClick={toggleNBtn}>N</button>
-                <button id='c-btn' onClick={toggleCBtn}>C</button>
+
+            <div id='content_0' style={tabIdx === 0? current_tab : not_current_tab}>
+                <div id="spectrum-info">
+                    <h3>Title: {data[spectrumIdx].title}</h3>
+                    <h4>Seq: {data[spectrumIdx].seq}</h4>
+                </div>
+                <div id='term-btns'>
+                    <button id='n-btn' onClick={toggleNBtn} style={NisPushed? Nbtn_pushed : Nbtn}>N</button>
+                    <button id='c-btn' onClick={toggleCBtn} style={CisPushed? Cbtn_pushed : Cbtn}>C</button>
+                </div>
+                <iframe style={graph_iframe_style} src={graphUrl}></iframe>
             </div>
-            <iframe style={graph_iframe_style} src={graphUrl}></iframe>
-        </div>
 
-        <div id='content_1' style={tabIdx === 1? current_tab : not_current_tab}>
-            <p>💙준비중인 페이지입니다.</p>
+            <div id='content_1' style={tabIdx === 1? current_tab : not_current_tab}>
+                <p>💙준비중인 페이지입니다.</p>
 
-        </div>
+            </div>
         </div>
     </div>
     )

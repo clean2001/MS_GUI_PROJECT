@@ -124,7 +124,7 @@ const template = [
     label: "Tolerance",
     submenu: [
       {
-        label: "0.5",
+        label: tolerance === 0.5 ? "0.5 ✅" : "0.5",
         click: function () {
           if(!is_index) {
             dialog.showMessageBoxSync(null, open_file_first);
@@ -135,19 +135,21 @@ const template = [
             tolerance = 0.5
             const result = spawn('python', ['process_data.py', currentFiles, tolerance]);
             result.stdout.on('data', function (data) {
-              // console.log("done!");
               let testData = JSON.parse(JSON.stringify("spectrums.json"));
-              // console.log(testData);
               is_index = true;
-    
             });
+
+            result.stderr.on('data', function (data) {
+              console.log("err!");
+            });
+
             mainWindow.loadURL(`file://${app.getAppPath()}/loading.html`);
           }
 
         }
       },
       {
-        label: "0.05",
+        label: tolerance === 0.05 ? "0.05 ✅" : "0.05",
         click: function() {
           if(!is_index) {
             dialog.showMessageBoxSync(null, open_file_first);
@@ -158,11 +160,14 @@ const template = [
             tolerance = 0.05
             const result = spawn('python', ['process_data.py', currentFiles, tolerance]);
             result.stdout.on('data', function (data) {
-              // console.log("done!");
               let testData = JSON.parse(JSON.stringify("spectrums.json"));
-              // console.log(testData);
               is_index = true;
             });
+
+            result.stderr.on('data', function (data) {
+              console.log("err!");
+            });
+
             mainWindow.loadURL(`file://${app.getAppPath()}/loading.html`);
           }
 
