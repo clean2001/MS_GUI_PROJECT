@@ -1,0 +1,13 @@
+
+.current-spectrum {
+    color: #D4D4D4;
+};
+
+.not-current {
+    color: #FFFFFF;
+};
+
+.graph-iframe {
+    width: 50vm;
+    height: 35vm;
+};

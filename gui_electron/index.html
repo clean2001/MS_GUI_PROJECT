@@ -7,36 +7,20 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-    <link rel="stylesheet" href="./components/tab_style.css">
-    <link rel="stylesheet" href="./components/sidebar_style.css">
-    <link rel="stylesheet" href="./components/styles.css">
 
     <script src="./objects/spectrums.json" type="text/javascript"></script>
-
+    <script src="./components/MainComponent.js" type="text/babel"></script>
+    <!-- <link rel="stylesheet" href="./components/MainComponent.css"> -->
 
     <title>MS GUI</title>
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
-            <div id="sidebar">
-                
-            </div>
-        </div>
-        <div class="main-content">
-            <div id="tab_s">
-
-            </div>
-            <div id="graph-window">
-                <h2 id="spectrum_title">-</h2>
-                <h3 id="spectrum_seq">-</h3>
-        
-            </div>    
+        <div id="main-content">
+            
         </div>
     </div>
 </body>
-    <script src="./components/SideBar.js" type="text/babel"></script>
-    <script src="./components/tab_style.js" type="text/babel"></script>
     
     <script type="text/babel" data-type="module">
         import { createRoot } from 'react-dom/client';
@@ -44,17 +28,8 @@
         let mydata = JSON.parse(JSON.stringify(data));
         console.log(mydata);
         
-        const tab_style = createRoot(document.getElementById('tab_s'));
-        tab_style.render(<Tab />);
-
-        const sidebar = createRoot(document.getElementById('sidebar'));
-        sidebar.render(<Sidebar data={mydata}/>);
-
-        let spectrum_title = document.querySelector('#spectrum_title');
-        let spectrum_seq = document.querySelector('#spectrum_seq');
-        let graph_window = document.getElementById('graph_window');
-        spectrum_title.innerHTML = `${mydata[0].title}`;
-        spectrum_seq.innerHTML = `${mydata[0].seq}`;
+        const main_content = createRoot(document.getElementById('main-content'));
+        main_content.render(<MainComponent data={mydata}/>);
 
 
     </script>
