@@ -5,7 +5,6 @@ const path = require('path');
 const spawn = require('child_process').spawn; // python code 실행을 위한
 
 require('electron-reload')(__dirname+`\\spectrums\\spectrum_naive0.html`);
-// console.log(__dirname+`\\spectrums\\`)
 
 
 const isDev = require('electron-is-dev');
@@ -24,7 +23,7 @@ remote.initialize()
 
 // dialog
 const options = {
-  // type: 'question',
+  type: 'question',
   buttons: ['OK'],
   defaultId: 2,
   title: '😊',
@@ -137,6 +136,8 @@ const template = [
             result.stdout.on('data', function (data) {
               let testData = JSON.parse(JSON.stringify("spectrums.json"));
               is_index = true;
+              mainWindow.loadURL(`file://${app.getAppPath()}/index.html`);
+
             });
 
             result.stderr.on('data', function (data) {
@@ -162,6 +163,8 @@ const template = [
             result.stdout.on('data', function (data) {
               let testData = JSON.parse(JSON.stringify("spectrums.json"));
               is_index = true;
+              mainWindow.loadURL(`file://${app.getAppPath()}/index.html`);
+
             });
 
             result.stderr.on('data', function (data) {

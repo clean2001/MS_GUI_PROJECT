@@ -1,15 +1,28 @@
 import { useState, useEffect } from 'react';
 
 // begin styles
-const graph_iframe_style = {
+
+const main_component = {
+    width: "98vw",
+    height: "99vh",
+}
+const outer_graph_iframe = {
     width: "75vw",
     height: "75vh",
-    border: "0px",
+    position: "relative",
 };
 
+const inner_graph_iframe = {
+    width: "100%",
+    height: "100%",
+    border: "0px",
+    position: "absolute"
+}
+
+
 const sidebar_style = {
-    width: "18vw",
-    height: "100vh",
+    width: "18%",
+    height: "100%",
     float: "left",
     background: "#ECEEEF",
     margin: "0px"
@@ -39,17 +52,18 @@ const sidebar_content_current = { // 선택이 된 리스트 항목 (파란 밑�
     borderBottom: "solid 2px #7dbae5",
     padding: "5px",
     margin: "5px",
+    fontWeight: "bold"
 };
 
 
 
 
 const tab_menu_style = { // 탭 메뉴 전체를 감싸고 있는 탭
-    width: "75vw",
-    height: "7vh",
+    width: "100%",
+    height: "7%",
     margin: "0px",
     background: "#374047",
-    display: "flex"
+    display: "flex",
 };
 
 const current_tab = { // 선택된 탭
@@ -57,15 +71,15 @@ const current_tab = { // 선택된 탭
 };
 
 const not_current_tab = { // 선택되지 않은 탭
-    width: "75vw",
-    height: "100vh",
+    width: "75%",
+    height: "100%",
     float: "right",
     display: "none",
 }
 
 const tab_container = { // tab menu와 tab content 전체를 감싸고 있는 요소
-    width: "78vw",
-    height: "89vh",
+    width: "78%",
+    height: "89%",
     float: "right",
     margin: "0px"
 }
@@ -160,6 +174,14 @@ function spectrum_list_component({obj, reShowGraph}) {
     );
 }
 
+function GraphIframe({graphUrl}) {
+    return (
+        <div style={outer_graph_iframe}>
+            <iframe style={inner_graph_iframe} src={graphUrl}></iframe>
+        </div>
+    )
+}
+
 function MainComponent(props) {
     const [ spectrumIdx, setSpectrumIdx ] = useState(0); 
 
@@ -221,7 +243,7 @@ function MainComponent(props) {
         style={spectrumIdx===obj.idx ? sidebar_content_current: sidebar_content_notCurrent}>{obj.title}</div>
     );
     return (
-        <div>
+        <div style={main_component}>
         <div id="sidebar" style={sidebar_style}>
             <h3>Spectrums</h3>
             <div style={sidebar_list}>
@@ -242,7 +264,8 @@ function MainComponent(props) {
                     <button id='n-btn' onClick={toggleNBtn} style={NisPushed? Nbtn_pushed : Nbtn}>N</button>
                     <button id='c-btn' onClick={toggleCBtn} style={CisPushed? Cbtn_pushed : Cbtn}>C</button>
                 </div>
-                <iframe style={graph_iframe_style} src={graphUrl}></iframe>
+                {/* <iframe style={graph_iframe_style} src={graphUrl}></iframe> */}
+                <GraphIframe graphUrl={graphUrl}/>
             </div>
 
             <div id='content_1' style={tabIdx === 1? current_tab : not_current_tab}>
