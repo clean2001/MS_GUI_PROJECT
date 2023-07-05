@@ -265,7 +265,7 @@ function MainComponent(props) {
                     <button id='c-btn' onClick={toggleCBtn} style={CisPushed? Cbtn_pushed : Cbtn}>C</button>
                 </div>
                 {/* <iframe style={graph_iframe_style} src={graphUrl}></iframe> */}
-                <GraphIframe graphUrl={graphUrl}/>
+                <GraphIframe graphUrl={graphUrl.toString()}/>
             </div>
 
             <div id='content_1' style={tabIdx === 1? current_tab : not_current_tab}>
