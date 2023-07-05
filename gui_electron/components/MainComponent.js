@@ -188,7 +188,7 @@ function MainComponent(props) {
     const [NisPushed, setNPushed] = useState(false);
     const [CisPushed, setCPushed] = useState(false);
 
-    const [graphUrl, setGraphUrl] = useState(false);
+    const [graphUrl, setGraphUrl] = useState("./spectrums/spectrum_naive0.html");
 
     const [tabIdx, setTabIdx] = useState(0);
 
@@ -203,13 +203,13 @@ function MainComponent(props) {
     function checkStates() {
         let terminal;
         if(NisPushed === true && CisPushed === true) {
-            terminal = './spectrums/spectrum_ncterm'+spectrumIdx+'.html';
+            terminal = "./spectrums/spectrum_ncterm"+spectrumIdx.toString()+".html";
         } else if(NisPushed === true && CisPushed == false) { // N만 눌린 상태
-            terminal = './spectrums/spectrum_nterm'+spectrumIdx+'.html';
+            terminal = "./spectrums/spectrum_nterm"+spectrumIdx.toString()+".html";
         } else if(CisPushed === true && NisPushed === false) {
-            terminal = './spectrums/spectrum_cterm'+spectrumIdx+'.html';
+            terminal = "./spectrums/spectrum_cterm"+spectrumIdx.toString()+".html";
         } else if(CisPushed === false && NisPushed === false){
-            terminal = './spectrums/spectrum_naive'+spectrumIdx+'.html';
+            terminal = "./spectrums/spectrum_naive"+spectrumIdx.toString()+".html";
         }
 
         // showGraph(terminal);
@@ -265,7 +265,7 @@ function MainComponent(props) {
                     <button id='c-btn' onClick={toggleCBtn} style={CisPushed? Cbtn_pushed : Cbtn}>C</button>
                 </div>
                 {/* <iframe style={graph_iframe_style} src={graphUrl}></iframe> */}
-                <GraphIframe graphUrl={graphUrl.toString()}/>
+                <GraphIframe graphUrl={graphUrl}/>
             </div>
 
             <div id='content_1' style={tabIdx === 1? current_tab : not_current_tab}>
