@@ -47,17 +47,18 @@ class MyApp(QMainWindow):
         with open('./data/decoy_lib.json') as f:
             self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
 
+        self.current_seq='A'
+        self.top_seq = 'A'
+        self.tol = 0.5
 
         self.data = process_data.parse_file('./data/toy.mgf')
         dict = self.data[0]
         spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_top.annotate_proforma(dict['seq'], 0.5, "Da", ion_types="aby")
+        spectrum_top.annotate_proforma('A', self.tol, "Da", ion_types="aby")
         spectrum_bottom = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_bottom.annotate_proforma(dict['seq'], 0.5, "Da", ion_types="aby")
+        spectrum_bottom.annotate_proforma('A', self.tol, "Da", ion_types="aby")
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
         sup.mirror(spectrum_top, spectrum_bottom, ax=self.ax)
-
-        self.current_seq=''
 
         self.target_list, self.decoy_list = [], []
 
@@ -73,6 +74,9 @@ class MyApp(QMainWindow):
 
         self.n_btn = QPushButton('N', self)
         self.c_btn = QPushButton('C', self)
+        self.tol_btn1 = QPushButton('0.5', self)
+        self.tol_btn2 = QPushButton('0.05', self)
+
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
         self.n_btn.toggled.connect(self.n_button)
@@ -111,8 +115,8 @@ class MyApp(QMainWindow):
         left_layout = QHBoxLayout()
         left_layout.addWidget(self.btn_1)
         left_layout.addWidget(self.btn_2)
-        left_layout.addStretch(5)
-        left_layout.setSpacing(20)
+        left_layout.addStretch(0)
+        # left_layout.setSpacing(5)
         left_widget = QWidget()
         left_widget.setLayout(left_layout)
 
@@ -128,9 +132,11 @@ class MyApp(QMainWindow):
 
         left_outer = QVBoxLayout()
         left_outer.addWidget(left_widget) # menubar
+        left_outer.setStretch(0, 0)
         left_outer.addWidget(self.right_widget)
-        left_outer.setStretch(0, 20)
-        left_outer.setStretch(1, 200)
+        left_outer.setStretch(1, 0)
+        # left_outer.setStretch(0, 0)
+        # left_outer.setStretch(1, 200)
 
         main_layout = QHBoxLayout()
         sidebar = QVBoxLayout()
@@ -247,6 +253,12 @@ class MyApp(QMainWindow):
 
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
+        self.terminal_btn_layout.addStretch(20)
+        self.terminal_btn_layout.addWidget(QLabel('tolerance: '))
+        self.terminal_btn_layout.addWidget(self.tol_btn1)
+        self.terminal_btn_layout.addWidget(self.tol_btn2)
+        # self.terminal_btn_layout.addStretch(50)
+        
 
 
         self.canvas = FigureCanvas(self.fig) # mirror plot
@@ -267,17 +279,25 @@ class MyApp(QMainWindow):
 
         # 라이브러리
         lib, lib_file = None, None # lib is {num_peaks, offset}
+        charge = self.result_data[idx]['Charge']
+        seq = dict['seq']
+        if '+57.021' in seq:
+            seq = seq.replace('+57.021', '')
+
         if "TARGET" in dict['Protein']:
-            lib = self.target_lib[str(dict['seq'])+'_'+str(dict['charge'])]
+
+            lib = self.target_lib[str(seq)+'_'+str(charge)]
             lib_file = target_lib_file
         else:
-            lib = self.decoy_lib[str(dict['seq'])+'_'+str(dict['charge'])]
+            lib = self.decoy_lib[str(seq)+'_'+str(charge)]
             lib_file = decoy_lib_file
 
         self.top_seq = dict['seq']
+        seq = self.top_seq
         if '+57.021' in self.top_seq:
-            self.top_seq = self.top_seq.replace('+57.021', '')
-        self.current_seq = self.top_seq
+            seq = self.top_seq.replace('+57.021', '')
+        
+        self.current_seq = seq
         
         self.spectrum_top = sus.MsmsSpectrum(
             dict['title'],
@@ -286,7 +306,7 @@ class MyApp(QMainWindow):
             np.array(list(map(float, dict['mz']))),
             np.array(list(map(float, dict['intensity'])))
         )
-        self.spectrum_top.annotate_proforma(self.top_seq, 0.5, "Da", ion_types="aby")
+        self.spectrum_top.annotate_proforma(seq, self.tol, "Da", ion_types="aby")
 
         # 이부분에서 offset으로 라이브러리를 열어서 mz, intensity를 파싱해서 리턴
         lib_mz, lib_intensity = lib_parser.parse_lib(lib_file, lib['num_peaks'], lib['offset'])
@@ -298,7 +318,7 @@ class MyApp(QMainWindow):
             np.array(list(map(float, lib_mz))),
             np.array(list(map(float, lib_intensity)))
         )
-        self.spectrum_bottom.annotate_proforma(self.top_seq, 0.5, "Da", ion_types="aby")
+        self.spectrum_bottom.annotate_proforma(seq, self.tol, "Da", ion_types="aby")
         plt.close()
         self.fig, self.ax = plt.subplots(figsize=(15, 9))
         graph_modules.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
@@ -360,7 +380,9 @@ class MyApp(QMainWindow):
                 qidx = int(self.result_data[i]['Index'])
                 self.data[qidx]['seq'] = self.result_data[i]['Peptide']
                 self.data[qidx]['Protein'] = self.result_data[i]['Protein']
-                self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+'    Seq: '+self.data[qidx]['seq'] + '    Protein: '+self.result_data[i]['Protein'])
+                self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
+                                           '    Seq: '+self.data[qidx]['seq'] + '    Charge: '+ self.data[qidx]['charge'] +' ' +self.result_data[i]['Charge']+
+                                           '    Protein: '+self.result_data[i]['Protein'])
             self.s_ax.hist(self.target_list, bins = 100)
             self.s_ax.hist(self.decoy_list, bins = 100)           
             self.s_canvas.draw()

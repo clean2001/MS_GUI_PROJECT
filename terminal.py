@@ -39,7 +39,7 @@ def make_cterm_list(seq: str) -> list:
     seq = seq[::-1]
     # c_term = [float(amino_acid.loc[amino_acid['AA Codes_2'] == seq[0]]['Mono.'].iloc[0])]
     c_term = [sum]
-    print(float(amino_acid.loc[amino_acid['AA Codes_2'] == seq[0]]['Mono.'].iloc[0]))
+    # print(float(amino_acid.loc[amino_acid['AA Codes_2'] == seq[0]]['Mono.'].iloc[0]))
     for animo in seq:
         w = float(amino_acid.loc[amino_acid['AA Codes_2'] == animo]['Mono.'].iloc[0])
         sum += w

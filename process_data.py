@@ -8,7 +8,22 @@ def parse_file(filename : str) -> list:
 
         line_len = len(lines)
     
-    spectrum_index = 0
+    newlist = []
+
+    data = {
+        'idx': 0,
+        'title':' ',
+        'charge': ' ',
+        'pepmass': ' ',
+        'scans': ' ',
+        'seq': ' ',
+        'mz': ' ',
+        'intensity': ' '
+    }
+
+    newlist.append(data)
+    
+    spectrum_index = 1
     data = {
             'idx': spectrum_index,
             'title':' ',
@@ -18,9 +33,9 @@ def parse_file(filename : str) -> list:
             'seq': ' ',
             'mz': ' ',
             'intensity': ' '
-            } 
+        } 
     
-    newlist = []
+    
     flag = True
     idx = 0     # 큰 list의 index
 
