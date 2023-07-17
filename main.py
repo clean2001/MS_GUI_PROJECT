@@ -405,9 +405,20 @@ class MyApp(QMainWindow):
                 qidx = int(self.result_data[i]['Index'])
                 self.data[qidx]['seq'] = self.result_data[i]['Peptide']
                 self.data[qidx]['Protein'] = self.result_data[i]['Protein']
+                match = ''
+                seq = self.data[qidx]['seq']
+
+                if '+57.021' in seq:
+                    seq = seq.replace('+57.021', '')
+
+                charge = self.result_data[i]['Charge']
+                if 'TARGET' in self.result_data[i]['Protein']:
+                    match = str(self.result_data[i]['Protein'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
+                else:
+                    match = str(self.result_data[i]['Protein'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
+
                 self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
-                                           '    Seq: '+self.data[qidx]['seq'] + '    Charge: ' + self.result_data[i]['Charge']+
-                                           '    Protein: '+self.result_data[i]['Protein'])
+                                           '    Seq: '+ self.data[qidx]['seq'] + '    Charge: ' + charge + '    Match: '+ match)
             self.s_ax.hist(self.target_list, bins = 100, color='#3669CF')
             self.s_ax.hist(self.decoy_list, bins = 100, color='#FF9595')   
             # self.s_ax.hist((self.target_list, self.decoy_list), bins = 100, alpha =0.8) 

@@ -9,7 +9,7 @@ def lib_scanner(filename: str) -> dict:
     
     result = dict()
     seq, precursor_ion, num_peaks = None, None, None
-
+    idx = 0
     while True:
         line = f.readline()
         if not line:
@@ -28,7 +28,8 @@ def lib_scanner(filename: str) -> dict:
         elif line[:10] == 'Num peaks:':
             num_peaks = int(line.split(' ')[2]) # 피크 개수를 저장
             offset = f.tell()
-            result[str(seq)+'_'+str(precursor_ion)] = {'num_peaks':num_peaks, 'offset':offset}
+            idx += 1
+            result[str(seq)+'_'+str(precursor_ion)] = {'num_peaks':num_peaks, 'offset':offset, 'index':idx}
 
     f.close()
 
