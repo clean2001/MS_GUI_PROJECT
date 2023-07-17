@@ -12,6 +12,7 @@ from PyQt5.QtGui import QIcon
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+from matplotlib.patches import Rectangle
 
 import matplotlib.pyplot as plt
 import spectrum_utils.plot as sup
@@ -345,14 +346,11 @@ class MyApp(QMainWindow):
     
     def ui2(self):
         self.summary_layout = QVBoxLayout()
-
-        # self.hist = FigureCanvas(self.fig) # mirror plot
-        # self.summary_layout.addWidget(self.hist)
-
         main_layout = QVBoxLayout()
         main_layout.addWidget(QLabel('tab 2 Summary'))
         main_layout.addStretch(5)
         main = QWidget()
+
         self.s_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.s_ax = self.s_canvas.figure.subplots()
         self.s_ax.hist([])
@@ -383,8 +381,12 @@ class MyApp(QMainWindow):
                 self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
                                            '    Seq: '+self.data[qidx]['seq'] + '    Charge: '+ self.data[qidx]['charge'] +' ' +self.result_data[i]['Charge']+
                                            '    Protein: '+self.result_data[i]['Protein'])
-            self.s_ax.hist(self.target_list, bins = 100)
-            self.s_ax.hist(self.decoy_list, bins = 100)           
+            self.s_ax.hist(self.target_list, bins = 100, color='#3669CF')
+            self.s_ax.hist(self.decoy_list, bins = 100, color='#FF9595')   
+            # self.s_ax.hist((self.target_list, self.decoy_list), bins = 100, alpha =0.8) 
+            labels= ['target', 'decoy']
+            handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
+            self.s_ax.legend(handles, labels)
             self.s_canvas.draw()
         return
 
