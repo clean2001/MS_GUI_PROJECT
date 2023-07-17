@@ -20,7 +20,6 @@ import spectrum_utils.spectrum as sus
 
 # custon modules
 import process_data
-import graph_modules
 import terminal
 import lib_parser
 
@@ -75,13 +74,17 @@ class MyApp(QMainWindow):
 
         self.n_btn = QPushButton('N', self)
         self.c_btn = QPushButton('C', self)
-        self.tol_btn1 = QPushButton('0.5', self)
-        self.tol_btn2 = QPushButton('0.05', self)
-
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
         self.n_btn.toggled.connect(self.n_button)
         self.c_btn.toggled.connect(self.c_button)
+
+        self.tol_btn1 = QPushButton('0.5', self)
+        self.tol_btn2 = QPushButton('0.05', self)
+        self.tol_btn1.clicked.connect(self.tol1)
+        self.tol_btn2.clicked.connect(self.tol2)
+
+        self.tol_label = QLabel('tolerance: ' + str(self.tol))
 
 
         self.tab1 = self.ui1()
@@ -170,7 +173,7 @@ class MyApp(QMainWindow):
         else:
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
-            graph_modules.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
+            sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
 
             for i in reversed(range(self.graph_main_layout.count())): 
                 obj = self.graph_main_layout.itemAt(i).widget()
@@ -212,7 +215,7 @@ class MyApp(QMainWindow):
         else:
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
-            graph_modules.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
+            sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
 
             for i in reversed(range(self.graph_main_layout.count())): 
                 obj = self.graph_main_layout.itemAt(i).widget()
@@ -238,42 +241,6 @@ class MyApp(QMainWindow):
                 
             self.canvas.draw() # refresh plot
 
-
-    
-    def ui1(self):
-        self.graph_outer_layout = QVBoxLayout()
-        self.graph_main_layout = QVBoxLayout() # 캔버스와 툴바가 들어가는 부분, 바뀌는 부분
-        self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
-        self.terminal_btn_layout = QHBoxLayout()
-
-        self.graph_outer_layout.addWidget(QLabel('tab 1 View Spectrum'))
-        self.graph_outer_layout.addStretch(5)
-        self.spectrum_list = QListWidget() # spectrum list 
-        self.spectrum_list.itemDoubleClicked.connect(self.chkItemDoubleClicked)
-        self.spectrum_list_layout.addWidget(self.spectrum_list)
-
-        self.terminal_btn_layout.addWidget(self.n_btn)
-        self.terminal_btn_layout.addWidget(self.c_btn)
-        self.terminal_btn_layout.addStretch(20)
-        self.terminal_btn_layout.addWidget(QLabel('tolerance: '))
-        self.terminal_btn_layout.addWidget(self.tol_btn1)
-        self.terminal_btn_layout.addWidget(self.tol_btn2)
-        # self.terminal_btn_layout.addStretch(50)
-        
-
-
-        self.canvas = FigureCanvas(self.fig) # mirror plot
-        self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-        self.graph_main_layout.addLayout(self.terminal_btn_layout)
-        self.graph_main_layout.addWidget(self.canvas)
-        self.graph_main_layout.addWidget(self.toolbar)
-
-        main = QWidget()
-        self.graph_outer_layout.addLayout(self.spectrum_list_layout)
-        self.graph_outer_layout.addLayout(self.graph_main_layout)
-        main.setLayout(self.graph_outer_layout)
-        return main
-    
     def make_graph(self, idx:int):
         qidx = int(self.result_data[idx]['Index'])
         dict = self.data[qidx]
@@ -322,7 +289,7 @@ class MyApp(QMainWindow):
         self.spectrum_bottom.annotate_proforma(seq, self.tol, "Da", ion_types="aby")
         plt.close()
         self.fig, self.ax = plt.subplots(figsize=(15, 9))
-        graph_modules.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
+        sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
 
         for i in reversed(range(self.graph_main_layout.count())): 
             obj = self.graph_main_layout.itemAt(i).widget()
@@ -335,10 +302,67 @@ class MyApp(QMainWindow):
         self.graph_main_layout.addWidget(self.canvas)
         self.graph_main_layout.addWidget(self.toolbar)
 
+
+            
+    def tol1(self):
+        if self.tol == 0.5:
+            return
+        
+        self.tol = 0.5
+        self.make_graph(self.cur_idx)
+        self.tol_label.setText('tolerance: ' + str(self.tol))
+
+
+    
+    def tol2(self):
+        if self.tol == 0.05:
+            return
+        
+        self.tol = 0.05
+        self.make_graph(self.cur_idx)
+        self.tol_label.setText('tolerance: ' + str(self.tol))
+
+
+
+    def ui1(self):
+        self.graph_outer_layout = QVBoxLayout()
+        self.graph_main_layout = QVBoxLayout() # 캔버스와 툴바가 들어가는 부분, 바뀌는 부분
+        self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
+        self.terminal_btn_layout = QHBoxLayout()
+
+        self.graph_outer_layout.addWidget(QLabel('tab 1 View Spectrum'))
+        self.graph_outer_layout.addStretch(5)
+        self.spectrum_list = QListWidget() # spectrum list 
+        self.spectrum_list.itemDoubleClicked.connect(self.chkItemDoubleClicked)
+        self.spectrum_list_layout.addWidget(self.spectrum_list)
+
+        self.terminal_btn_layout.addWidget(self.n_btn)
+        self.terminal_btn_layout.addWidget(self.c_btn)
+        self.terminal_btn_layout.addStretch(20)
+        self.terminal_btn_layout.addWidget(self.tol_label)
+        self.terminal_btn_layout.addWidget(self.tol_btn1)
+        self.terminal_btn_layout.addWidget(self.tol_btn2)
+        # self.terminal_btn_layout.addStretch(50)
+        
+
+
+        self.canvas = FigureCanvas(self.fig) # mirror plot
+        self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+        self.graph_main_layout.addLayout(self.terminal_btn_layout)
+        self.graph_main_layout.addWidget(self.canvas)
+        self.graph_main_layout.addWidget(self.toolbar)
+
+        main = QWidget()
+        self.graph_outer_layout.addLayout(self.spectrum_list_layout)
+        self.graph_outer_layout.addLayout(self.graph_main_layout)
+        main.setLayout(self.graph_outer_layout)
+        return main
+    
+    
         
     def chkItemDoubleClicked(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
-        idx = int(self.spectrum_list.currentRow())
-        self.make_graph(idx)
+        self.cur_idx = int(self.spectrum_list.currentRow())
+        self.make_graph(self.cur_idx)
         if self.n_btn.isChecked():
             self.n_btn.toggle()
         if self.c_btn.isChecked():
@@ -354,6 +378,9 @@ class MyApp(QMainWindow):
         self.s_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.s_ax = self.s_canvas.figure.subplots()
         self.s_ax.hist([])
+        # self.s_ax.set_xscale('log')
+        self.s_ax.set_xlabel('Score')
+        self.s_ax.set_ylabel('# of PSMs')
 
         self.summary_layout.addWidget(self.s_canvas)
         main.setLayout(self.summary_layout)
@@ -379,7 +406,7 @@ class MyApp(QMainWindow):
                 self.data[qidx]['seq'] = self.result_data[i]['Peptide']
                 self.data[qidx]['Protein'] = self.result_data[i]['Protein']
                 self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
-                                           '    Seq: '+self.data[qidx]['seq'] + '    Charge: '+ self.data[qidx]['charge'] +' ' +self.result_data[i]['Charge']+
+                                           '    Seq: '+self.data[qidx]['seq'] + '    Charge: ' + self.result_data[i]['Charge']+
                                            '    Protein: '+self.result_data[i]['Protein'])
             self.s_ax.hist(self.target_list, bins = 100, color='#3669CF')
             self.s_ax.hist(self.decoy_list, bins = 100, color='#FF9595')   
