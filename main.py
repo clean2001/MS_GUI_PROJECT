@@ -312,6 +312,10 @@ class MyApp(QMainWindow):
         self.make_graph(self.cur_idx)
         self.tol_label.setText('tolerance: ' + str(self.tol))
 
+        if self.n_btn.isChecked():
+            self.n_btn.toggle()
+        if self.c_btn.isChecked():
+            self.c_btn.toggle()
 
     
     def tol2(self):
@@ -321,6 +325,10 @@ class MyApp(QMainWindow):
         self.tol = 0.05
         self.make_graph(self.cur_idx)
         self.tol_label.setText('tolerance: ' + str(self.tol))
+        if self.n_btn.isChecked():
+            self.n_btn.toggle()
+        if self.c_btn.isChecked():
+            self.c_btn.toggle()
 
 
 
@@ -420,7 +428,7 @@ class MyApp(QMainWindow):
                 self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
                                            '    Seq: '+ self.data[qidx]['seq'] + '    Charge: ' + charge + '    Match: '+ match)
             self.s_ax.hist(self.target_list, bins = 100, color='#3669CF')
-            self.s_ax.hist(self.decoy_list, bins = 100, color='#FF9595')   
+            self.s_ax.hist(self.decoy_list, bins = 100, color='#FF9595')
             # self.s_ax.hist((self.target_list, self.decoy_list), bins = 100, alpha =0.8) 
             labels= ['target', 'decoy']
             handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
