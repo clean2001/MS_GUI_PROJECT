@@ -22,6 +22,7 @@ import spectrum_utils.spectrum as sus
 import process_data
 import terminal
 import lib_parser
+import process_sequence
 
 
 sys.path.append(os.getcwd())
@@ -141,8 +142,6 @@ class MyApp(QMainWindow):
         left_outer.setStretch(0, 0)
         left_outer.addWidget(self.right_widget)
         left_outer.setStretch(1, 0)
-        # left_outer.setStretch(0, 0)
-        # left_outer.setStretch(1, 200)
 
         main_layout = QHBoxLayout()
         sidebar = QVBoxLayout()
@@ -165,7 +164,9 @@ class MyApp(QMainWindow):
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-            text = self.top_seq.replace('+57.021', '')
+
+            text = process_sequence.brace_modifications(self.top_seq) # 0723
+            text = process_sequence.remove_modifications(text)
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
                 end = n_terms[i+1]
@@ -193,7 +194,9 @@ class MyApp(QMainWindow):
                 for mz in c_terms:
                     self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                     self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-                text = self.top_seq.replace('+57.021', '')
+
+                text = process_sequence.brace_modifications(self.top_seq) # 0723
+                text = process_sequence.remove_modifications(text)
                 text = text[::-1]
                 for i in range(0, len(c_terms)-1):
                     start = c_terms[i]
@@ -208,7 +211,8 @@ class MyApp(QMainWindow):
             for mz in c_terms:
                 self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-            text = self.top_seq.replace('+57.021', '')
+            text = process_sequence.brace_modifications(self.top_seq) # 0723
+            text = process_sequence.remove_modifications(text)
             text = text[::-1]
             for i in range(0, len(c_terms)-1):
                 start = c_terms[i]
@@ -237,7 +241,8 @@ class MyApp(QMainWindow):
                 for mz in n_terms:
                     self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                     self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-                text = self.top_seq.replace('+57.021', '')
+                text = process_sequence.brace_modifications(self.top_seq) # 0723
+                text = process_sequence.remove_modifications(text)
                 for i in range(0, len(n_terms)-1):
                     start = n_terms[i]
                     end = n_terms[i+1]
@@ -254,8 +259,8 @@ class MyApp(QMainWindow):
         lib, lib_file = None, None # lib is {num_peaks, offset}
         charge = self.result_data[idx]['Charge']
         seq = dict['seq']
-        if '+57.021' in seq:
-            seq = seq.replace('+57.021', '')
+        seq = process_sequence.brace_modifications(seq) # 0723
+        seq = process_sequence.remove_modifications(seq)
 
         if "TARGET" in dict['Protein']:
             lib = self.target_lib[str(seq)+'_'+str(charge)]
@@ -266,8 +271,7 @@ class MyApp(QMainWindow):
 
         self.top_seq = dict['seq'] # Qlabel에 표시
         seq = self.top_seq
-        if '+57.021' in self.top_seq:
-            seq = self.top_seq.replace('+57.021', '[+57.021]')
+        seq = process_sequence.brace_modifications(self.top_seq)
         
         self.current_seq = seq #terminal btn을 눌렀을 때 다시 그리기 위해 저장해놓는 것
         
@@ -376,18 +380,21 @@ class MyApp(QMainWindow):
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-            text = self.top_seq.replace('+57.021', '')
+
+            text = process_sequence.brace_modifications(self.top_seq) # 0723
+            text = process_sequence.remove_modifications(text)
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
                 end = n_terms[i+1]
-                self.ax.text((start + end)/2, 0.7, text[i],fontsize=13, color='blue')
+                self.ax.text((start + end)/2, 0.7, text[i], fontsize=13, color='blue')
 
         if self.c_btn.isChecked(): # c terminal 표시
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
                 self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-            text = self.top_seq.replace('+57.021', '')
+            text = process_sequence.brace_modifications(self.top_seq) # 0723
+            text = process_sequence.remove_modifications(text)
             text = text[::-1]
             for i in range(0, len(c_terms)-1):
                 start = c_terms[i]
@@ -464,8 +471,8 @@ class MyApp(QMainWindow):
                 match = ''
                 seq = self.data[qidx]['seq']
 
-                if '+57.021' in seq:
-                    seq = seq.replace('+57.021', '')
+                seq = process_sequence.brace_modifications(seq) # 0723
+                seq = process_sequence.remove_modifications(seq)
 
                 charge = self.result_data[i]['Charge']
                 if 'TARGET' in self.result_data[i]['Protein']:

@@ -2,6 +2,7 @@ import numpy as np
 import json
 import re
 import sys
+import process_sequence
 
 # 라이브러리를 파싱하여 dict(hashmap)으로 바꾼뒤 json 파일로 저장
 def lib_scanner(filename: str) -> dict:
@@ -17,9 +18,7 @@ def lib_scanner(filename: str) -> dict:
         if line[:5] == 'Name:':
             tokens = re.split('[ /_\n]', line) # ' ', /, _구분자 여러 개로 split
             seq = tokens[1]
-            if '+57.021' in seq:
-                seq = seq.replace('+57.021', '[+57.021]')
-
+            seq = process_sequence.brace_modifications(seq) # 57.021 => [57.021]
             precursor_ion = tokens[2]
         elif line[:3] == 'MW:':
             continue
