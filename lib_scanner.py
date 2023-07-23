@@ -18,7 +18,7 @@ def lib_scanner(filename: str) -> dict:
             tokens = re.split('[ /_\n]', line) # ' ', /, _구분자 여러 개로 split
             seq = tokens[1]
             if '+57.021' in seq:
-                seq = seq.replace('+57.021', '')
+                seq = seq.replace('+57.021', '[+57.021]')
 
             precursor_ion = tokens[2]
         elif line[:3] == 'MW:':

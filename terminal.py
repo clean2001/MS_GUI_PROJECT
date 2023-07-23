@@ -24,27 +24,61 @@ amino_acid = pd.DataFrame({ 'AA Codes_1' : ['Gly', 'Ala', 'Ser', 'Pro', 'Val', '
 
 def make_nterm_list(seq : str) -> list:
     sum = proton
-    # n_term = [float(amino_acid.loc[amino_acid['AA Codes_2'] == seq[0]]['Mono.'].iloc[0])]
     n_term = [sum]
-    for animo in seq:
-        w = float(amino_acid.loc[amino_acid['AA Codes_2'] == animo]['Mono.'].iloc[0])
+    sign = ''
+    val = ''
 
-        sum += w
-        n_term.append(sum)
-    
+    for amino in seq:
+        # print(amino, amino.isdigit())
+        if amino == '[':
+            flag = True
+        elif amino == '+':
+            sign = '+'
+        elif amino.isdigit()  or amino == '.':
+            val += str(amino)
+        elif amino == ']':
+            if sign == '+':
+                sum += float(val)
+            elif sign == '-':
+                sum -= float(val)
+            sign = ''
+            val = ''
+            n_term[len(n_term)-1] = sum
+        else:
+            w = float(amino_acid.loc[amino_acid['AA Codes_2'] == amino]['Mono.'].iloc[0])
+            sum += w
+            n_term.append(sum)
+
     return n_term
 
 def make_cterm_list(seq: str) -> list:
     sum = proton + h2o
     seq = seq[::-1]
-    # c_term = [float(amino_acid.loc[amino_acid['AA Codes_2'] == seq[0]]['Mono.'].iloc[0])]
     c_term = [sum]
-    # print(float(amino_acid.loc[amino_acid['AA Codes_2'] == seq[0]]['Mono.'].iloc[0]))
-    for animo in seq:
-        w = float(amino_acid.loc[amino_acid['AA Codes_2'] == animo]['Mono.'].iloc[0])
-        sum += w
-        c_term.append(sum)
-    
+    val = ''
+    sign = ''
+    for amino in seq:
+        if amino == ']':
+            flag = True
+        elif amino == '+':
+            sign = '+'
+        elif amino.isdigit()  or amino == '.':
+            val += str(amino)
+        elif amino == '[':
+            val = val[::-1]
+            print(val)
+            if sign == '+':
+                sum += float(val)
+            elif sign == '-':
+                sum -= float(val)
+            sign = ''
+            val = ''
+            # c_term[len(c_term)-1] = sum
+        else:
+            w = float(amino_acid.loc[amino_acid['AA Codes_2'] == amino]['Mono.'].iloc[0])
+            sum += w
+            c_term.append(sum)
+        
     return c_term
 
 

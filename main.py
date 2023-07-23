@@ -50,6 +50,7 @@ class MyApp(QMainWindow):
         self.current_seq='A'
         self.top_seq = 'A'
         self.tol = 0.5
+        self.cur_idx = -1
 
         self.data = process_data.parse_file('./data/toy.mgf')
         dict = self.data[0]
@@ -60,7 +61,7 @@ class MyApp(QMainWindow):
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
         sup.mirror(spectrum_top, spectrum_bottom, ax=self.ax)
 
-        self.target_list, self.decoy_list = [], []
+        self.sa_target, self.sa_decoy = [], []
 
 
         self.main_widget = QWidget() # Make main window
@@ -79,12 +80,13 @@ class MyApp(QMainWindow):
         self.n_btn.toggled.connect(self.n_button)
         self.c_btn.toggled.connect(self.c_button)
 
-        self.tol_btn1 = QPushButton('0.5', self)
-        self.tol_btn2 = QPushButton('0.05', self)
-        self.tol_btn1.clicked.connect(self.tol1)
-        self.tol_btn2.clicked.connect(self.tol2)
+        self.tol_input = QLineEdit()
+        self.tol_input.setText('0.5')
+        self.tol_input.setFixedWidth(50)
+        self.tol_btn = QPushButton('submit', self)
+        self.tol_btn.clicked.connect(self.change_tol)
 
-        self.tol_label = QLabel('tolerance: ' + str(self.tol))
+        self.tol_label = QLabel('tolerance: ')
 
 
         self.tab1 = self.ui1()
@@ -163,11 +165,11 @@ class MyApp(QMainWindow):
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-            
+            text = self.top_seq.replace('+57.021', '')
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
                 end = n_terms[i+1]
-                self.ax.text((start + end)/2, 0.7, self.current_seq[i],fontsize=13, color='blue')
+                self.ax.text((start + end)/2, 0.7, text[i],fontsize=13, color='blue')
             
             self.canvas.draw() # refresh plot
         else:
@@ -191,25 +193,27 @@ class MyApp(QMainWindow):
                 for mz in c_terms:
                     self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                     self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                text = self.top_seq.replace('+57.021', '')
+                text = text[::-1]
                 for i in range(0, len(c_terms)-1):
                     start = c_terms[i]
                     end = c_terms[i+1]
-                    seq = self.current_seq[::-1]
-                    self.ax.text((start + end)/2, 0.8, seq[i],fontsize=13, color='red')
+                    self.ax.text((start + end)/2, 0.8, text[i],fontsize=13, color='red')
 
    
     def c_button(self):
+
         if self.c_btn.isChecked():
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
                 self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-            
+            text = self.top_seq.replace('+57.021', '')
+            text = text[::-1]
             for i in range(0, len(c_terms)-1):
                 start = c_terms[i]
                 end = c_terms[i+1]
-                seq = self.current_seq[::-1]
-                self.ax.text((start + end)/2, 0.8, seq[i],fontsize=13, color='red')
+                self.ax.text((start + end)/2, 0.8, text[i],fontsize=13, color='red')
         
             self.canvas.draw() # refresh plot
         else:
@@ -233,10 +237,11 @@ class MyApp(QMainWindow):
                 for mz in n_terms:
                     self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                     self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+                text = self.top_seq.replace('+57.021', '')
                 for i in range(0, len(n_terms)-1):
                     start = n_terms[i]
                     end = n_terms[i+1]
-                    self.ax.text((start + end)/2, 0.7, self.current_seq[i],fontsize=13, color='blue')
+                    self.ax.text((start + end)/2, 0.7, text[i],fontsize=13, color='blue')
 
                 
             self.canvas.draw() # refresh plot
@@ -253,19 +258,18 @@ class MyApp(QMainWindow):
             seq = seq.replace('+57.021', '')
 
         if "TARGET" in dict['Protein']:
-
             lib = self.target_lib[str(seq)+'_'+str(charge)]
             lib_file = target_lib_file
         else:
             lib = self.decoy_lib[str(seq)+'_'+str(charge)]
             lib_file = decoy_lib_file
 
-        self.top_seq = dict['seq']
+        self.top_seq = dict['seq'] # Qlabel에 표시
         seq = self.top_seq
         if '+57.021' in self.top_seq:
-            seq = self.top_seq.replace('+57.021', '')
+            seq = self.top_seq.replace('+57.021', '[+57.021]')
         
-        self.current_seq = seq
+        self.current_seq = seq #terminal btn을 눌렀을 때 다시 그리기 위해 저장해놓는 것
         
         self.spectrum_top = sus.MsmsSpectrum(
             dict['title'],
@@ -303,28 +307,15 @@ class MyApp(QMainWindow):
         self.graph_main_layout.addWidget(self.toolbar)
 
 
-            
-    def tol1(self):
-        if self.tol == 0.5:
+                
+    def change_tol(self):
+        tolerance = float(self.tol_input.text())
+        if self.tol == tolerance:
             return
         
-        self.tol = 0.5
+        self.tol = tolerance
         self.make_graph(self.cur_idx)
-        self.tol_label.setText('tolerance: ' + str(self.tol))
-
-        if self.n_btn.isChecked():
-            self.n_btn.toggle()
-        if self.c_btn.isChecked():
-            self.c_btn.toggle()
-
-    
-    def tol2(self):
-        if self.tol == 0.05:
-            return
-        
-        self.tol = 0.05
-        self.make_graph(self.cur_idx)
-        self.tol_label.setText('tolerance: ' + str(self.tol))
+        # self.tol_label.setText('tolerance: ' + str(self.tol))
         if self.n_btn.isChecked():
             self.n_btn.toggle()
         if self.c_btn.isChecked():
@@ -338,18 +329,23 @@ class MyApp(QMainWindow):
         self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
         self.terminal_btn_layout = QHBoxLayout()
 
-        self.graph_outer_layout.addWidget(QLabel('tab 1 View Spectrum'))
+        self.top_label = '%10s %70s %40s %10s %20s' % ('qidx', 'title', 'seq', 'charge', 'match')
+        # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
         self.graph_outer_layout.addStretch(5)
-        self.spectrum_list = QListWidget() # spectrum list 
-        self.spectrum_list.itemDoubleClicked.connect(self.chkItemDoubleClicked)
+        self.spectrum_list = QListWidget() # spectrum list
+        self.spectrum_list.itemClicked.connect(self.chkItemChanged)
+        self.spectrum_list.currentItemChanged.connect(self.chkItemChanged)
+
+
         self.spectrum_list_layout.addWidget(self.spectrum_list)
+        self.spectrum_list.setMinimumHeight(200)
 
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
         self.terminal_btn_layout.addStretch(20)
         self.terminal_btn_layout.addWidget(self.tol_label)
-        self.terminal_btn_layout.addWidget(self.tol_btn1)
-        self.terminal_btn_layout.addWidget(self.tol_btn2)
+        self.terminal_btn_layout.addWidget(self.tol_input)
+        self.terminal_btn_layout.addWidget(self.tol_btn)
         # self.terminal_btn_layout.addStretch(50)
         
 
@@ -368,29 +364,71 @@ class MyApp(QMainWindow):
     
     
         
-    def chkItemDoubleClicked(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
+    def chkItemChanged(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
+        if self.cur_idx == int(self.spectrum_list.currentRow()):
+            return
+        
         self.cur_idx = int(self.spectrum_list.currentRow())
         self.make_graph(self.cur_idx)
-        if self.n_btn.isChecked():
-            self.n_btn.toggle()
-        if self.c_btn.isChecked():
-            self.c_btn.toggle()
+
+        if self.n_btn.isChecked(): # n terminal 표시
+            n_terms = terminal.make_nterm_list(self.current_seq)
+            for mz in n_terms:
+                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
+                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+            text = self.top_seq.replace('+57.021', '')
+            for i in range(0, len(n_terms)-1):
+                start = n_terms[i]
+                end = n_terms[i+1]
+                self.ax.text((start + end)/2, 0.7, text[i],fontsize=13, color='blue')
+
+        if self.c_btn.isChecked(): # c terminal 표시
+            c_terms = terminal.make_cterm_list(self.current_seq)
+            for mz in c_terms:
+                self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
+                self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+            text = self.top_seq.replace('+57.021', '')
+            text = text[::-1]
+            for i in range(0, len(c_terms)-1):
+                start = c_terms[i]
+                end = c_terms[i+1]
+                self.ax.text((start + end)/2, 0.8, text[i],fontsize=13, color='red')
+        
+
     
     def ui2(self):
-        self.summary_layout = QVBoxLayout()
+        self.summary_layout = QGridLayout()
         main_layout = QVBoxLayout()
         main_layout.addWidget(QLabel('tab 2 Summary'))
         main_layout.addStretch(5)
         main = QWidget()
 
-        self.s_canvas = FigureCanvas(Figure(figsize=(4, 3)))
-        self.s_ax = self.s_canvas.figure.subplots()
-        self.s_ax.hist([])
-        # self.s_ax.set_xscale('log')
-        self.s_ax.set_xlabel('Score')
-        self.s_ax.set_ylabel('# of PSMs')
+        # SA
+        self.sa_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.sa_ax = self.sa_canvas.figure.subplots()
+        self.sa_ax.hist([])
+        self.sa_ax.set_xlabel('SA')
+        self.sa_ax.set_ylabel('# of PSMs')
 
-        self.summary_layout.addWidget(self.s_canvas)
+        # QScore
+        self.qs_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.qs_ax = self.qs_canvas.figure.subplots()
+        self.qs_ax.hist([])
+        self.qs_ax.set_xlabel('QScore')
+        self.qs_ax.set_ylabel('# of PSMs')
+
+        # ppm error
+        self.ppm_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.ppm_ax = self.ppm_canvas.figure.subplots()
+        self.ppm_ax.boxplot([])
+        # self.ppm_ax.set_xlabel('target')
+        self.ppm_ax.set_ylabel('Mass Deviation(ppm)')
+
+
+        self.summary_layout.addWidget(self.sa_canvas, 0, 0)
+        self.summary_layout.addWidget(self.qs_canvas, 0, 1)
+        self.summary_layout.addWidget(self.ppm_canvas, 1, 0)
+
         main.setLayout(self.summary_layout)
         return main
     
@@ -403,12 +441,22 @@ class MyApp(QMainWindow):
             self.data = process_data.parse_file(fname[0]) # self.data is query data
             self.result_data = process_data.parse_result(result_file_name)
             self.spectrum_list.clear()
-            self.decoy_list, self.target_list = [], []
+            self.sa_decoy, self.sa_target = [], []
+            self.qs_decoy, self.qs_target = [], []
+            self.ppm_list = []
+
+
             for i in range(0, len(self.result_data)):
                 if "TARGET" in self.result_data[i]['Protein']:
-                    self.target_list.append(float(self.result_data[i]['SA']))
+                    self.sa_target.append(float(self.result_data[i]['SA']))
+                    self.qs_target.append(float(self.result_data[i]['QScore']))
+                    self.ppm_list.append(float(self.result_data[i]['ppmError']))
+
                 else:
-                    self.decoy_list.append(float(self.result_data[i]['SA']))
+                    self.sa_decoy.append(float(self.result_data[i]['SA']))
+                    self.qs_decoy.append(float(self.result_data[i]['QScore']))
+                    self.ppm_list.append(float(self.result_data[i]['ppmError']))
+
 
                 qidx = int(self.result_data[i]['Index'])
                 self.data[qidx]['seq'] = self.result_data[i]['Peptide']
@@ -425,15 +473,23 @@ class MyApp(QMainWindow):
                 else:
                     match = str(self.result_data[i]['Protein'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
 
-                self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
-                                           '    Seq: '+ self.data[qidx]['seq'] + '    Charge: ' + charge + '    Match: '+ match)
-            self.s_ax.hist(self.target_list, bins = 100, color='#3669CF')
-            self.s_ax.hist(self.decoy_list, bins = 100, color='#FF9595')
-            # self.s_ax.hist((self.target_list, self.decoy_list), bins = 100, alpha =0.8) 
+                # self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
+                #                            '    Seq: '+ self.data[qidx]['seq'] + '    Charge: ' + charge + '    Match: '+ match)
+                item = '%5s %5s %50s %10s %-50s %5s %40s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), self.data[qidx]['seq'], str(charge), str(match))
+                self.spectrum_list.addItem(item)
+
+            self.sa_ax.hist(self.sa_target, bins = 100, color='#3669CF')
+            self.sa_ax.hist(self.sa_decoy, bins = 100, color='#FF9595')
+
+            self.qs_ax.hist(self.qs_target, bins = 100, color='#3669CF')
+            self.qs_ax.hist(self.qs_decoy, bins = 100, color='#FF9595')
+
+            self.ppm_ax.boxplot([self.ppm_list])
+
             labels= ['target', 'decoy']
             handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
-            self.s_ax.legend(handles, labels)
-            self.s_canvas.draw()
+            self.sa_ax.legend(handles, labels)
+            self.sa_canvas.draw()
         return
 
 
