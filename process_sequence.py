@@ -28,7 +28,6 @@ def brace_modifications(seq : str) -> str:
             modi = ''
 
     if modi and modi not in processed:
-        print("modi:", modi)
         rslt = rslt.replace(modi, '['+modi+']')
 
     return rslt

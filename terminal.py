@@ -66,7 +66,6 @@ def make_cterm_list(seq: str) -> list:
             val += str(amino)
         elif amino == '[':
             val = val[::-1]
-            print(val)
             if sign == '+':
                 sum += float(val)
             elif sign == '-':

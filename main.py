@@ -431,7 +431,6 @@ class MyApp(QMainWindow):
         # self.ppm_ax.set_xlabel('target')
         self.ppm_ax.set_ylabel('Mass Deviation(ppm)')
 
-
         self.summary_layout.addWidget(self.sa_canvas, 0, 0)
         self.summary_layout.addWidget(self.qs_canvas, 0, 1)
         self.summary_layout.addWidget(self.ppm_canvas, 1, 0)
@@ -482,16 +481,19 @@ class MyApp(QMainWindow):
 
                 # self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
                 #                            '    Seq: '+ self.data[qidx]['seq'] + '    Charge: ' + charge + '    Match: '+ match)
-                item = '%5s %5s %50s %10s %-50s %5s %40s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), self.data[qidx]['seq'], str(charge), str(match))
+                item = '%5s %5s %45s %12s %20s %15s %12s %30s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), str(match), 'SA: '+str(self.result_data[i]['SA']), 'charge: '+str(charge), 'seq: '+str(seq))
                 self.spectrum_list.addItem(item)
 
             self.sa_ax.hist(self.sa_target, bins = 100, color='#3669CF')
             self.sa_ax.hist(self.sa_decoy, bins = 100, color='#FF9595')
+            self.sa_ax.set_title('SA')
 
             self.qs_ax.hist(self.qs_target, bins = 100, color='#3669CF')
             self.qs_ax.hist(self.qs_decoy, bins = 100, color='#FF9595')
+            self.qs_ax.set_title('QScore')
 
             self.ppm_ax.boxplot([self.ppm_list])
+            self.ppm_ax.set_title('ppm Error')
 
             labels= ['target', 'decoy']
             handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
@@ -501,8 +503,8 @@ class MyApp(QMainWindow):
 
 
 
-
 if __name__ == "__main__":
+
     app = QApplication(sys.argv)
     ex = MyApp()
     ex.show()
