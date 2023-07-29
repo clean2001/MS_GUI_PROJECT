@@ -1,0 +1,7 @@
+
+{
+    "python.pythonPath": "/Users/sejeong/Documents/project/MS_GUI_PROJECT/myvenv/bin/python",
+    "python.analysis.extraPaths": [
+        "/Users/sejeong/lib/python3.9/site-packages"
+    ]
+}

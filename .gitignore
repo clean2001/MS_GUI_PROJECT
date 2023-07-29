@@ -8,6 +8,7 @@ node_modules
 ./lib
 lib
 data
+./data
 test.py
 test2.py
 ### PyCharm ###

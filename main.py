@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import json
 
-from PyQt5.QtWidgets import *
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QMainWindow, QLabel
-from PyQt5.QtGui import QIcon
+from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QMainWindow, QLabel
+from PyQt6.QtGui import QIcon, QAction
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -15,7 +15,8 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
 import matplotlib.pyplot as plt
-import spectrum_utils.plot as sup
+# import spectrum_utils.plot as sup
+import spectrum_plot as sup
 import spectrum_utils.spectrum as sus
 
 # custon modules
@@ -56,12 +57,11 @@ class MyApp(QMainWindow):
         self.data = process_data.parse_file('./data/toy.mgf')
         dict = self.data[0]
         spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_top.annotate_proforma('A', self.tol, "Da", ion_types="aby")
+        spectrum_top.annotate_proforma('A', self.tol, "Da", ion_types="by")
         spectrum_bottom = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_bottom.annotate_proforma('A', self.tol, "Da", ion_types="aby")
+        spectrum_bottom.annotate_proforma('A', self.tol, "Da", ion_types="by")
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
         sup.mirror(spectrum_top, spectrum_bottom, ax=self.ax)
-
         self.sa_target, self.sa_decoy = [], []
 
 
@@ -97,7 +97,7 @@ class MyApp(QMainWindow):
         exitAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
-        exitAction.triggered.connect(qApp.quit)
+        exitAction.triggered.connect(app.quit)
 
         openFileAction = QAction(QIcon(cur_path), 'Open file', self)
         openFileAction.setShortcut('Ctrl+O')
@@ -164,13 +164,13 @@ class MyApp(QMainWindow):
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-
-            text = process_sequence.brace_modifications(self.top_seq) # 0723
-            text = process_sequence.remove_modifications(text)
+            print(self.top_seq)
+            text = process_sequence.process_text(self.top_seq) # 0723
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
                 end = n_terms[i+1]
-                self.ax.text((start + end)/2, 0.7, text[i],fontsize=13, color='blue')
+                print(len(text[i]))
+                self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
             
             self.canvas.draw() # refresh plot
         else:
@@ -194,14 +194,12 @@ class MyApp(QMainWindow):
                 for mz in c_terms:
                     self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                     self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-
-                text = process_sequence.brace_modifications(self.top_seq) # 0723
-                text = process_sequence.remove_modifications(text)
+                text = process_sequence.process_text(self.top_seq) # 0723
                 text = text[::-1]
                 for i in range(0, len(c_terms)-1):
                     start = c_terms[i]
                     end = c_terms[i+1]
-                    self.ax.text((start + end)/2, 0.8, text[i],fontsize=13, color='red')
+                    self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
 
    
     def c_button(self):
@@ -211,13 +209,12 @@ class MyApp(QMainWindow):
             for mz in c_terms:
                 self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-            text = process_sequence.brace_modifications(self.top_seq) # 0723
-            text = process_sequence.remove_modifications(text)
+            text = process_sequence.process_text(self.top_seq) # 0723
             text = text[::-1]
             for i in range(0, len(c_terms)-1):
                 start = c_terms[i]
                 end = c_terms[i+1]
-                self.ax.text((start + end)/2, 0.8, text[i],fontsize=13, color='red')
+                self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
         
             self.canvas.draw() # refresh plot
         else:
@@ -241,12 +238,11 @@ class MyApp(QMainWindow):
                 for mz in n_terms:
                     self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                     self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-                text = process_sequence.brace_modifications(self.top_seq) # 0723
-                text = process_sequence.remove_modifications(text)
+                text = process_sequence.process_text(self.top_seq) # 0723
                 for i in range(0, len(n_terms)-1):
                     start = n_terms[i]
                     end = n_terms[i+1]
-                    self.ax.text((start + end)/2, 0.7, text[i],fontsize=13, color='blue')
+                    self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i],fontsize=10, color='blue')
 
                 
             self.canvas.draw() # refresh plot
@@ -282,7 +278,7 @@ class MyApp(QMainWindow):
             np.array(list(map(float, dict['mz']))),
             np.array(list(map(float, dict['intensity'])))
         )
-        self.spectrum_top.annotate_proforma(seq, self.tol, "Da", ion_types="aby")
+        self.spectrum_top.annotate_proforma(seq, self.tol, "Da", ion_types="by")
 
         # 이부분에서 offset으로 라이브러리를 열어서 mz, intensity를 파싱해서 리턴
         lib_mz, lib_intensity = lib_parser.parse_lib(lib_file, lib['num_peaks'], lib['offset'])
@@ -294,7 +290,7 @@ class MyApp(QMainWindow):
             np.array(list(map(float, lib_mz))),
             np.array(list(map(float, lib_intensity)))
         )
-        self.spectrum_bottom.annotate_proforma(seq, self.tol, "Da", ion_types="aby")
+        self.spectrum_bottom.annotate_proforma(seq, self.tol, "Da", ion_types="by")
         plt.close()
         self.fig, self.ax = plt.subplots(figsize=(15, 9))
         sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
@@ -342,7 +338,7 @@ class MyApp(QMainWindow):
 
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
-        self.spectrum_list.setMinimumHeight(200)
+        self.spectrum_list.setMinimumHeight(150)
 
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
@@ -381,25 +377,24 @@ class MyApp(QMainWindow):
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
 
-            text = process_sequence.brace_modifications(self.top_seq) # 0723
-            text = process_sequence.remove_modifications(text)
+            text = process_sequence.process_text(self.top_seq) # 0723
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
                 end = n_terms[i+1]
-                self.ax.text((start + end)/2, 0.7, text[i], fontsize=13, color='blue')
+                self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
 
         if self.c_btn.isChecked(): # c terminal 표시
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
                 self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-            text = process_sequence.brace_modifications(self.top_seq) # 0723
-            text = process_sequence.remove_modifications(text)
+            text = process_sequence.process_text(self.top_seq) # 0723
             text = text[::-1]
             for i in range(0, len(c_terms)-1):
                 start = c_terms[i]
                 end = c_terms[i+1]
-                self.ax.text((start + end)/2, 0.8, text[i],fontsize=13, color='red')
+                print(len(text[i]))
+                self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
         
 
     
@@ -508,4 +503,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     ex = MyApp()
     ex.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

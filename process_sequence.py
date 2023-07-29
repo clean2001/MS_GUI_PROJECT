@@ -31,3 +31,22 @@ def brace_modifications(seq : str) -> str:
         rslt = rslt.replace(modi, '['+modi+']')
 
     return rslt
+
+
+def process_text(text : str) : # AC+57.021AAC
+    residue = ""
+    rslt = []
+    for amino in text:
+        if amino == '+' or amino == '-' or amino == '.' or amino.isdigit():
+            residue += amino
+        else: # alphabet
+            if len(residue):
+                rslt.append(residue[:])
+            
+            residue = ""
+            residue += amino
+    
+    if len(residue):
+        rslt.append(residue)
+    return rslt
+
