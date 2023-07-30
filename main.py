@@ -6,7 +6,7 @@ import pandas as pd
 import json
 
 from PyQt6.QtWidgets import *
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QMainWindow, QLabel, QTableWidget, QTableWidgetItem
+# from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QMainWindow, QLabel, QTableWidget, QTableWidgetItem
 from PyQt6.QtGui import QIcon, QAction
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
@@ -16,7 +16,7 @@ from matplotlib.patches import Rectangle
 
 import matplotlib.pyplot as plt
 # import spectrum_utils.plot as sup
-import spectrum_plot as sup
+import spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
 import spectrum_utils.spectrum as sus
 
 # custon modules
@@ -24,6 +24,7 @@ import process_data
 import terminal
 import lib_parser
 import process_sequence
+import filtering_list
 
 
 sys.path.append(os.getcwd())
@@ -52,7 +53,10 @@ class MyApp(QMainWindow):
         self.current_seq='A'
         self.top_seq = 'A'
         self.tol = 0.5
+        self.filtering_threshold = 0
         self.cur_idx = -1
+        self.all_sa = []
+        self.row_to_data_idx = []
 
         self.data = process_data.parse_file('./data/toy.mgf')
         dict = self.data[0]
@@ -76,17 +80,26 @@ class MyApp(QMainWindow):
 
         self.n_btn = QPushButton('N', self)
         self.c_btn = QPushButton('C', self)
-        self.n_btn.setCheckable(True)
-        self.c_btn.setCheckable(True)
+        self.n_btn.setCheckable(False)
+        self.c_btn.setCheckable(False)
         self.n_btn.toggled.connect(self.n_button)
         self.c_btn.toggled.connect(self.c_button)
 
+        # filtering threshold
+        self.filter_input = QLineEdit()
+        self.filter_input.setText(str(self.filtering_threshold))
+        self.filter_input.setFixedWidth(50)
+        self.filter_button = QPushButton('submit', self)
+        self.filter_button.clicked.connect(self.filter_spectrums)
+
+
+
+        # tolerance
         self.tol_input = QLineEdit()
         self.tol_input.setText('0.5')
         self.tol_input.setFixedWidth(50)
         self.tol_btn = QPushButton('submit', self)
         self.tol_btn.clicked.connect(self.change_tol)
-
         self.tol_label = QLabel('tolerance: ')
 
 
@@ -329,8 +342,17 @@ class MyApp(QMainWindow):
         self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
         self.terminal_btn_layout = QHBoxLayout()
 
-        self.top_label = '%10s %70s %40s %10s %20s' % ('qidx', 'title', 'seq', 'charge', 'match')
+        self.top_label = QLabel('0 spectrums (threshold: ' + str(self.filtering_threshold) + ')')
         # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
+
+        filter_hbox = QHBoxLayout()
+        filter_hbox.addWidget(self.top_label)
+        filter_hbox.addStretch(40)
+        filter_hbox.addWidget(QLabel('filter threshold(SA): '))
+        filter_hbox.addWidget(self.filter_input)
+        filter_hbox.addWidget(self.filter_button)
+        self.graph_outer_layout.addLayout(filter_hbox)
+
         self.graph_outer_layout.addStretch(5)
         self.spectrum_list = QTableWidget() # spectrum list
         self.spectrum_list.setRowCount(0)
@@ -353,6 +375,7 @@ class MyApp(QMainWindow):
 
 
         self.canvas = FigureCanvas(self.fig) # mirror plot
+        self.canvas.setMinimumHeight(220) # 
         self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addLayout(self.terminal_btn_layout)
         self.graph_main_layout.addWidget(self.canvas)
@@ -367,10 +390,10 @@ class MyApp(QMainWindow):
     
         
     def chkItemChanged(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
-        if self.cur_idx == int(self.spectrum_list.currentRow()):
+        if self.cur_idx == int(self.spectrum_list.currentRow()): # row
             return
         
-        self.cur_idx = int(self.spectrum_list.currentRow())
+        self.cur_idx = self.row_to_data_idx[int(self.spectrum_list.currentRow())]
         self.make_graph(self.cur_idx)
 
         if self.n_btn.isChecked(): # n terminal 표시
@@ -448,7 +471,9 @@ class MyApp(QMainWindow):
             self.qs_decoy, self.qs_target = [], []
             self.ppm_list = []
 
+            self.spectrum_list.setRowCount(len(self.result_data))
 
+            self.top_label.setText(str(len(self.result_data)) + ' / ' +  str(len(self.result_data)) + ' spectrums (SA threshold: ' + str(self.filtering_threshold) + ')')
             for i in range(0, len(self.result_data)):
                 if "TARGET" in self.result_data[i]['Protein']:
                     self.sa_target.append(float(self.result_data[i]['SA']))
@@ -460,7 +485,7 @@ class MyApp(QMainWindow):
                     self.qs_decoy.append(float(self.result_data[i]['QScore']))
                     self.ppm_list.append(float(self.result_data[i]['ppmError']))
 
-
+                self.row_to_data_idx.append(i)
                 qidx = int(self.result_data[i]['Index'])
                 self.data[qidx]['seq'] = self.result_data[i]['Peptide']
                 self.data[qidx]['Protein'] = self.result_data[i]['Protein']
@@ -469,8 +494,6 @@ class MyApp(QMainWindow):
 
                 seq = process_sequence.brace_modifications(seq) # 0723
                 seq = process_sequence.remove_modifications(seq)
-
-                self.spectrum_list.setRowCount(len(self.result_data))
 
                 charge = self.result_data[i]['Charge']
                 if 'TARGET' in self.result_data[i]['Protein']:
@@ -495,11 +518,10 @@ class MyApp(QMainWindow):
                 self.spectrum_list.setItem(i, 13, QTableWidgetItem(self.result_data[i]['ExpRatio']))
                 self.spectrum_list.setItem(i, 14, QTableWidgetItem(match))
 
+                self.all_sa.append(float(self.result_data[i]['SA']))
 
-
-
-
-                # self.spectrum_list.addItem(item)
+            self.n_btn.setCheckable(True)
+            self.c_btn.setCheckable(True)
 
             # summary
             self.sa_ax.hist(self.sa_target, bins = 100, color='#3669CF')
@@ -517,6 +539,90 @@ class MyApp(QMainWindow):
             handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
             self.sa_ax.legend(handles, labels)
             self.sa_canvas.draw()
+
+            self.all_sa.sort()
+        return
+    
+    def filter_spectrums(self):
+        print("filter!")
+        threshold = float(self.filter_input.text())
+        if self.filtering_threshold == threshold:
+            return
+        
+        self.filtering_threshild = threshold
+        
+        lb = filtering_list.lower_bound(self.all_sa, threshold)
+        filtered_number = len(self.all_sa) - lb
+        print(filtered_number)
+
+
+        self.spectrum_list.clear()
+        self.spectrum_list.setRowCount(filtered_number)
+        self.spectrum_list.setColumnCount(15)
+        column_headers = ['Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'Protein' ]
+        self.spectrum_list.setHorizontalHeaderLabels(column_headers)
+
+
+        # 상단 라벨 변경
+        self.top_label.setText(str(filtered_number) +' / ' + str(len(self.result_data))+ ' spectrums (SA threshold: ' + str(threshold) + ')')
+        print(threshold)
+        idx = 0
+        self.row_to_data_idx.clear()
+        # 다시 테이블에 추가
+        for i in range(0, len(self.result_data)):
+            if float(self.result_data[i]['SA']) < threshold:
+                continue
+
+            if "TARGET" in self.result_data[i]['Protein']:
+                self.sa_target.append(float(self.result_data[i]['SA']))
+                self.qs_target.append(float(self.result_data[i]['QScore']))
+                self.ppm_list.append(float(self.result_data[i]['ppmError']))
+
+            else:
+                self.sa_decoy.append(float(self.result_data[i]['SA']))
+                self.qs_decoy.append(float(self.result_data[i]['QScore']))
+                self.ppm_list.append(float(self.result_data[i]['ppmError']))
+
+            self.row_to_data_idx.append(i)
+            qidx = int(self.result_data[i]['Index'])
+            self.data[qidx]['seq'] = self.result_data[i]['Peptide']
+            self.data[qidx]['Protein'] = self.result_data[i]['Protein']
+            match = ''
+            seq = self.data[qidx]['seq']
+
+            seq = process_sequence.brace_modifications(seq) # 0723
+            seq = process_sequence.remove_modifications(seq)
+
+            charge = self.result_data[i]['Charge']
+            if 'TARGET' in self.result_data[i]['Protein']:
+                match = str(self.result_data[i]['Protein'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
+            else:
+                match = str(self.result_data[i]['Protein'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
+
+            # item = '%5s %5s %45s %12s %20s %15s %12s %30s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), str(match), 'SA: '+str(self.result_data[i]['SA']), 'charge: '+str(charge), 'seq: '+str(seq))
+            self.spectrum_list.setItem(idx, 0, QTableWidgetItem(self.result_data[i]['Index']))
+            self.spectrum_list.setItem(idx, 1, QTableWidgetItem(self.result_data[i]['ScanNo']))
+            self.spectrum_list.setItem(idx, 2, QTableWidgetItem(self.result_data[i]['Title']))
+            self.spectrum_list.setItem(idx, 3, QTableWidgetItem(self.result_data[i]['PMZ']))
+            self.spectrum_list.setItem(idx, 4, QTableWidgetItem(self.result_data[i]['Charge']))
+            self.spectrum_list.setItem(idx, 5, QTableWidgetItem(self.result_data[i]['Peptide']))
+            self.spectrum_list.setItem(idx, 6, QTableWidgetItem(self.result_data[i]['CalcMass']))
+            self.spectrum_list.setItem(idx, 7, QTableWidgetItem(self.result_data[i]['SA']))
+            self.spectrum_list.setItem(idx, 8, QTableWidgetItem(self.result_data[i]['QScore']))
+            self.spectrum_list.setItem(idx, 9, QTableWidgetItem(self.result_data[i]['#Ions']))
+            self.spectrum_list.setItem(idx, 10, QTableWidgetItem(self.result_data[i]['#Sig']))
+            self.spectrum_list.setItem(idx, 11, QTableWidgetItem(self.result_data[i]['ppmError']))
+            self.spectrum_list.setItem(idx, 12, QTableWidgetItem(self.result_data[i]['C13']))
+            self.spectrum_list.setItem(idx, 13, QTableWidgetItem(self.result_data[i]['ExpRatio']))
+            self.spectrum_list.setItem(idx, 14, QTableWidgetItem(match))
+
+            idx += 1
+
+
+        self.n_btn.setCheckable(True)
+        self.c_btn.setCheckable(True)
+
+
         return
 
 
