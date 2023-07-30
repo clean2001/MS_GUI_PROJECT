@@ -6,7 +6,7 @@ import pandas as pd
 import json
 
 from PyQt6.QtWidgets import *
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QMainWindow, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QMainWindow, QLabel, QTableWidget, QTableWidgetItem
 from PyQt6.QtGui import QIcon, QAction
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
@@ -332,10 +332,13 @@ class MyApp(QMainWindow):
         self.top_label = '%10s %70s %40s %10s %20s' % ('qidx', 'title', 'seq', 'charge', 'match')
         # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
         self.graph_outer_layout.addStretch(5)
-        self.spectrum_list = QListWidget() # spectrum list
+        self.spectrum_list = QTableWidget() # spectrum list
+        self.spectrum_list.setRowCount(0)
+        self.spectrum_list.setColumnCount(15)
         self.spectrum_list.itemClicked.connect(self.chkItemChanged)
         self.spectrum_list.currentItemChanged.connect(self.chkItemChanged)
-
+        column_headers = ['Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'Protein' ]
+        self.spectrum_list.setHorizontalHeaderLabels(column_headers)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
         self.spectrum_list.setMinimumHeight(150)
@@ -346,7 +349,6 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.tol_label)
         self.terminal_btn_layout.addWidget(self.tol_input)
         self.terminal_btn_layout.addWidget(self.tol_btn)
-        # self.terminal_btn_layout.addStretch(50)
         
 
 
@@ -441,7 +443,7 @@ class MyApp(QMainWindow):
             result_file_name = fname[0].split('.')[0]+'_result.tsv'
             self.data = process_data.parse_file(fname[0]) # self.data is query data
             self.result_data = process_data.parse_result(result_file_name)
-            self.spectrum_list.clear()
+            # self.spectrum_list.clear()
             self.sa_decoy, self.sa_target = [], []
             self.qs_decoy, self.qs_target = [], []
             self.ppm_list = []
@@ -468,17 +470,38 @@ class MyApp(QMainWindow):
                 seq = process_sequence.brace_modifications(seq) # 0723
                 seq = process_sequence.remove_modifications(seq)
 
+                self.spectrum_list.setRowCount(len(self.result_data))
+
                 charge = self.result_data[i]['Charge']
                 if 'TARGET' in self.result_data[i]['Protein']:
                     match = str(self.result_data[i]['Protein'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
                 else:
                     match = str(self.result_data[i]['Protein'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
 
-                # self.spectrum_list.addItem('QueryIndex: '+self.result_data[i]['Index'] + '    Title: '+self.data[qidx]['title']+
-                #                            '    Seq: '+ self.data[qidx]['seq'] + '    Charge: ' + charge + '    Match: '+ match)
-                item = '%5s %5s %45s %12s %20s %15s %12s %30s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), str(match), 'SA: '+str(self.result_data[i]['SA']), 'charge: '+str(charge), 'seq: '+str(seq))
-                self.spectrum_list.addItem(item)
+                # item = '%5s %5s %45s %12s %20s %15s %12s %30s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), str(match), 'SA: '+str(self.result_data[i]['SA']), 'charge: '+str(charge), 'seq: '+str(seq))
+                self.spectrum_list.setItem(i, 0, QTableWidgetItem(self.result_data[i]['Index']))
+                self.spectrum_list.setItem(i, 1, QTableWidgetItem(self.result_data[i]['ScanNo']))
+                self.spectrum_list.setItem(i, 2, QTableWidgetItem(self.result_data[i]['Title']))
+                self.spectrum_list.setItem(i, 3, QTableWidgetItem(self.result_data[i]['PMZ']))
+                self.spectrum_list.setItem(i, 4, QTableWidgetItem(self.result_data[i]['Charge']))
+                self.spectrum_list.setItem(i, 5, QTableWidgetItem(self.result_data[i]['Peptide']))
+                self.spectrum_list.setItem(i, 6, QTableWidgetItem(self.result_data[i]['CalcMass']))
+                self.spectrum_list.setItem(i, 7, QTableWidgetItem(self.result_data[i]['SA']))
+                self.spectrum_list.setItem(i, 8, QTableWidgetItem(self.result_data[i]['QScore']))
+                self.spectrum_list.setItem(i, 9, QTableWidgetItem(self.result_data[i]['#Ions']))
+                self.spectrum_list.setItem(i, 10, QTableWidgetItem(self.result_data[i]['#Sig']))
+                self.spectrum_list.setItem(i, 11, QTableWidgetItem(self.result_data[i]['ppmError']))
+                self.spectrum_list.setItem(i, 12, QTableWidgetItem(self.result_data[i]['C13']))
+                self.spectrum_list.setItem(i, 13, QTableWidgetItem(self.result_data[i]['ExpRatio']))
+                self.spectrum_list.setItem(i, 14, QTableWidgetItem(match))
 
+
+
+
+
+                # self.spectrum_list.addItem(item)
+
+            # summary
             self.sa_ax.hist(self.sa_target, bins = 100, color='#3669CF')
             self.sa_ax.hist(self.sa_decoy, bins = 100, color='#FF9595')
             self.sa_ax.set_title('SA')
