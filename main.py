@@ -177,12 +177,10 @@ class MyApp(QMainWindow):
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-            print(self.top_seq)
             text = process_sequence.process_text(self.top_seq) # 0723
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
                 end = n_terms[i+1]
-                print(len(text[i]))
                 self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
             
             self.canvas.draw() # refresh plot
@@ -418,7 +416,6 @@ class MyApp(QMainWindow):
             for i in range(0, len(c_terms)-1):
                 start = c_terms[i]
                 end = c_terms[i+1]
-                print(len(text[i]))
                 self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
         
 
@@ -544,7 +541,6 @@ class MyApp(QMainWindow):
         return
     
     def filter_spectrums(self):
-        print("filter!")
         threshold = float(self.filter_input.text())
         if self.filtering_threshold == threshold:
             return
@@ -553,7 +549,6 @@ class MyApp(QMainWindow):
         
         lb = filtering_list.lower_bound(self.all_sa, threshold)
         filtered_number = len(self.all_sa) - lb
-        print(filtered_number)
 
 
         self.spectrum_list.clear()
@@ -565,7 +560,6 @@ class MyApp(QMainWindow):
 
         # 상단 라벨 변경
         self.top_label.setText(str(filtered_number) +' / ' + str(len(self.result_data))+ ' spectrums (SA threshold: ' + str(threshold) + ')')
-        print(threshold)
         idx = 0
         self.row_to_data_idx.clear()
         # 다시 테이블에 추가
@@ -618,13 +612,10 @@ class MyApp(QMainWindow):
 
             idx += 1
 
-
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
 
-
         return
-
 
 
 if __name__ == "__main__":

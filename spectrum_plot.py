@@ -83,10 +83,16 @@ def _annotate_ion(
     if annot_fmt is not None and annotation is not None:
         y = intensity + 0.02 * (intensity > 0)
         kws = annot_kws.copy()
-        kws.update(dict(color=color, zorder=zorder))
+        # 2+, 3+의 텍스트 크기 조정을 위해 내가 고친 부분
+        fontsize = 8
+        # if annotation.isotope[0] == 0 :
+        #     fontsize = 10
+        #     alpha = 1
+
+        kws.update(dict(color=color, zorder=zorder, fontsize = fontsize))
         ax.text(mz, y, annot_fmt(annotation), **kws)
         if ion_type != "?":
-            ax.text(mz, y, str(round(mz, 3)), fontsize=7, color="#A9A9A9")
+            ax.text(mz, y, str(round(mz, 3)), fontsize=7, color="#A9A9A9", alpha=0.5)
     return color, zorder
 
 
@@ -119,6 +125,14 @@ def annotate_ion_type(
         and annotation.charge == 1
     ):
         return str(annotation.ion_type)
+    elif (
+        annotation.ion_type[0] in ion_types
+        and annotation.neutral_loss is None
+    ):
+        isotype_charge = ''
+        for i in range(int(annotation.charge)):
+            isotype_charge += '+'
+        return str(annotation.ion_type) + isotype_charge
     else:
         return ""
 
