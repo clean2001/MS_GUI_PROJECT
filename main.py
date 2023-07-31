@@ -6,7 +6,6 @@ import pandas as pd
 import json
 
 from PyQt6.QtWidgets import *
-# from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QMainWindow, QLabel, QTableWidget, QTableWidgetItem
 from PyQt6.QtGui import QIcon, QAction
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
@@ -25,6 +24,7 @@ import terminal
 import lib_parser
 import process_sequence
 import filtering_list
+import control_exception
 
 
 sys.path.append(os.getcwd())
@@ -50,6 +50,8 @@ class MyApp(QMainWindow):
         with open('./data/decoy_lib.json') as f:
             self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
 
+
+
         self.current_seq='A'
         self.top_seq = 'A'
         self.tol = 0.5
@@ -73,8 +75,8 @@ class MyApp(QMainWindow):
         self.setCentralWidget(self.main_widget) # Main Window set center
         self.resize(1200, 800) # Main Window Size
 
-        self.btn_1 = QPushButton('View Spectrum', self)
-        self.btn_2 = QPushButton('Summary', self)
+        self.btn_1 = QPushButton('View Spectrum')
+        self.btn_2 = QPushButton('Summary')
         self.btn_1.clicked.connect(self.button1)
         self.btn_2.clicked.connect(self.button2)
 
@@ -128,8 +130,18 @@ class MyApp(QMainWindow):
         filemenu.addAction(exitAction)
 
         ##
-
         self.initUI()
+
+
+    def apply_style(self):
+        self.n_btn.setObjectName('n_btn')
+
+        with open('style.qss', 'r') as f:
+            style = f.read()
+        app.setStyleSheet(style)
+
+    def Warning_event(self) :
+        QMessageBox.warning(self,'Invalid value!','Invalid Value!😵‍💫')
 
     def initUI(self):
         left_layout = QHBoxLayout()
@@ -164,6 +176,7 @@ class MyApp(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
+        # self.apply_style()
 
     def button1(self):
         self.right_widget.setCurrentIndex(0)
@@ -320,7 +333,12 @@ class MyApp(QMainWindow):
 
                 
     def change_tol(self):
-        tolerance = float(self.tol_input.text())
+        if control_exception.check_tolerence(self.tol_input.text()):
+            tolerance = float(self.tol_input.text())
+        else:
+            self.tol_input.setText(str(self.tol))
+            self.Warning_event()
+            return
         if self.tol == tolerance:
             return
         
@@ -536,12 +554,20 @@ class MyApp(QMainWindow):
             handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
             self.sa_ax.legend(handles, labels)
             self.sa_canvas.draw()
+            self.qs_canvas.draw()
+            self.ppm_canvas.draw()
+
 
             self.all_sa.sort()
         return
     
     def filter_spectrums(self):
-        threshold = float(self.filter_input.text())
+        if control_exception.check_sa_threshold(self.filter_input.text()):
+            threshold = float(self.filter_input.text())
+        else:
+            self.filter_input.setText(str(self.filtering_threshold))
+            self.Warning_event()
+            return
         if self.filtering_threshold == threshold:
             return
         
@@ -616,6 +642,11 @@ class MyApp(QMainWindow):
         self.c_btn.setCheckable(True)
 
         return
+    
+
+    
+
+        
 
 
 if __name__ == "__main__":

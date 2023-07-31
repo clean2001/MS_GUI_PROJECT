@@ -1,0 +1,5 @@
+QPushButton#n_btn {
+    width: 15px;
+    height: 10px;
+    background-color: blue;
+}
