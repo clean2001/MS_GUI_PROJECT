@@ -9,11 +9,11 @@ def check_tolerence(tol : str):
     except ValueError:
         return False
 
-def check_sa_threshold(sa : str):
+def check_qscore_threshold(qscore : str):
     try:
-        float(sa)
-        sa = float(sa)
-        if sa >= 0 and sa <= 1:
+        float(qscore)
+        qscore = float(qscore)
+        if qscore >= 0 and qscore <= 30:
             return True
         else:
             return False

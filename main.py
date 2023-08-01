@@ -57,7 +57,7 @@ class MyApp(QMainWindow):
         self.tol = 0.5
         self.filtering_threshold = 0
         self.cur_idx = -1
-        self.all_sa = []
+        self.all_qscore = []
         self.row_to_data_idx = []
 
         self.data = process_data.parse_file('./data/toy.mgf')
@@ -364,7 +364,7 @@ class MyApp(QMainWindow):
         filter_hbox = QHBoxLayout()
         filter_hbox.addWidget(self.top_label)
         filter_hbox.addStretch(40)
-        filter_hbox.addWidget(QLabel('filter threshold(SA): '))
+        filter_hbox.addWidget(QLabel('filter threshold(QScore): '))
         filter_hbox.addWidget(self.filter_input)
         filter_hbox.addWidget(self.filter_button)
         self.graph_outer_layout.addLayout(filter_hbox)
@@ -533,7 +533,7 @@ class MyApp(QMainWindow):
                 self.spectrum_list.setItem(i, 13, QTableWidgetItem(self.result_data[i]['ExpRatio']))
                 self.spectrum_list.setItem(i, 14, QTableWidgetItem(match))
 
-                self.all_sa.append(float(self.result_data[i]['SA']))
+                self.all_qscore.append(float(self.result_data[i]['QScore']))
 
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
@@ -558,11 +558,11 @@ class MyApp(QMainWindow):
             self.ppm_canvas.draw()
 
 
-            self.all_sa.sort()
+            self.all_qscore.sort()
         return
     
     def filter_spectrums(self):
-        if control_exception.check_sa_threshold(self.filter_input.text()):
+        if control_exception.check_qscore_threshold(self.filter_input.text()):
             threshold = float(self.filter_input.text())
         else:
             self.filter_input.setText(str(self.filtering_threshold))
@@ -571,10 +571,10 @@ class MyApp(QMainWindow):
         if self.filtering_threshold == threshold:
             return
         
-        self.filtering_threshild = threshold
+        self.filtering_threshold = threshold
         
-        lb = filtering_list.lower_bound(self.all_sa, threshold)
-        filtered_number = len(self.all_sa) - lb
+        lb = filtering_list.lower_bound(self.all_qscore, threshold)
+        filtered_number = len(self.all_qscore) - lb
 
 
         self.spectrum_list.clear()
@@ -585,12 +585,12 @@ class MyApp(QMainWindow):
 
 
         # 상단 라벨 변경
-        self.top_label.setText(str(filtered_number) +' / ' + str(len(self.result_data))+ ' spectrums (SA threshold: ' + str(threshold) + ')')
+        self.top_label.setText(str(filtered_number) +' / ' + str(len(self.result_data))+ ' spectrums (QScore threshold: ' + str(threshold) + ')')
         idx = 0
         self.row_to_data_idx.clear()
         # 다시 테이블에 추가
         for i in range(0, len(self.result_data)):
-            if float(self.result_data[i]['SA']) < threshold:
+            if float(self.result_data[i]['QScore']) < threshold:
                 continue
 
             if "TARGET" in self.result_data[i]['Protein']:
