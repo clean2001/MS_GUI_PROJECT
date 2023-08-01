@@ -6,7 +6,7 @@ import pandas as pd
 import json
 
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QIcon, QAction
+from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -75,10 +75,10 @@ class MyApp(QMainWindow):
         self.setCentralWidget(self.main_widget) # Main Window set center
         self.resize(1200, 800) # Main Window Size
 
-        self.btn_1 = QPushButton('View Spectrum')
-        self.btn_2 = QPushButton('Summary')
-        self.btn_1.clicked.connect(self.button1)
-        self.btn_2.clicked.connect(self.button2)
+        # self.btn_1 = QPushButton('View Spectrum')
+        # self.btn_2 = QPushButton('Summary')
+        # self.btn_1.clicked.connect(self.button1)
+        # self.btn_2.clicked.connect(self.button2)
 
         self.n_btn = QPushButton('N', self)
         self.c_btn = QPushButton('C', self)
@@ -134,7 +134,10 @@ class MyApp(QMainWindow):
 
 
     def apply_style(self):
-        self.n_btn.setObjectName('n_btn')
+        # self.n_btn.setObjectName('n_btn')
+        # self.btn_1.setObjectName('btn_1')
+        # self.btn_2.setObjectName('btn_2')
+        self.right_widget.setObjectName('right_widget')
 
         with open('style.qss', 'r') as f:
             style = f.read()
@@ -145,9 +148,9 @@ class MyApp(QMainWindow):
 
     def initUI(self):
         left_layout = QHBoxLayout()
-        left_layout.addWidget(self.btn_1)
-        left_layout.addWidget(self.btn_2)
-        left_layout.addStretch(0)
+        # left_layout.addWidget(self.btn_1)
+        # left_layout.addWidget(self.btn_2)
+        # left_layout.addStretch(0)
         # left_layout.setSpacing(5)
         left_widget = QWidget()
         left_widget.setLayout(left_layout)
@@ -155,12 +158,12 @@ class MyApp(QMainWindow):
         self.right_widget = QTabWidget()
         self.right_widget.tabBar().setObjectName("mainTab")
 
-        self.right_widget.addTab(self.tab1, '')
-        self.right_widget.addTab(self.tab2, '')
+        self.right_widget.addTab(self.tab1, 'View Spectra')
+        self.right_widget.addTab(self.tab2, 'Summary')
 
         self.right_widget.setCurrentIndex(0)
-        self.right_widget.setStyleSheet('''QTabBar::tab{width: 0; \
-            height: 0; margin: 0; padding: 0; border: none;}''')
+        # self.right_widget.setStyleSheet('''QTabBar::tab{width: 0; \
+        #     height: 0; margin: 0; padding: 0; border: none;}''')
 
         left_outer = QVBoxLayout()
         left_outer.addWidget(left_widget) # menubar
@@ -435,6 +438,8 @@ class MyApp(QMainWindow):
                 start = c_terms[i]
                 end = c_terms[i+1]
                 self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+
+
         
 
     
@@ -488,7 +493,7 @@ class MyApp(QMainWindow):
 
             self.spectrum_list.setRowCount(len(self.result_data))
 
-            self.top_label.setText(str(len(self.result_data)) + ' / ' +  str(len(self.result_data)) + ' spectrums (SA threshold: ' + str(self.filtering_threshold) + ')')
+            self.top_label.setText(str(len(self.result_data)) + ' / ' +  str(len(self.result_data)) + ' spectrums (QScore threshold: ' + str(self.filtering_threshold) + ')')
             for i in range(0, len(self.result_data)):
                 if "TARGET" in self.result_data[i]['Protein']:
                     self.sa_target.append(float(self.result_data[i]['SA']))
@@ -650,8 +655,8 @@ class MyApp(QMainWindow):
 
 
 if __name__ == "__main__":
-
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     ex = MyApp()
     ex.show()
     sys.exit(app.exec())
