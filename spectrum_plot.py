@@ -1,3 +1,9 @@
+'''
+reference: spectrum_utils/plot.py
+github: https://github.com/bittremieux/spectrum_utils
+isotope의 표시를 위해 copy & paste 후 수정
+'''
+
 import functools
 import itertools
 import math
@@ -85,9 +91,12 @@ def _annotate_ion(
         kws = annot_kws.copy()
         # 2+, 3+의 텍스트 크기 조정을 위해 내가 고친 부분
         fontsize = 8
-
-        kws.update(dict(color=color, zorder=zorder, fontsize = fontsize))
-        ax.text(mz, y, annot_fmt(annotation), **kws)
+        if abs(y) < 0.1:
+            fontsize = 8
+        kws.update(dict(color=color, zorder=zorder, fontsize=fontsize))
+        if abs(y) >= 0.05:
+            ax.text(mz, y, annot_fmt(annotation), **kws)
+        # 특정 이온의 m/z값을 회색 텍스트로 표시
         if ion_type != "?":
             ax.text(mz, y, str(round(mz, 3)), fontsize=7, color="#A9A9A9", alpha=0.5)
     return color, zorder

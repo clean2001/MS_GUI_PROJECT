@@ -92,8 +92,9 @@ class MyApp(QMainWindow):
         self.filter_input.setText(str(self.filtering_threshold))
         self.filter_input.setFixedWidth(50)
         self.filter_button = QPushButton('submit', self)
+        self.filter_reset_button = QPushButton('reset', self)
         self.filter_button.clicked.connect(self.filter_spectrums)
-
+        self.filter_reset_button.clicked.connect(self.filter_reset)
 
 
         # tolerance
@@ -370,6 +371,7 @@ class MyApp(QMainWindow):
         filter_hbox.addWidget(QLabel('filter threshold(QScore): '))
         filter_hbox.addWidget(self.filter_input)
         filter_hbox.addWidget(self.filter_button)
+        filter_hbox.addWidget(self.filter_reset_button)
         self.graph_outer_layout.addLayout(filter_hbox)
 
         self.graph_outer_layout.addStretch(5)
@@ -382,7 +384,7 @@ class MyApp(QMainWindow):
         self.spectrum_list.setHorizontalHeaderLabels(column_headers)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
-        self.spectrum_list.setMinimumHeight(150)
+        self.spectrum_list.setMinimumHeight(200)
 
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
@@ -647,6 +649,15 @@ class MyApp(QMainWindow):
         self.c_btn.setCheckable(True)
 
         return
+    
+    def filter_reset(self):
+        if self.filtering_threshold == 0:
+            return
+        
+        self.filter_input.setText('0')
+        self.filter_spectrums()
+        return
+        
     
 
     
