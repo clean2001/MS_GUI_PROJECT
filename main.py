@@ -84,10 +84,12 @@ class MyApp(QMainWindow):
 
         self.n_btn = QPushButton('N', self)
         self.c_btn = QPushButton('C', self)
+        self.mass_error_btn = QPushButton('mass error', self)
         self.n_btn.setCheckable(False)
         self.c_btn.setCheckable(False)
         self.n_btn.toggled.connect(self.n_button)
         self.c_btn.toggled.connect(self.c_button)
+        self.mass_error_btn.clicked.connect(self.mass_error_btn_clicked)
 
         # filtering threshold
         self.filter_input = QLineEdit()
@@ -189,6 +191,10 @@ class MyApp(QMainWindow):
 
     def button2(self):
         self.right_widget.setCurrentIndex(1)
+
+    def mass_error_btn_clicked(self):
+        # mass_error 그래프 나타내는 함수
+        mass_error.mass_error_plot(self.spectrum_top)
     
     def n_button(self):
         if self.n_btn.isChecked(): # 방금 체크 됨
@@ -336,8 +342,7 @@ class MyApp(QMainWindow):
         self.graph_main_layout.addWidget(self.canvas)
         self.graph_main_layout.addWidget(self.toolbar)
         
-        # mass_error 그래프 나타내는 함수
-        mass_error.mass_error_plot(self.spectrum_top)
+
 
                 
     def change_tol(self):
@@ -353,10 +358,10 @@ class MyApp(QMainWindow):
         self.tol = tolerance
         self.make_graph(self.cur_idx)
         # self.tol_label.setText('tolerance: ' + str(self.tol))
-        if self.n_btn.isChecked():
-            self.n_btn.toggle()
-        if self.c_btn.isChecked():
-            self.c_btn.toggle()
+        # if self.n_btn.isChecked():
+        #     self.n_btn.toggle()
+        # if self.c_btn.isChecked():
+        #     self.c_btn.toggle()
 
 
 
@@ -392,6 +397,7 @@ class MyApp(QMainWindow):
 
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
+        self.terminal_btn_layout.addWidget(self.mass_error_btn)
         self.terminal_btn_layout.addStretch(20)
         self.terminal_btn_layout.addWidget(self.tol_label)
         self.terminal_btn_layout.addWidget(self.tol_input)

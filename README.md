@@ -1,50 +1,51 @@
-# 2023 MS Analysis GUI Tool
+# Spectrum Library Search Program
 
+## 1. Program Introduction
 
-2023.07.24 작성
+The program matches the peaks observed in the spectrum by contrasting them with the spectrum library and predicts the corresponding peaks. It visualizes the spectrum graph to allow users to easily see the matches.
 
-### Language & Library
+<br></br>
+**(Main features)**
+* Visualizing the spectrum data filtered by the user-defined SA Score in the Query Spectrum.
+* Matching the user-selected spectrum graph against the library within a tolerance range and visualizing the matching spectra using a mirror plot.
+* Visualizing amino acid sequences and mass errors in the graph.
+* Providing summary information based on the score of the corresponding spectrum.
+* Decoy Spectrum ~ 추가로 수정<br></br> 
 
-- Language: Python
-- Library:
-    - pyqt5
-    - spectrum_utils
-    - pandas
-    
-
-### Implementation
-
-앞으로의 구현 목적
-
-![Untitled](GUI%20%E1%84%8C%E1%85%A9%E1%86%AF%E1%84%8B%E1%85%A5%E1%86%B8%20%E1%84%91%E1%85%B3%E1%84%85%E1%85%A9%E1%84%8C%E1%85%A6%E1%86%A8%E1%84%90%E1%85%B3%2018a4a195fc374088b9279cbe43aaf8df/Untitled.png)
-
-1. gui를 통해 query file을 open
-2. deephos를 실행하여 query에 대해 DB를 서치
-3. 리턴된 result 파일을 파싱하여 Gui의 spectrum 목록에 띄움
-4. spectrum 목록의 어떤 항목을 누르면, 그 spectrum의 ‘seq_charge’를 key로 하여, 미리 Hash에 넣어둔 DB를 서치. Hash의 value는 target-decoy DB에서의 해당 스펙트럼의 m/z, intensity 정보가 시작되는 부분의 file offset.
-5. DB에서 file offset 부분으로 가면 매치된 스펙트럼의 m/z, intensity 정보가 있는데, 이를 파싱
-6. mirror plot으로 query와 정답 스펙트럼을 나타냄. (top: query, bottom: DB)
-
-현재
-
-![Untitled](GUI%20%E1%84%8C%E1%85%A9%E1%86%AF%E1%84%8B%E1%85%A5%E1%86%B8%20%E1%84%91%E1%85%B3%E1%84%85%E1%85%A9%E1%84%8C%E1%85%A6%E1%86%A8%E1%84%90%E1%85%B3%2018a4a195fc374088b9279cbe43aaf8df/Untitled%201.png)
-
-현재는 아직 Deephos 프로그램을 실행시키지 않고, 나박사님께서 예시로 주신 query 파일을 파싱, result 파일을 파싱하여 GUI에 띄우는 방식입니다.
-
-아직 Deephos가 없기에, query, result 파일을 모두 가지고 있어야 실행이 가능합니다.
-
-그 외에도
-
-- N, C terminal을 표시
-- tolerance를 user 마음대로 조정가능
-- Summary(QA, QScore의 histogram, ppm Error의 boxplot)
-
-기능을 구현했습니다.
-
+## 2. How to use the program
+* Open the user's observed spectrum stored in an mgf file from the **File** menu located in the top left corner.
   
-   
+    ![alt text](./draw/image/File_button_intro.png)
+  
+  *  mgf 파일의 형식은 이렇게 이루어져야 합니다. -> 나중에 사진 첨부 추가 수정
+  *  When you open the file, the queries will appear in the table on the toolbar.
 
-- lib_scanner
-    python lib_scanner.py ./data/Target_predicted_lib.msp ./data/target_lib.json
-      
-    python lib_scanner.py ./data/revDecoy_predicted_lib.msp ./data/decoy_lib.json 
+    ![alt text](./draw/image/Query_table_intro.png)
+
+*  Users can select one of the desired spectra and view the spectrum graph in the 'View Spectrum' tab.
+
+    ![alt text](./draw/image/Spectrum_graph_intro.png)
+   
+   * Users can set the **mass threshold** of the spectrum library directly using the **tolerance** field located at the bottom of the table. The default value is 0.5.
+   * The top section shows the graph of the selected spectrum by the user, while the bottom section represents the results obtained from searching the spectrum library.
+   * Using the **filtering** feature, users can view only the spectra within a specific Score range that they have specified.
+ * The two buttons at the top of the graph display **N-terminal** and **C-terminal** information on the graph.
+
+    ![alt text](./draw/image/Terminal_intro.png)
+ * Through the **menubar** at the bottom of the graph, users can zoom in on specific regions of interest in the graph for a closer look.
+  
+    ![alt text](./draw/image/Search_intro.png)
+ * When you press the **'Mass Error'** button, you can view a graph representing the mass error of the observed spectrum graphs.
+  
+    ![alt text](./draw/image/Mass_error_intro.png)
+
+ * In the **'Summary'** tab at the top, you can view a graph summarizing the QScore, SA Score, and ppm error of the corresponding spectrum.
+  
+    ![alt text](./draw/image/Summary_intro.png)
+ * Decoy 스펙트럼을 통해 추후 내용 추가할 예정 <br></br> 
+ 
+## 3. Developer Introduction
+제작자 소개글 ~~ <br>
+한양대학교 컴퓨터소프트웨어학부 2020089761 강정윤 <br>
+한양대학교 컴퓨터소프트웨어학부 2020005269 김세정 <br>
+2023
