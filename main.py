@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 # import spectrum_utils.plot as sup
 import spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
 import spectrum_utils.spectrum as sus
+import mass_plot as mp
 
 # custon modules
 import process_data
@@ -25,6 +26,7 @@ import lib_parser
 import process_sequence
 import filtering_list
 import control_exception
+import mass_error
 
 
 sys.path.append(os.getcwd())
@@ -329,7 +331,9 @@ class MyApp(QMainWindow):
         self.graph_main_layout.addWidget(QLabel(dict['seq']))
         self.graph_main_layout.addWidget(self.canvas)
         self.graph_main_layout.addWidget(self.toolbar)
-
+        
+        # mass_error 그래프 나타내는 함수
+        mass_error.mass_error_plot(self.spectrum_top)
 
                 
     def change_tol(self):
