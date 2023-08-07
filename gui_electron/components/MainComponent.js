@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+const spawn = require('child_process').spawn; // python code 실행을 위한
+
 
 // begin styles
 
@@ -175,11 +177,19 @@ function spectrum_list_component({obj, reShowGraph}) {
 }
 
 function GraphIframe({graphUrl}) {
+    // const exists = fs.existsSync(graphUrl);
+    // let real_url;
+    // if(!exists) {
+    //     real_url = "./notFound.html";
+    // } else {
+    //     real_url = graphUrl
+    // }
+
     return (
         <div style={outer_graph_iframe}>
             <iframe style={inner_graph_iframe} src={graphUrl}></iframe>
         </div>
-    )
+    );
 }
 
 function MainComponent(props) {
@@ -192,29 +202,56 @@ function MainComponent(props) {
 
     const [tabIdx, setTabIdx] = useState(0);
 
-    const [hovering, setHovering] = useState(null);
-
     let terminal;
 
     useEffect(()=>{
         checkStates();
-    }, [NisPushed, CisPushed, spectrumIdx]);
+    }, [NisPushed, CisPushed]);
+
+    useEffect(()=>{
+        make_graph();
+    }, [spectrumIdx]);
+
 
     function checkStates() {
         let terminal;
         if(NisPushed === true && CisPushed === true) {
-            terminal = "./spectrums/spectrum_ncterm"+spectrumIdx.toString()+".html";
+            terminal = './spectrums/spectrum_ncterm'+spectrumIdx.toString()+'.html';
         } else if(NisPushed === true && CisPushed == false) { // N만 눌린 상태
-            terminal = "./spectrums/spectrum_nterm"+spectrumIdx.toString()+".html";
+            terminal = './spectrums/spectrum_nterm'+spectrumIdx.toString()+'.html';
         } else if(CisPushed === true && NisPushed === false) {
-            terminal = "./spectrums/spectrum_cterm"+spectrumIdx.toString()+".html";
+            terminal = './spectrums/spectrum_cterm'+spectrumIdx.toString()+'.html';
         } else if(CisPushed === false && NisPushed === false){
-            terminal = "./spectrums/spectrum_naive"+spectrumIdx.toString()+".html";
+            terminal = './spectrums/spectrum_naive'+spectrumIdx.toString()+'.html';
         }
 
-        // showGraph(terminal);
         setGraphUrl(terminal);
+
     } 
+
+    function make_graph() {
+        let terminal;
+        if(NisPushed === true && CisPushed === true) {
+            terminal = './spectrums/spectrum_ncterm'+spectrumIdx.toString()+'.html';
+        } else if(NisPushed === true && CisPushed == false) { // N만 눌린 상태
+            terminal = './spectrums/spectrum_nterm'+spectrumIdx.toString()+'.html';
+        } else if(CisPushed === true && NisPushed === false) {
+            terminal = './spectrums/spectrum_cterm'+spectrumIdx.toString()+'.html';
+        } else if(CisPushed === false && NisPushed === false){
+            terminal = './spectrums/spectrum_naive'+spectrumIdx.toString()+'.html';
+        }
+
+        const filename = require('./objects/specturm_file_name.json');
+        const result = spawn('python', ['process_data.py', filename, 0.5, spectrumIdx]);
+        result.stdout.on('data', function (data) {
+        //   let testData = JSON.parse(JSON.stringify("spectrums.json"));
+            console.log("228done!");
+            setGraphUrl(terminal);
+        });
+
+        setGraphUrl('./loading.html');
+    }
+
     
     function toggleNBtn() {
         setNPushed(!NisPushed);
