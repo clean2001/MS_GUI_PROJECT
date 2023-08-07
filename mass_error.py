@@ -13,7 +13,4 @@ def mass_error_plot(spectrum_top, spectrum_bottom):
         width=10.5,
     )   
     
-    # fig, ax = plt.subplots(figsize=(10.5, 4))
-    # mp.mass_errors(spectrum_top, plot_unknown=False, ax=ax)
     plt.show()
-    # plt.close()

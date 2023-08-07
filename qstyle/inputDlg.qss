@@ -1,0 +1,8 @@
+QLineEdit#tol_edit_default {
+    color: gray;
+}
+
+QLineEdit#tol_edit_non_default {
+    color: black;
+}
+
