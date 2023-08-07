@@ -106,10 +106,11 @@ class MyApp(QMainWindow):
         self.mass_error_btn = QPushButton('mass error', self)
         self.n_btn.setCheckable(False)
         self.c_btn.setCheckable(False)
+        self.mass_error_btn.setCheckable(True)
 
         self.n_btn.toggled.connect(self.n_button)
         self.c_btn.toggled.connect(self.c_button)
-        self.mass_error_btn.clicked.connect(self.mass_error_btn_clicked)
+        self.mass_error_btn.toggled.connect(self.mass_error_btn_clicked)
 
         # filtering threshold
         self.filter_input = QLineEdit()
@@ -213,13 +214,29 @@ class MyApp(QMainWindow):
         self.right_widget.setCurrentIndex(1)
 
     def mass_error_btn_clicked(self):
-        if self.spectrum_top == None:
-            return
         # mass_error 그래프 나타내는 함수
-        # mass_error.mass_error_plot(self, self.spectrum_top)
-        dlg = CustomDialog()
-        dlg.setWindowTitle("HELLO!")
-        dlg.exec()
+        # mass_error.mass_error_plot(self.spectrum_top)
+        if self.mass_error_btn.isChecked():
+            self.n_btn.setCheckable(False)
+            self.c_btn.setCheckable(False)
+            plt.close()
+            for i in reversed(range(self.graph_main_layout.count())): 
+                obj = self.graph_main_layout.itemAt(i).widget()
+                if obj is not None:
+                    obj.deleteLater()
+            self.fig, self.ax = plt.subplots(figsize=(15, 9))
+            self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
+            self.canvas = FigureCanvas(self.fig) # mirror plot
+            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(self.canvas)
+            self.graph_main_layout.addWidget(self.toolbar)
+
+            self.canvas.draw()
+        else:
+            self.make_graph(self.cur_idx)
+            self.n_btn.setCheckable(True)
+            self.c_btn.setCheckable(True)
     
     def n_button(self):
         if self.n_btn.isChecked(): # 방금 체크 됨
