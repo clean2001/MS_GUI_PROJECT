@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 # import spectrum_utils.plot as sup
 import spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
 import spectrum_utils.spectrum as sus
-import mass_plot as mp
 
 # custon modules
 import process_data
@@ -215,7 +214,6 @@ class MyApp(QMainWindow):
 
     def mass_error_btn_clicked(self):
         # mass_error 그래프 나타내는 함수
-        # mass_error.mass_error_plot(self.spectrum_top)
         if self.mass_error_btn.isChecked():
             self.n_btn.setCheckable(False)
             self.c_btn.setCheckable(False)
@@ -224,7 +222,7 @@ class MyApp(QMainWindow):
                 obj = self.graph_main_layout.itemAt(i).widget()
                 if obj is not None:
                     obj.deleteLater()
-            self.fig, self.ax = plt.subplots(figsize=(15, 9))
+            self.fig, self.ax = plt.subplots(figsize=(7, 10.5))
             self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
@@ -369,6 +367,27 @@ class MyApp(QMainWindow):
         )
         self.spectrum_bottom.annotate_proforma(seq, self.tol, "Da", ion_types="by")
         plt.close()
+
+        ## mass error를 그리는 부분
+        if self.mass_error_btn.isChecked():
+            plt.close()
+            for i in reversed(range(self.graph_main_layout.count())): 
+                obj = self.graph_main_layout.itemAt(i).widget()
+                if obj is not None:
+                    obj.deleteLater()
+            self.fig, self.ax = plt.subplots(figsize=(15, 9))
+            self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
+            self.canvas = FigureCanvas(self.fig) # mirror plot
+            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(self.canvas)
+            self.graph_main_layout.addWidget(self.toolbar)
+
+            self.canvas.draw()
+            return
+        
+        ##
+
         self.fig, self.ax = plt.subplots(figsize=(15, 9))
         sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
 
@@ -466,9 +485,8 @@ class MyApp(QMainWindow):
         
         self.cur_idx = self.row_to_data_idx[int(self.spectrum_list.currentRow())]
         self.make_graph(self.cur_idx)
-
+        n_terms = terminal.make_nterm_list(self.current_seq)
         if self.n_btn.isChecked(): # n terminal 표시
-            n_terms = terminal.make_nterm_list(self.current_seq)
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
                 self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
@@ -490,6 +508,10 @@ class MyApp(QMainWindow):
                 start = c_terms[i]
                 end = c_terms[i+1]
                 self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+            
+        
+        self.ax.set_xlim(0, n_terms[-1])
+
 
 
         
