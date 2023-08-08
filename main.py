@@ -4,6 +4,7 @@ import sys, os
 import numpy as np
 import pandas as pd
 import json
+import webbrowser
 
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
@@ -27,6 +28,7 @@ import process_sequence
 import filtering_list
 import control_exception
 import mass_error
+import input_dialog
 
 
 sys.path.append(os.getcwd())
@@ -36,10 +38,31 @@ cur_path = os.path.dirname(os.path.realpath(__file__))
 target_lib_file = './data/Target_predicted_lib.msp'
 decoy_lib_file = './data/revDecoy_predicted_lib.msp'
 
-class ComboBox(QWidget):
-    def __init__(self, parent=None, list_of_title=None):
-        super().__init__(parent)
-        self.parent = parent
+class CustomDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("HELLO!")
+        layout = QVBoxLayout()
+        mass_err_canvas = FigureCanvas(Figure(figsize=(10.5, 4)))
+        # mass_err_ax = mass_error.mass_error_plot(mass_err_canvas, spectrum)
+        mass_err_canvas.figure.subplots()
+        layout.addWidget(mass_err_canvas)
+        self.setLayout(layout)
+
+class InputDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("input")
+        
+        self.query_layout = QVBoxLayout()
+        inner_query_layout = QHBoxLayout()
+        self.addBtn = QPushButton("Add")
+        inner_query_layout.addWidget(QLabel("Query"))
+        inner_query_layout.addWidget(self.addBtn)
+        
+        self.outer_layout = QVBoxLayout()
+        self.outer_layout.addWidget()
+        # self.setLayout(layout)
 
 
 class MyApp(QMainWindow):
@@ -61,6 +84,7 @@ class MyApp(QMainWindow):
         self.cur_idx = -1
         self.all_qscore = []
         self.row_to_data_idx = []
+        self.spectrum_top = None
 
         self.data = process_data.parse_file('./data/toy.mgf')
         dict = self.data[0]
@@ -77,16 +101,12 @@ class MyApp(QMainWindow):
         self.setCentralWidget(self.main_widget) # Main Window set center
         self.resize(1200, 800) # Main Window Size
 
-        # self.btn_1 = QPushButton('View Spectrum')
-        # self.btn_2 = QPushButton('Summary')
-        # self.btn_1.clicked.connect(self.button1)
-        # self.btn_2.clicked.connect(self.button2)
-
         self.n_btn = QPushButton('N', self)
         self.c_btn = QPushButton('C', self)
         self.mass_error_btn = QPushButton('mass error', self)
         self.n_btn.setCheckable(False)
         self.c_btn.setCheckable(False)
+
         self.n_btn.toggled.connect(self.n_button)
         self.c_btn.toggled.connect(self.c_button)
         self.mass_error_btn.clicked.connect(self.mass_error_btn_clicked)
@@ -124,24 +144,31 @@ class MyApp(QMainWindow):
         openFileAction.setStatusTip('Open a file(.mgf)')
         openFileAction.triggered.connect(self.openFile)
 
+        runAction = QAction(QIcon(cur_path), 'Run', self)
+        runAction.triggered.connect(self.openInputDlg)
+
+        docAction = QAction(QIcon(cur_path), 'Document', self)
+        docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
+
+
         self.statusBar()
 
         self.menubar = self.menuBar()
         self.menubar.setNativeMenuBar(False)
 
         filemenu = self.menubar.addMenu('&File')
+        runmenu = self.menubar.addMenu('&Run')
+        docmenu = self.menubar.addMenu('&Document')
 
         filemenu.addAction(openFileAction)
         filemenu.addAction(exitAction)
-
+        runmenu.addAction(runAction)
+        docmenu.addAction(docAction)
         ##
         self.initUI()
 
 
     def apply_style(self):
-        # self.n_btn.setObjectName('n_btn')
-        # self.btn_1.setObjectName('btn_1')
-        # self.btn_2.setObjectName('btn_2')
         self.right_widget.setObjectName('right_widget')
 
         with open('style.qss', 'r') as f:
@@ -153,10 +180,6 @@ class MyApp(QMainWindow):
 
     def initUI(self):
         left_layout = QHBoxLayout()
-        # left_layout.addWidget(self.btn_1)
-        # left_layout.addWidget(self.btn_2)
-        # left_layout.addStretch(0)
-        # left_layout.setSpacing(5)
         left_widget = QWidget()
         left_widget.setLayout(left_layout)
 
@@ -167,8 +190,6 @@ class MyApp(QMainWindow):
         self.right_widget.addTab(self.tab2, 'Summary')
 
         self.right_widget.setCurrentIndex(0)
-        # self.right_widget.setStyleSheet('''QTabBar::tab{width: 0; \
-        #     height: 0; margin: 0; padding: 0; border: none;}''')
 
         left_outer = QVBoxLayout()
         left_outer.addWidget(left_widget) # menubar
@@ -184,7 +205,6 @@ class MyApp(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
-        # self.apply_style()
 
     def button1(self):
         self.right_widget.setCurrentIndex(0)
@@ -193,8 +213,13 @@ class MyApp(QMainWindow):
         self.right_widget.setCurrentIndex(1)
 
     def mass_error_btn_clicked(self):
+        if self.spectrum_top == None:
+            return
         # mass_error 그래프 나타내는 함수
-        mass_error.mass_error_plot(self.spectrum_top)
+        # mass_error.mass_error_plot(self, self.spectrum_top)
+        dlg = CustomDialog()
+        dlg.setWindowTitle("HELLO!")
+        dlg.exec()
     
     def n_button(self):
         if self.n_btn.isChecked(): # 방금 체크 됨
@@ -239,7 +264,6 @@ class MyApp(QMainWindow):
 
    
     def c_button(self):
-
         if self.c_btn.isChecked():
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
@@ -357,12 +381,6 @@ class MyApp(QMainWindow):
         
         self.tol = tolerance
         self.make_graph(self.cur_idx)
-        # self.tol_label.setText('tolerance: ' + str(self.tol))
-        # if self.n_btn.isChecked():
-        #     self.n_btn.toggle()
-        # if self.c_btn.isChecked():
-        #     self.c_btn.toggle()
-
 
 
     def ui1(self):
@@ -416,7 +434,12 @@ class MyApp(QMainWindow):
         self.graph_outer_layout.addLayout(self.spectrum_list_layout)
         self.graph_outer_layout.addLayout(self.graph_main_layout)
         main.setLayout(self.graph_outer_layout)
+
+
         return main
+    
+    def graph_event(self) :
+        QDialog.exec(self)
     
     
         
@@ -453,7 +476,6 @@ class MyApp(QMainWindow):
 
 
         
-
     
     def ui2(self):
         self.summary_layout = QGridLayout()
@@ -577,6 +599,7 @@ class MyApp(QMainWindow):
 
             self.all_qscore.sort()
         return
+
     
     def filter_spectrums(self):
         if control_exception.check_qscore_threshold(self.filter_input.text()):
@@ -667,12 +690,13 @@ class MyApp(QMainWindow):
         self.filter_input.setText('0')
         self.filter_spectrums()
         return
-        
     
-
-    
-
-        
+    def openInputDlg(self):
+        inputDlg = input_dialog.InputDialog()
+        inputDlg.exec()
+        query = inputDlg.query_file_list
+        # print("query is" + str(query))
+      
 
 
 if __name__ == "__main__":

@@ -305,22 +305,17 @@ def unserialize_spectrums(json_file: str):
 
     
 def main():
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print("[ERROR]: Insufficient args")
         sys.exit()
 
     data = parse_file(sys.argv[1])
     tol = float(sys.argv[2])
+    idx = int(sys.argv[3])
 
     serialize_spectrums(data, "./objects/spectrums.json") # 직렬화
-    # serialize_spectrums_for_py(data, "./spectrums/spectrums_for_python.json")
-
-    # for i in range (len(data)):
-    #     print(data[i])
-
-    # rslt = unseialize_spectrums("spectrums.json") # 성공
-    for i in range(len(data)):
-        display_graph(data, i, tol) # html 생성
+    serialize_spectrums_for_py(sys.argv[1], "./objects/specturm_file_name.json") # 파일이름 저장
+    display_graph(data, idx, tol) # html 생성
 
 if __name__ == "__main__":
     main()
