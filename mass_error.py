@@ -13,4 +13,4 @@ def mass_error_plot(spectrum_top, spectrum_bottom):
         width=10.5,
     )   
     
-    plt.show()
+    return fig

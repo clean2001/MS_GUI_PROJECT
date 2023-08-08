@@ -15,12 +15,6 @@ class InputDialog(QDialog):
         super().__init__()
         self.setWindowTitle("input")
         self.resize(500, 500)
-
-        with open('./qstyle/inputDlg.qss', 'r') as f:
-            style = f.read()
-
-        self.setStyleSheet(style)
-
         
         # 나중에 써야하는 정보들
         self.query_file_list = [] # query 파일들
@@ -255,17 +249,17 @@ class InputDialog(QDialog):
     def return_infomations(self):
         # query list가 비어져있는지 확인
         if not len(self.query_file_list):
-            err = QMessageBox.warning(self, "No file", "There's no Query file. Please import")
+            err = QMessageBox.warning(self, "No file", "There's no Query file.\nPlease import")
             return
 
         # target_lib이 없다면?
         if not self.target_lib_file:
-            err = QMessageBox.warning(self, "No file", "There's no target lib file. Please import")
+            err = QMessageBox.warning(self, "No file", "There's no target lib file.\nPlease import")
             return
 
         # decoy_lib이 없다면?
         if not self.decoy_lib_file:
-            err = QMessageBox.warning(self, "No file","There's no decoy lib file. Please import")
+            err = QMessageBox.warning(self, "No file","There's no decoy lib file.\nPlease import")
             return
         
         # pept tol이 이상한 값이라면?
