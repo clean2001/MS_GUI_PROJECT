@@ -8,6 +8,7 @@ import webbrowser
 
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor, QGradient
+from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -15,7 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
 import matplotlib.pyplot as plt
-# import spectrum_utils.plot as sup
+# import spectrum_utils.plot as sups
 import spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
 import spectrum_utils.spectrum as sus
 
@@ -71,6 +72,7 @@ class MyApp(QMainWindow):
         self.all_qscore = []
         self.row_to_data_idx = []
         self.spectrum_top = None
+        self.is_list_visible = True
 
         self.data = process_data.parse_file('./data/toy.mgf')
         spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
@@ -136,6 +138,12 @@ class MyApp(QMainWindow):
         docAction = QAction(QIcon(cur_path), 'Document', self)
         docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
 
+        # 리스트 단축키
+        listAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Hide/Show List', self)
+        listAction.setShortcut('Ctrl+J')
+        listAction.triggered.connect(self.toggle_spectrum_list)
+        ##
+
         self.statusBar()
 
         self.menubar = self.menuBar()
@@ -147,9 +155,11 @@ class MyApp(QMainWindow):
 
         filemenu.addAction(openFileAction)
         filemenu.addAction(exitAction)
+        filemenu.addAction(listAction)
         runmenu.addAction(runAction)
         docmenu.addAction(docAction)
         ##
+
         self.initUI()
 
 
@@ -409,21 +419,24 @@ class MyApp(QMainWindow):
         self.graph_main_layout = QVBoxLayout() # 캔버스와 툴바가 들어가는 부분, 바뀌는 부분
         self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
         self.terminal_btn_layout = QHBoxLayout()
+        filter_hbox = QHBoxLayout()
 
-        self.outer_splitter = QSplitter()
-        self.inner_splitter = QSplitter()
+        top_sp = QVBoxLayout()
+        bottom_sp = QVBoxLayout()
+
+
+        self.splitter = QSplitter()
 
         self.top_label = QLabel('0 spectrums (threshold: ' + str(self.filtering_threshold) + ')')
         # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
 
-        filter_hbox = QHBoxLayout()
         filter_hbox.addWidget(self.top_label)
         filter_hbox.addStretch(40)
         filter_hbox.addWidget(QLabel('filter threshold(QScore): '))
         filter_hbox.addWidget(self.filter_input)
         filter_hbox.addWidget(self.filter_button)
         filter_hbox.addWidget(self.filter_reset_button)
-        self.graph_outer_layout.addLayout(filter_hbox)
+        top_sp.addLayout(filter_hbox)
 
         self.graph_outer_layout.addStretch(5)
         self.spectrum_list = QTableWidget() # spectrum list
@@ -435,7 +448,8 @@ class MyApp(QMainWindow):
         self.spectrum_list.setHorizontalHeaderLabels(column_headers)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
-        self.spectrum_list.setMinimumHeight(170)
+        # self.spectrum_list.setMinimumHeight(170) 잠시 없앰
+        top_sp.addLayout(self.spectrum_list_layout)
         
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
@@ -444,17 +458,31 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.tol_label)
         self.terminal_btn_layout.addWidget(self.tol_input)
         self.terminal_btn_layout.addWidget(self.tol_btn)
+        bottom_sp.addLayout(self.terminal_btn_layout)
         
         self.canvas = FigureCanvas(self.fig) # mirror plot
-        self.canvas.setMinimumHeight(220) # 
+        self.canvas.setMinimumHeight(200) # 잠시 없앰
         self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-        self.graph_main_layout.addLayout(self.terminal_btn_layout)
         self.graph_main_layout.addWidget(self.canvas)
         self.graph_main_layout.addWidget(self.toolbar)
+        bottom_sp.addLayout(self.graph_main_layout)
 
         main = QWidget()
-        self.graph_outer_layout.addLayout(self.spectrum_list_layout)
-        self.graph_outer_layout.addLayout(self.graph_main_layout)
+
+        ## self.splitter를 위한 wrapper
+        wrapper_widget1 = QWidget()
+        wrapper_widget2 = QWidget()
+        wrapper_widget1.setLayout(top_sp)
+        wrapper_widget2.setLayout(bottom_sp)
+
+        self.inner_sp = QSplitter()
+        self.inner_sp.addWidget(wrapper_widget2)
+        self.splitter.addWidget(wrapper_widget1)
+        self.splitter.addWidget(self.inner_sp)
+        self.splitter.setOrientation(Qt.Orientation.Vertical)
+        self.graph_outer_layout.addWidget(self.splitter)
+        # sp.setFrameShape(QFrame.Shape.Panel)
+
         main.setLayout(self.graph_outer_layout)
 
 
@@ -732,7 +760,15 @@ class MyApp(QMainWindow):
         inputDlg = input_dialog.InputDialog()
         inputDlg.exec()
         query = inputDlg.query_file_list
-      
+
+    def toggle_spectrum_list(self):
+        # # self.splitter.setSizes([0, 1])
+        # self.splitter.setStretchFactor(3, 10000)
+        if self.splitter.sizes()[0] == 0: # 지금은 안보니까 보이게 하기
+            self.splitter.setSizes([218, 445])
+        else: ## 보이니까 가리기
+            self.splitter.setSizes([0, 550])
+
 
 
 if __name__ == "__main__":
