@@ -161,12 +161,15 @@ class MyApp(QMainWindow):
         ##
 
         self.initUI()
+        self.apply_style()
 
 
     def apply_style(self):
-        self.right_widget.setObjectName('right_widget')
+        self.n_btn.setObjectName('n_btn')
+        self.c_btn.setObjectName('c_btn')
 
-        with open('style.qss', 'r') as f:
+
+        with open('./qstyle/style.qss', 'r') as f:
             style = f.read()
         app.setStyleSheet(style)
 
@@ -199,6 +202,10 @@ class MyApp(QMainWindow):
         main_widget = QWidget()
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
+
+        self.n_btn.setMaximumWidth(50)
+        self.c_btn.setMaximumWidth(50)
+
 
 
     def button1(self):
@@ -233,6 +240,7 @@ class MyApp(QMainWindow):
     
     def n_button(self):
         if self.n_btn.isChecked(): # 방금 체크 됨
+            self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
@@ -245,6 +253,7 @@ class MyApp(QMainWindow):
             
             self.canvas.draw() # refresh plot
         else:
+            self.n_btn.setStyleSheet("background-color: #1E90FF")
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
             sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
@@ -275,6 +284,7 @@ class MyApp(QMainWindow):
    
     def c_button(self):
         if self.c_btn.isChecked():
+            self.c_btn.setStyleSheet("background-color: #800000")#CD5C5C
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
                 self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
@@ -288,6 +298,7 @@ class MyApp(QMainWindow):
         
             self.canvas.draw() # refresh plot
         else:
+            self.c_btn.setStyleSheet("background-color: #CD5C5C")
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
             sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)

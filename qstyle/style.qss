@@ -1,5 +1,7 @@
-QTableWidget::item:active {
-    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e7effd, stop: 1 #cbdaf1);
-    border: 1px solid #bfcde4;
+QPushButton#n_btn {
+    background-color: #1E90FF;
 }
 
+QPushButton#c_btn {
+    background-color: #CD5C5C;
+}
