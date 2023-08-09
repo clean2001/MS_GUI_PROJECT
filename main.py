@@ -7,7 +7,7 @@ import json
 import webbrowser
 
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
+from PyQt6.QtGui import QIcon, QAction, QPalette, QColor, QGradient
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -37,17 +37,6 @@ cur_path = os.path.dirname(os.path.realpath(__file__))
 target_lib_file = './data/Target_predicted_lib.msp'
 decoy_lib_file = './data/revDecoy_predicted_lib.msp'
 
-class CustomDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("HELLO!")
-        layout = QVBoxLayout()
-        mass_err_canvas = FigureCanvas(Figure(figsize=(10.5, 4)))
-        # mass_err_ax = mass_error.mass_error_plot(mass_err_canvas, spectrum)
-        mass_err_canvas.figure.subplots()
-        layout.addWidget(mass_err_canvas)
-        self.setLayout(layout)
-
 class InputDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -74,8 +63,6 @@ class MyApp(QMainWindow):
         with open('./data/decoy_lib.json') as f:
             self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
 
-
-
         self.current_seq='A'
         self.top_seq = 'A'
         self.tol = 0.5
@@ -86,7 +73,6 @@ class MyApp(QMainWindow):
         self.spectrum_top = None
 
         self.data = process_data.parse_file('./data/toy.mgf')
-        dict = self.data[0]
         spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_top.annotate_proforma('A', self.tol, "Da", ion_types="by")
         spectrum_bottom = sus.MsmsSpectrum('', 0, 0, [], [])
@@ -149,7 +135,6 @@ class MyApp(QMainWindow):
 
         docAction = QAction(QIcon(cur_path), 'Document', self)
         docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
-
 
         self.statusBar()
 
@@ -425,6 +410,9 @@ class MyApp(QMainWindow):
         self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
         self.terminal_btn_layout = QHBoxLayout()
 
+        self.outer_splitter = QSplitter()
+        self.inner_splitter = QSplitter()
+
         self.top_label = QLabel('0 spectrums (threshold: ' + str(self.filtering_threshold) + ')')
         # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
 
@@ -447,8 +435,8 @@ class MyApp(QMainWindow):
         self.spectrum_list.setHorizontalHeaderLabels(column_headers)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
-        self.spectrum_list.setMinimumHeight(200)
-
+        self.spectrum_list.setMinimumHeight(170)
+        
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
         self.terminal_btn_layout.addWidget(self.mass_error_btn)
@@ -457,8 +445,6 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.tol_input)
         self.terminal_btn_layout.addWidget(self.tol_btn)
         
-
-
         self.canvas = FigureCanvas(self.fig) # mirror plot
         self.canvas.setMinimumHeight(220) # 
         self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
@@ -482,8 +468,15 @@ class MyApp(QMainWindow):
     def chkItemChanged(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
         if self.cur_idx == int(self.spectrum_list.currentRow()): # row
             return
-        
+        if self.cur_idx != -1:
+            for i in range(0, 14):
+                item = self.spectrum_list.item(self.cur_idx, i)
+                item.setBackground(QColor(0, 0, 0, 0)) # alpha = 0
         self.cur_idx = self.row_to_data_idx[int(self.spectrum_list.currentRow())]
+        # row의 색깔을 바꾸기
+        for i in range(0, 14):
+            item = self.spectrum_list.item(self.cur_idx, i)
+            item.setBackground(QColor(72, 123, 225, 70))
         self.make_graph(self.cur_idx)
         n_terms = terminal.make_nterm_list(self.current_seq)
         if self.n_btn.isChecked(): # n terminal 표시
@@ -612,6 +605,8 @@ class MyApp(QMainWindow):
                 self.spectrum_list.setItem(i, 14, QTableWidgetItem(match))
 
                 self.all_qscore.append(float(self.result_data[i]['QScore']))
+                self.spectrum_list.setRowHeight(i, 20)
+
 
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
@@ -637,6 +632,9 @@ class MyApp(QMainWindow):
 
 
             self.all_qscore.sort()
+
+            self.cur_idx = 0
+            self.make_graph(self.cur_idx)
         return
 
     
@@ -734,7 +732,6 @@ class MyApp(QMainWindow):
         inputDlg = input_dialog.InputDialog()
         inputDlg.exec()
         query = inputDlg.query_file_list
-        # print("query is" + str(query))
       
 
 
