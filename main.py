@@ -73,6 +73,7 @@ class MyApp(QMainWindow):
         self.row_to_data_idx = []
         self.spectrum_top = None
         self.is_list_visible = True
+        self.cur_row = 0
 
         self.data = process_data.parse_file('./data/toy.mgf')
         spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
@@ -228,7 +229,7 @@ class MyApp(QMainWindow):
             self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -265,7 +266,7 @@ class MyApp(QMainWindow):
 
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -310,7 +311,7 @@ class MyApp(QMainWindow):
 
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -385,7 +386,7 @@ class MyApp(QMainWindow):
             self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -404,13 +405,11 @@ class MyApp(QMainWindow):
 
         self.canvas = FigureCanvas(self.fig) # mirror plot
         self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-        self.graph_main_layout.addWidget(QLabel(dict['seq']))
+        self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
         self.graph_main_layout.addWidget(self.canvas)
         self.graph_main_layout.addWidget(self.toolbar)
         
 
-
-                
     def change_tol(self):
         if control_exception.check_tolerence(self.tol_input.text()):
             tolerance = float(self.tol_input.text())
@@ -459,7 +458,6 @@ class MyApp(QMainWindow):
         self.spectrum_list.setHorizontalHeaderLabels(column_headers)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
-        # self.spectrum_list.setMinimumHeight(170) 잠시 없앰
         top_sp.addLayout(self.spectrum_list_layout)
         
         self.terminal_btn_layout.addWidget(self.n_btn)
@@ -492,6 +490,7 @@ class MyApp(QMainWindow):
         self.splitter.addWidget(self.inner_sp)
         self.splitter.setOrientation(Qt.Orientation.Vertical)
         self.graph_outer_layout.addWidget(self.splitter)
+        self.splitter.setSizes([218, 445])
         # sp.setFrameShape(QFrame.Shape.Panel)
 
         main.setLayout(self.graph_outer_layout)
@@ -507,42 +506,46 @@ class MyApp(QMainWindow):
     def chkItemChanged(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
         if self.cur_idx == int(self.spectrum_list.currentRow()): # row
             return
-        if self.cur_idx != -1:
-            for i in range(0, 14):
-                item = self.spectrum_list.item(self.cur_idx, i)
-                item.setBackground(QColor(0, 0, 0, 0)) # alpha = 0
-        self.cur_idx = self.row_to_data_idx[int(self.spectrum_list.currentRow())]
-        # row의 색깔을 바꾸기
-        for i in range(0, 14):
-            item = self.spectrum_list.item(self.cur_idx, i)
-            item.setBackground(QColor(72, 123, 225, 70))
-        self.make_graph(self.cur_idx)
-        n_terms = terminal.make_nterm_list(self.current_seq)
-        if self.n_btn.isChecked(): # n terminal 표시
-            for mz in n_terms:
-                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
-
-            text = process_sequence.process_text(self.top_seq) # 0723
-            for i in range(0, len(n_terms)-1):
-                start = n_terms[i]
-                end = n_terms[i+1]
-                self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
-
-        if self.c_btn.isChecked(): # c terminal 표시
-            c_terms = terminal.make_cterm_list(self.current_seq)
-            for mz in c_terms:
-                self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-            text = process_sequence.process_text(self.top_seq) # 0723
-            text = text[::-1]
-            for i in range(0, len(c_terms)-1):
-                start = c_terms[i]
-                end = c_terms[i+1]
-                self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
-            
         
-        self.ax.set_xlim(0, n_terms[-1])
+        if self.spectrum_list.item(self.cur_row, 0):
+            for i in range(0, 14):
+                item = self.spectrum_list.item(self.cur_row, i)
+                item.setBackground(QColor(0, 0, 0, 0)) # alpha = 0
+
+        self.cur_idx = self.row_to_data_idx[int(self.spectrum_list.currentRow())]
+        self.cur_row = self.spectrum_list.currentRow()
+        # row의 색깔을 바꾸기
+        if self.spectrum_list.item(self.spectrum_list.currentRow(), 0):
+            for i in range(0, 14):
+                item = self.spectrum_list.item(int(self.spectrum_list.currentRow()), i)
+                item.setBackground(QColor(72, 123, 225, 70))
+            self.make_graph(self.cur_idx)
+            n_terms = terminal.make_nterm_list(self.current_seq)
+            if self.n_btn.isChecked(): # n terminal 표시
+                for mz in n_terms:
+                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+
+                text = process_sequence.process_text(self.top_seq) # 0723
+                for i in range(0, len(n_terms)-1):
+                    start = n_terms[i]
+                    end = n_terms[i+1]
+                    self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
+
+            if self.c_btn.isChecked(): # c terminal 표시
+                c_terms = terminal.make_cterm_list(self.current_seq)
+                for mz in c_terms:
+                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                text = process_sequence.process_text(self.top_seq) # 0723
+                text = text[::-1]
+                for i in range(0, len(c_terms)-1):
+                    start = c_terms[i]
+                    end = c_terms[i+1]
+                    self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+                
+            
+            self.ax.set_xlim(0, n_terms[-1])
 
 
 
@@ -646,6 +649,8 @@ class MyApp(QMainWindow):
                 self.all_qscore.append(float(self.result_data[i]['QScore']))
                 self.spectrum_list.setRowHeight(i, 20)
 
+                for j in range(0, 14):
+                    self.spectrum_list.item(i, j).setFlags(Qt.ItemFlag.ItemIsEnabled)
 
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
@@ -719,6 +724,8 @@ class MyApp(QMainWindow):
                 self.qs_decoy.append(float(self.result_data[i]['QScore']))
                 self.ppm_list.append(float(self.result_data[i]['ppmError']))
 
+            self.cur_idx = i
+
             self.row_to_data_idx.append(i)
             qidx = int(self.result_data[i]['Index'])
             self.data[qidx]['seq'] = self.result_data[i]['Peptide']
@@ -756,6 +763,7 @@ class MyApp(QMainWindow):
 
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
+
 
         return
     
