@@ -7,7 +7,8 @@ import json
 import webbrowser
 
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
+from PyQt6.QtGui import QIcon, QAction, QPalette, QColor, QGradient
+from PyQt6.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -15,7 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
 import matplotlib.pyplot as plt
-# import spectrum_utils.plot as sup
+# import spectrum_utils.plot as sups
 import spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
 import spectrum_utils.spectrum as sus
 
@@ -36,17 +37,6 @@ cur_path = os.path.dirname(os.path.realpath(__file__))
 
 target_lib_file = './data/Target_predicted_lib.msp'
 decoy_lib_file = './data/revDecoy_predicted_lib.msp'
-
-class CustomDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("HELLO!")
-        layout = QVBoxLayout()
-        mass_err_canvas = FigureCanvas(Figure(figsize=(10.5, 4)))
-        # mass_err_ax = mass_error.mass_error_plot(mass_err_canvas, spectrum)
-        mass_err_canvas.figure.subplots()
-        layout.addWidget(mass_err_canvas)
-        self.setLayout(layout)
 
 class InputDialog(QDialog):
     def __init__(self):
@@ -74,8 +64,6 @@ class MyApp(QMainWindow):
         with open('./data/decoy_lib.json') as f:
             self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
 
-
-
         self.current_seq='A'
         self.top_seq = 'A'
         self.tol = 0.5
@@ -84,9 +72,10 @@ class MyApp(QMainWindow):
         self.all_qscore = []
         self.row_to_data_idx = []
         self.spectrum_top = None
+        self.is_list_visible = True
+        self.cur_row = 0
 
         self.data = process_data.parse_file('./data/toy.mgf')
-        dict = self.data[0]
         spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_top.annotate_proforma('A', self.tol, "Da", ion_types="by")
         spectrum_bottom = sus.MsmsSpectrum('', 0, 0, [], [])
@@ -150,6 +139,11 @@ class MyApp(QMainWindow):
         docAction = QAction(QIcon(cur_path), 'Document', self)
         docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
 
+        # 리스트 단축키
+        listAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Hide/Show List', self)
+        listAction.setShortcut('Ctrl+J')
+        listAction.triggered.connect(self.toggle_spectrum_list)
+        ##
 
         self.statusBar()
 
@@ -162,16 +156,21 @@ class MyApp(QMainWindow):
 
         filemenu.addAction(openFileAction)
         filemenu.addAction(exitAction)
+        filemenu.addAction(listAction)
         runmenu.addAction(runAction)
         docmenu.addAction(docAction)
         ##
+
         self.initUI()
+        self.apply_style()
 
 
     def apply_style(self):
-        self.right_widget.setObjectName('right_widget')
+        self.n_btn.setObjectName('n_btn')
+        self.c_btn.setObjectName('c_btn')
 
-        with open('style.qss', 'r') as f:
+
+        with open('./qstyle/style.qss', 'r') as f:
             style = f.read()
         app.setStyleSheet(style)
 
@@ -205,6 +204,10 @@ class MyApp(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
+        self.n_btn.setMaximumWidth(50)
+        self.c_btn.setMaximumWidth(50)
+
+
 
     def button1(self):
         self.right_widget.setCurrentIndex(0)
@@ -226,7 +229,7 @@ class MyApp(QMainWindow):
             self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -238,6 +241,7 @@ class MyApp(QMainWindow):
     
     def n_button(self):
         if self.n_btn.isChecked(): # 방금 체크 됨
+            self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
             for mz in n_terms:
                 self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
@@ -250,6 +254,7 @@ class MyApp(QMainWindow):
             
             self.canvas.draw() # refresh plot
         else:
+            self.n_btn.setStyleSheet("background-color: #1E90FF")
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
             sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
@@ -261,7 +266,7 @@ class MyApp(QMainWindow):
 
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -280,6 +285,7 @@ class MyApp(QMainWindow):
    
     def c_button(self):
         if self.c_btn.isChecked():
+            self.c_btn.setStyleSheet("background-color: #800000")#CD5C5C
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
                 self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
@@ -293,6 +299,7 @@ class MyApp(QMainWindow):
         
             self.canvas.draw() # refresh plot
         else:
+            self.c_btn.setStyleSheet("background-color: #CD5C5C")
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
             sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
@@ -304,7 +311,7 @@ class MyApp(QMainWindow):
 
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -379,7 +386,7 @@ class MyApp(QMainWindow):
             self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq))
+            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -398,13 +405,11 @@ class MyApp(QMainWindow):
 
         self.canvas = FigureCanvas(self.fig) # mirror plot
         self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-        self.graph_main_layout.addWidget(QLabel(dict['seq']))
+        self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
         self.graph_main_layout.addWidget(self.canvas)
         self.graph_main_layout.addWidget(self.toolbar)
         
 
-
-                
     def change_tol(self):
         if control_exception.check_tolerence(self.tol_input.text()):
             tolerance = float(self.tol_input.text())
@@ -424,18 +429,24 @@ class MyApp(QMainWindow):
         self.graph_main_layout = QVBoxLayout() # 캔버스와 툴바가 들어가는 부분, 바뀌는 부분
         self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
         self.terminal_btn_layout = QHBoxLayout()
+        filter_hbox = QHBoxLayout()
+
+        top_sp = QVBoxLayout()
+        bottom_sp = QVBoxLayout()
+
+
+        self.splitter = QSplitter()
 
         self.top_label = QLabel('0 spectrums (threshold: ' + str(self.filtering_threshold) + ')')
         # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
 
-        filter_hbox = QHBoxLayout()
         filter_hbox.addWidget(self.top_label)
         filter_hbox.addStretch(40)
         filter_hbox.addWidget(QLabel('filter threshold(QScore): '))
         filter_hbox.addWidget(self.filter_input)
         filter_hbox.addWidget(self.filter_button)
         filter_hbox.addWidget(self.filter_reset_button)
-        self.graph_outer_layout.addLayout(filter_hbox)
+        top_sp.addLayout(filter_hbox)
 
         self.graph_outer_layout.addStretch(5)
         self.spectrum_list = QTableWidget() # spectrum list
@@ -447,8 +458,8 @@ class MyApp(QMainWindow):
         self.spectrum_list.setHorizontalHeaderLabels(column_headers)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
-        self.spectrum_list.setMinimumHeight(200)
-
+        top_sp.addLayout(self.spectrum_list_layout)
+        
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
         self.terminal_btn_layout.addWidget(self.mass_error_btn)
@@ -456,19 +467,32 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.tol_label)
         self.terminal_btn_layout.addWidget(self.tol_input)
         self.terminal_btn_layout.addWidget(self.tol_btn)
+        bottom_sp.addLayout(self.terminal_btn_layout)
         
-
-
         self.canvas = FigureCanvas(self.fig) # mirror plot
-        self.canvas.setMinimumHeight(220) # 
+        self.canvas.setMinimumHeight(200) # 잠시 없앰
         self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-        self.graph_main_layout.addLayout(self.terminal_btn_layout)
         self.graph_main_layout.addWidget(self.canvas)
         self.graph_main_layout.addWidget(self.toolbar)
+        bottom_sp.addLayout(self.graph_main_layout)
 
         main = QWidget()
-        self.graph_outer_layout.addLayout(self.spectrum_list_layout)
-        self.graph_outer_layout.addLayout(self.graph_main_layout)
+
+        ## self.splitter를 위한 wrapper
+        wrapper_widget1 = QWidget()
+        wrapper_widget2 = QWidget()
+        wrapper_widget1.setLayout(top_sp)
+        wrapper_widget2.setLayout(bottom_sp)
+
+        self.inner_sp = QSplitter()
+        self.inner_sp.addWidget(wrapper_widget2)
+        self.splitter.addWidget(wrapper_widget1)
+        self.splitter.addWidget(self.inner_sp)
+        self.splitter.setOrientation(Qt.Orientation.Vertical)
+        self.graph_outer_layout.addWidget(self.splitter)
+        self.splitter.setSizes([218, 445])
+        # sp.setFrameShape(QFrame.Shape.Panel)
+
         main.setLayout(self.graph_outer_layout)
 
 
@@ -483,34 +507,45 @@ class MyApp(QMainWindow):
         if self.cur_idx == int(self.spectrum_list.currentRow()): # row
             return
         
+        if self.spectrum_list.item(self.cur_row, 0):
+            for i in range(0, 14):
+                item = self.spectrum_list.item(self.cur_row, i)
+                item.setBackground(QColor(0, 0, 0, 0)) # alpha = 0
+
         self.cur_idx = self.row_to_data_idx[int(self.spectrum_list.currentRow())]
-        self.make_graph(self.cur_idx)
-        n_terms = terminal.make_nterm_list(self.current_seq)
-        if self.n_btn.isChecked(): # n terminal 표시
-            for mz in n_terms:
-                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+        self.cur_row = self.spectrum_list.currentRow()
+        # row의 색깔을 바꾸기
+        if self.spectrum_list.item(self.spectrum_list.currentRow(), 0):
+            for i in range(0, 14):
+                item = self.spectrum_list.item(int(self.spectrum_list.currentRow()), i)
+                item.setBackground(QColor(72, 123, 225, 70))
+            self.make_graph(self.cur_idx)
+            n_terms = terminal.make_nterm_list(self.current_seq)
+            if self.n_btn.isChecked(): # n terminal 표시
+                for mz in n_terms:
+                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
 
-            text = process_sequence.process_text(self.top_seq) # 0723
-            for i in range(0, len(n_terms)-1):
-                start = n_terms[i]
-                end = n_terms[i+1]
-                self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
+                text = process_sequence.process_text(self.top_seq) # 0723
+                for i in range(0, len(n_terms)-1):
+                    start = n_terms[i]
+                    end = n_terms[i+1]
+                    self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
 
-        if self.c_btn.isChecked(): # c terminal 표시
-            c_terms = terminal.make_cterm_list(self.current_seq)
-            for mz in c_terms:
-                self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
-            text = process_sequence.process_text(self.top_seq) # 0723
-            text = text[::-1]
-            for i in range(0, len(c_terms)-1):
-                start = c_terms[i]
-                end = c_terms[i+1]
-                self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+            if self.c_btn.isChecked(): # c terminal 표시
+                c_terms = terminal.make_cterm_list(self.current_seq)
+                for mz in c_terms:
+                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                text = process_sequence.process_text(self.top_seq) # 0723
+                text = text[::-1]
+                for i in range(0, len(c_terms)-1):
+                    start = c_terms[i]
+                    end = c_terms[i+1]
+                    self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+                
             
-        
-        self.ax.set_xlim(0, n_terms[-1])
+            self.ax.set_xlim(0, n_terms[-1])
 
 
 
@@ -612,6 +647,10 @@ class MyApp(QMainWindow):
                 self.spectrum_list.setItem(i, 14, QTableWidgetItem(match))
 
                 self.all_qscore.append(float(self.result_data[i]['QScore']))
+                self.spectrum_list.setRowHeight(i, 20)
+
+                for j in range(0, 14):
+                    self.spectrum_list.item(i, j).setFlags(Qt.ItemFlag.ItemIsEnabled)
 
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
@@ -637,6 +676,9 @@ class MyApp(QMainWindow):
 
 
             self.all_qscore.sort()
+
+            self.cur_idx = 0
+            self.make_graph(self.cur_idx)
         return
 
     
@@ -682,6 +724,8 @@ class MyApp(QMainWindow):
                 self.qs_decoy.append(float(self.result_data[i]['QScore']))
                 self.ppm_list.append(float(self.result_data[i]['ppmError']))
 
+            self.cur_idx = i
+
             self.row_to_data_idx.append(i)
             qidx = int(self.result_data[i]['Index'])
             self.data[qidx]['seq'] = self.result_data[i]['Peptide']
@@ -720,6 +764,7 @@ class MyApp(QMainWindow):
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
 
+
         return
     
     def filter_reset(self):
@@ -734,8 +779,15 @@ class MyApp(QMainWindow):
         inputDlg = input_dialog.InputDialog()
         inputDlg.exec()
         query = inputDlg.query_file_list
-        # print("query is" + str(query))
-      
+
+    def toggle_spectrum_list(self):
+        # # self.splitter.setSizes([0, 1])
+        # self.splitter.setStretchFactor(3, 10000)
+        if self.splitter.sizes()[0] == 0: # 지금은 안보니까 보이게 하기
+            self.splitter.setSizes([218, 445])
+        else: ## 보이니까 가리기
+            self.splitter.setSizes([0, 550])
+
 
 
 if __name__ == "__main__":
