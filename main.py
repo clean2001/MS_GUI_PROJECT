@@ -8,7 +8,7 @@ import webbrowser
 
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QFile, QTextStream
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -137,6 +137,9 @@ class MyApp(QMainWindow):
 
         runAction = QAction(QIcon(cur_path), 'Run', self)
         runAction.triggered.connect(self.openInputDlg)
+        
+        configAction = QAction(QIcon(cur_path), 'View Config', self)
+        configAction.triggered.connect(self.openConfigDlg)
 
         docAction = QAction(QIcon(cur_path), 'Document', self)
         docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
@@ -160,6 +163,7 @@ class MyApp(QMainWindow):
         filemenu.addAction(exitAction)
         filemenu.addAction(listAction)
         runmenu.addAction(runAction)
+        runmenu.addAction(configAction)
         docmenu.addAction(docAction)
         ##
 
@@ -170,7 +174,6 @@ class MyApp(QMainWindow):
     def apply_style(self):
         self.n_btn.setObjectName('n_btn')
         self.c_btn.setObjectName('c_btn')
-
 
         with open('./qstyle/style.qss', 'r') as f:
             style = f.read()
@@ -231,13 +234,13 @@ class MyApp(QMainWindow):
             self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
+            # self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
             self.canvas.draw()
         else:
-            query_filename = self.spectrum_list.item(self.cur_row, 1).text()
+            query_filename = self.spectrum_list.item(self.cur_row, 0).text()
             self.make_graph(query_filename, self.cur_idx)
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
@@ -391,7 +394,7 @@ class MyApp(QMainWindow):
             self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
             self.canvas = FigureCanvas(self.fig) # mirror plot
             self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
+            # self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
             self.graph_main_layout.addWidget(self.canvas)
             self.graph_main_layout.addWidget(self.toolbar)
 
@@ -560,8 +563,6 @@ class MyApp(QMainWindow):
             
             self.ax.set_xlim(0, n_terms[-1])
 
-
-
         
     
     def ui2(self):
@@ -682,6 +683,10 @@ class MyApp(QMainWindow):
 
         # dialog의 파라미터들을 가져오기
         try:
+            # 뭔가 입력이 안된 상태 -> 에러를 띄우지 않고 리턴
+            if not (inputDlg.query_file_list and inputDlg.target_lib_file and inputDlg.decoy_lib_file):
+                return
+            
             self.filenames = inputDlg.query_file_list # 쿼리 파일들
             self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
             self.target_lib_file = inputDlg.target_lib_file
@@ -705,9 +710,19 @@ class MyApp(QMainWindow):
             self.set_items_in_table()
 
             self.frag_tol_input.setText(str(self.frag_tol))
+            self.make_summary()
+
         except:
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
-        self.make_summary()
+        
+    def openConfigDlg(self):
+        configInfo = f'''
+Files: {self.filenames}
+peptide tolerance:
+fragment tolerance: {self.frag_tol}
+C13 isotope tolerance:
+'''
+        QMessageBox.information(self, 'config', configInfo)
 
 
 

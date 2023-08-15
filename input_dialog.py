@@ -18,15 +18,19 @@ class InputDialog(QDialog):
         self.isotope_tol_value_max = 0
         self.frag_tol_value = 0.02 # default = 0.02, Da
 
-
+        # queries
         self.query_layout = QVBoxLayout()
         inner_query_layout = QHBoxLayout()
         addBtn = QPushButton("Add")
         addBtn.setMaximumWidth(50)
+        removeBtn = QPushButton("Remove")
+        removeBtn.setMaximumWidth(60)
         self.query_list = QListWidget()
         inner_query_layout.addWidget(QLabel("Query"))
         inner_query_layout.addWidget(addBtn)
+        inner_query_layout.addWidget(removeBtn)
         addBtn.clicked.connect(self.openQuery)
+        removeBtn.clicked.connect(self.removeQuery)
         self.query_layout.addLayout(inner_query_layout)
         self.query_layout.addWidget(self.query_list)
 
@@ -164,7 +168,7 @@ class InputDialog(QDialog):
     def openQuery(self):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
-        dlg.setNameFilter("*.mgf")
+        # dlg.setNameFilter("*.mgf")
 
         filenames = None
         filenames = dlg.getOpenFileNames()
@@ -173,9 +177,21 @@ class InputDialog(QDialog):
             if f.split('.')[1] != 'mgf':
                 continue
             self.query_list.addItem(f)
-            self.query_file_list.append(f)
+    
 
-
+    def removeQuery(self):
+        selected = self.query_list.selectedItems()
+        files = ''
+        for s in selected:
+            files += str(s.text()) + '\n'
+        
+        reply = QMessageBox().question(self, "Remove", "Are you sure to remove the files below?\n"+files, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            print("yes")
+            self.query_list.removeItemWidget(self.query_list.takeItem(self.query_list.currentRow()))
+    
+        
     def browse_target_lib(self):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
@@ -240,6 +256,12 @@ class InputDialog(QDialog):
 
 
     def return_infomations(self):
+        # query list에 추가
+        for i in range(self.query_list.count()):
+            self.query_file_list.append(self.query_list.item(i).text())
+
+        
+        print("[debug]", self.query_file_list)
         # query list가 비어져있는지 확인
         if not len(self.query_file_list):
             err = QMessageBox.warning(self, "No file", "There's no Query file.\nPlease import")
