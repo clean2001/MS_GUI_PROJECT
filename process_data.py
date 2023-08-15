@@ -201,12 +201,11 @@ def process_queries(quries : list[str]) -> dict[str]:
     rslt = dict()
     for q in quries:
         rslt[q] = parse_query(q) # {key : value} == {query file name : list[dict]}
-        
     return rslt
 
 def process_results(results : list[str]) -> dict[str]:
     rslt = dict()
     for r in results:
-        rslt[r] = parse_result(r)
-    
+        val = parse_result(r)
+        rslt[r] = val
     return rslt

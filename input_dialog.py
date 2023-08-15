@@ -1,6 +1,8 @@
 import os
 from PyQt6.QtWidgets import *
 
+import param_file
+
 class InputDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -270,9 +272,23 @@ class InputDialog(QDialog):
             frag_tol = 0.02
 
 
-        # Deephos를 돌려보자
+        # Deephos
         # 파라미터 파일을 만들어요
+        for i in range(len(self.query_file_list)):
+            param_file.make_parameter_file(self.query_file_list[i],
+                                           self.target_lib_file,
+                                           self.decoy_lib_file,
+                                           self.pept_tol_value,
+                                           self.isotope_tol_value_min,
+                                           self.isotope_tol_value_max,
+                                           self.frag_tol_value,
+                                           i)
+        # deephos를 실행해요
+        for i in range(len(self.query_file_list)):
+            parameter = './deephos/foo' + str(i) + '.params'
+            print(parameter)
+            os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
         
-        os.system('java -jar deephos/deephos_tp.jar -i data/test.params')
+        print("done!!")
         self.done(0)
 

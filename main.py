@@ -66,11 +66,11 @@ class MyApp(QMainWindow):
 
         self.current_seq='A'
         self.top_seq = 'A'
-        self.tol = 0.5
+        self.frag_tol = 0.02
         self.filtering_threshold = 0
         self.cur_idx = -1
         self.all_qscore = []
-        self.row_to_data_idx = [] # filename에 따라 다르게 갱신되어야함. 즉, 리턴되는 값 == 그 result 파일 내에서의 인덱스
+        self.qidx_to_ridx = dict()
         self.spectrum_top = None
         self.is_list_visible = True
         self.cur_row = 0
@@ -80,9 +80,9 @@ class MyApp(QMainWindow):
         self.filenames = []
 
         spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_top.annotate_proforma('A', self.tol, "Da", ion_types="by")
+        spectrum_top.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
         spectrum_bottom = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_bottom.annotate_proforma('A', self.tol, "Da", ion_types="by")
+        spectrum_bottom.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
         sup.mirror(spectrum_top, spectrum_bottom, ax=self.ax)
         self.sa_target, self.sa_decoy = [], []
@@ -113,12 +113,12 @@ class MyApp(QMainWindow):
         self.filter_reset_button.clicked.connect(self.filter_reset)
 
         # tolerance
-        self.tol_input = QLineEdit()
-        self.tol_input.setText('0.5')
-        self.tol_input.setFixedWidth(50)
-        self.tol_btn = QPushButton('submit', self)
-        self.tol_btn.clicked.connect(self.change_tol)
-        self.tol_label = QLabel('tolerance: ')
+        self.frag_tol_input = QLineEdit()
+        self.frag_tol_input.setText('0.02')
+        self.frag_tol_input.setFixedWidth(50)
+        self.frag_tol_btn = QPushButton('submit', self)
+        self.frag_tol_btn.clicked.connect(self.change_tol)
+        self.frag_tol_label = QLabel('tolerance: ')
 
 
         self.tab1 = self.ui1()
@@ -237,7 +237,8 @@ class MyApp(QMainWindow):
 
             self.canvas.draw()
         else:
-            self.make_graph(self.filenames[0], self.cur_idx)
+            query_filename = self.spectrum_list.item(self.cur_row, 1).text()
+            self.make_graph(query_filename, self.cur_idx)
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
     
@@ -331,9 +332,8 @@ class MyApp(QMainWindow):
                 
             self.canvas.draw() # refresh plot
 
-    def make_graph(self, filename:str, idx:int):
-        qidx = idx
-        ridx = self.spectrum_list.currentRow()
+    def make_graph(self, filename:str, qidx:int):
+        ridx = int(self.qidx_to_ridx[str(qidx)])
         dict = self.data[filename][qidx]
         rdict = self.result_data[self.results[0]][ridx]
 
@@ -356,7 +356,8 @@ class MyApp(QMainWindow):
         seq = process_sequence.brace_modifications(self.top_seq)
         
         self.current_seq = seq #terminal btn을 눌렀을 때 다시 그리기 위해 저장해놓는 것
-        query_mz, query_intensity = lib_parser.parse_spectrum(self.filenames[0], int(dict['offset']))
+        query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+        query_mz, query_intensity = lib_parser.parse_spectrum(query_filename, int(dict['offset']))
         self.spectrum_top = sus.MsmsSpectrum(
             dict['title'],
             float(dict['pepmass']),
@@ -364,7 +365,7 @@ class MyApp(QMainWindow):
             np.array(list(map(float, query_mz))),
             np.array(list(map(float, query_intensity)))
         )
-        self.spectrum_top.annotate_proforma(seq, self.tol, "Da", ion_types="by")
+        self.spectrum_top.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
 
         # 이부분에서 offset으로 라이브러리를 열어서 mz, intensity를 파싱해서 리턴
         lib_mz, lib_intensity = lib_parser.parse_lib(lib_file, lib['num_peaks'], lib['offset'])
@@ -376,7 +377,7 @@ class MyApp(QMainWindow):
             np.array(list(map(float, lib_mz))),
             np.array(list(map(float, lib_intensity)))
         )
-        self.spectrum_bottom.annotate_proforma(seq, self.tol, "Da", ion_types="by")
+        self.spectrum_bottom.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
         plt.close()
 
         ## mass error를 그리는 부분
@@ -415,17 +416,18 @@ class MyApp(QMainWindow):
         
 
     def change_tol(self):
-        if control_exception.check_tolerence(self.tol_input.text()):
-            tolerance = float(self.tol_input.text())
+        if control_exception.check_tolerence(self.frag_tol_input.text()):
+            tolerance = float(self.frag_tol_input.text())
         else:
-            self.tol_input.setText(str(self.tol))
+            self.frag_tol_input.setText(str(self.frag_tol))
             self.Warning_event()
             return
-        if self.tol == tolerance:
+        if self.frag_tol == tolerance:
             return
         
-        self.tol = tolerance
-        self.make_graph(self.filenames[0], self.cur_idx)
+        self.frag_tol = tolerance
+        query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+        self.make_graph(query_filename, self.cur_idx)
 
 
     def ui1(self):
@@ -468,9 +470,9 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.c_btn)
         self.terminal_btn_layout.addWidget(self.mass_error_btn)
         self.terminal_btn_layout.addStretch(20)
-        self.terminal_btn_layout.addWidget(self.tol_label)
-        self.terminal_btn_layout.addWidget(self.tol_input)
-        self.terminal_btn_layout.addWidget(self.tol_btn)
+        self.terminal_btn_layout.addWidget(self.frag_tol_label)
+        self.terminal_btn_layout.addWidget(self.frag_tol_input)
+        self.terminal_btn_layout.addWidget(self.frag_tol_btn)
         bottom_sp.addLayout(self.terminal_btn_layout)
         
         self.canvas = FigureCanvas(self.fig) # mirror plot
@@ -516,8 +518,10 @@ class MyApp(QMainWindow):
                 item.setBackground(QColor(0, 0, 0, 0)) # alpha = 0
 
         self.cur_row = self.spectrum_list.currentRow()
-        cur_query_file = self.spectrum_list.item(self.cur_row, 0) 
-        cur_query_file = self.filenames[0] # !!!!! 얘는 나중에 지워야함
+        if self.cur_row >= 0:
+            cur_query_file = self.spectrum_list.item(self.cur_row, 0).text()
+        else:
+            return
         self.currenst_seq = process_sequence.brace_modifications(self.result_data[self.results[0]][self.cur_row]['Peptide'])
         self.current_seq = process_sequence.remove_modifications(self.current_seq)
         self.cur_idx = int(self.spectrum_list.item(self.cur_row, 1).text())
@@ -610,25 +614,20 @@ class MyApp(QMainWindow):
         
         lb = filtering_list.lower_bound(self.all_qscore, threshold)
         filtered_number = len(self.all_qscore) - lb
-        print("lb:  ", lb)
 
         self.spectrum_list.clear()
-        # column_headers = ['Filename', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites' ]
-        # self.spectrum_list.setHorizontalHeaderLabels(column_headers)
 
         # 상단 라벨 변경
         self.top_label.setText(str(filtered_number) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: ' + str(threshold) + ')')
         idx = 0
         self.cur_idx = 0
         self.spectrum_list.setRowCount(int(filtered_number))
-        print(filtered_number)
         # 다시 테이블에 추가
         for i in range(0, len(self.results)):
             cur_result = self.result_data[self.results[i]]
             for j in range(0, len(cur_result)):
                 if float(cur_result[j]['QScore']) < threshold:
                     continue
-                # print("패스 ", cur_result[j]['QScore'], threshold)
 
                 qidx = int(cur_result[j]['Index'])
                 seq = cur_result[j]['Peptide']
@@ -681,21 +680,33 @@ class MyApp(QMainWindow):
         inputDlg = input_dialog.InputDialog()
         inputDlg.exec()
 
-        # try:
-        self.filenames = inputDlg.query_file_list # 쿼리 파일들
-        self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
-        self.target_lib_file = inputDlg.target_lib_file
-        self.decoy_lib_file = inputDlg.decoy_lib_file
-        self.target_lib = lib_scanner.lib_scanner(self.target_lib_file)
-        self.decoy_lib = lib_scanner.lib_scanner(self.decoy_lib_file)
+        # dialog의 파라미터들을 가져오기
+        try:
+            self.filenames = inputDlg.query_file_list # 쿼리 파일들
+            self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
+            self.target_lib_file = inputDlg.target_lib_file
+            self.decoy_lib_file = inputDlg.decoy_lib_file
+            self.frag_tol = inputDlg.frag_tol_value
+        
+        except:
+            return
 
-        ## 여기다가 deephos를 실행을 시켜놓고 결과가 돌아오면
-        self.results = ['./data/b1906_293T_proteinID_01A_QE3_122212_result.tsv'] # 임시
-        self.result_data = process_data.process_results(self.results)
+        try:
+            # library scan
+            self.target_lib = lib_scanner.lib_scanner(self.target_lib_file)
+            self.decoy_lib = lib_scanner.lib_scanner(self.decoy_lib_file)
 
-        self.set_items_in_table()
-        # except:
-        #     QMessageBox.warning(self,'Error','Error😵‍💫')
+            ## 여기다가 deephos를 실행을 시켜놓고 결과가 돌아오면
+            self.results = []
+            for q in self.filenames:
+                self.results.append(q.split('.')[0]+'_deephos.tsv')
+            self.result_data = process_data.process_results(self.results)
+
+            self.set_items_in_table()
+
+            self.frag_tol_input.setText(str(self.frag_tol))
+        except:
+            QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
         self.make_summary()
 
 
@@ -708,22 +719,22 @@ class MyApp(QMainWindow):
 
 
     def set_items_in_table(self):
-        filename = self.filenames[0]
         qnum = 0
         for r in self.results:
             qnum += len(self.result_data[r])
         self.spectrum_list.setRowCount(qnum)
         # self.spectrum_list.setColumnCount(16)
 
-        for r in self.results:
+        for i, r in enumerate(self.results):
             cur_file_list = self.result_data[r] # 리스트
             for i in range(len(cur_file_list)):
                 data_item = cur_file_list[i]
                 # mapping
                 # self.data[data_item['File']][int(data_item['Index'])]['seq'] = data_item['Peptide']
                 # self.data[data_item['File']][int(data_item)['Index']]['charge'] = data_item['Charge']
-                self.data[filename][int(data_item['Index'])]['seq'] = data_item['Peptide']
-                self.data[filename][int(data_item['Index'])]['charge'] = data_item['Charge']
+                query_filename = r.split('_deephos')[0] + '.mgf'
+                self.data[query_filename][int(data_item['Index'])]['seq'] = data_item['Peptide']
+                self.data[query_filename][int(data_item['Index'])]['charge'] = data_item['Charge']
 
                 # data_item 넣기
                 charge = data_item['Charge']
@@ -758,6 +769,10 @@ class MyApp(QMainWindow):
 
                 for j in range(0, 16):
                     self.spectrum_list.item(i, j).setFlags(Qt.ItemFlag.ItemIsEnabled)
+
+                # QScore 필터링 후, make_graph 호출을 위해 필요
+                qidx = str(data_item['Index'])
+                self.qidx_to_ridx[qidx] = str(i)
 
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
