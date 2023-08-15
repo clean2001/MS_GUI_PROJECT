@@ -9,8 +9,8 @@ def mass_error_plot(spectrum_top, spectrum_bottom):
         spec_mass_errors=spectrum_top,
         spec_bottom=spectrum_bottom,
         mass_errors_kws={"plot_unknown": False},
-        height=7,
-        width=10.5,
+        height=15,
+        width=9,
     )   
     
     return fig

@@ -1,14 +1,5 @@
-import sys, os
-import typing
-from PyQt6 import QtCore
-
-import numpy as np
-import pandas as pd
-import json
-
+import os
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
-from PyQt6.QtCore import QDir, Qt, QEvent
 
 class InputDialog(QDialog):
     def __init__(self):
@@ -276,7 +267,12 @@ class InputDialog(QDialog):
             frag_tol = float(self.frag_tol.text())
             self.frag_tol_value = frag_tol
         except:
-            frag_tol = 0.02    
+            frag_tol = 0.02
 
+
+        # Deephos를 돌려보자
+        # 파라미터 파일을 만들어요
+        
+        os.system('java -jar deephos/deephos_tp.jar -i data/test.params')
         self.done(0)
 
