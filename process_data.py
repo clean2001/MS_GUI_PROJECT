@@ -104,6 +104,55 @@ def parse_file(filename : str) -> list:
         flag = True
     return newlist
 
+# 08.14 'Run' 기능을 구현하며 만든 함수.
+# m/z, intensity 대신에 offset을 저장
+def parse_query(filename : str) -> list:
+    f = open(filename, 'r')
+
+    result = []
+    idx = 0
+    data = {
+        'title': " ",
+        'charge': " ",
+        'pepmass': " ",
+        'scans': " ",
+        'offset': " ",
+    }
+    result.append(data)
+    while True:
+        idx += 1
+        line = f.readline()
+        if not line:
+            break
+
+        line = line.rstrip()
+
+        if line == "BEGIN IONS":
+            data = {
+                'title': " ",
+                'charge': " ",
+                'pepmass': " ",
+                'scans': " ",
+                'offset': " ",
+            }
+            continue
+        elif line[:5] == "TITLE":
+            data['title'] = line.split('=')[1]
+        elif line[:6] == "CHARGE":
+            data['charge'] = line.split('=')[1]
+        elif line[:7] == "PEPMASS":
+            data['pepmass'] = line.split('=')[1]
+        elif line[:5] == "SCANS":
+            data['scans'] == line.split('=')[1]
+            offset = f.tell()
+            data['offset'] = offset # int
+            result.append(data)
+        else:
+            continue
+
+    return result
+    
+
 
 # result file(.tsv)를 파싱
 def parse_result(filename: str) -> list:
@@ -138,7 +187,7 @@ def parse_result(filename: str) -> list:
             'ppmError': tokens[12],
             'C13': tokens[13],
             'ExpRatio': tokens[14],
-            'Protein': tokens[15],
+            'ProtSites': tokens[15],
         }
 
         spectrum_index += 1
@@ -146,3 +195,17 @@ def parse_result(filename: str) -> list:
         result.append(data)
     
     return result
+
+# 08.11 추가
+def process_queries(quries : list[str]) -> dict[str]:
+    rslt = dict()
+    for q in quries:
+        rslt[q] = parse_query(q) # {key : value} == {query file name : list[dict]}
+    return rslt
+
+def process_results(results : list[str]) -> dict[str]:
+    rslt = dict()
+    for r in results:
+        val = parse_result(r)
+        rslt[r] = val
+    return rslt
