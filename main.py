@@ -260,6 +260,9 @@ class MyApp(QMainWindow):
             self.c_btn.setCheckable(True)
 
     def switch_clicked(self):
+        if self.switch_btn.isChecked(): # 라이브러리가 위로
+            
+        else:
 
         return
     
