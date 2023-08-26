@@ -19,19 +19,20 @@ from matplotlib.patches import Rectangle
 
 import matplotlib.pyplot as plt
 # import spectrum_utils.plot as sups
-import spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
+import draw_functions.spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
 import spectrum_utils.spectrum as sus
 
 # custom modules
-import process_data
-import terminal
-import lib_parser
-import process_sequence
-import filtering_list
+import help_functions.process_data as process_data
+import help_functions.terminal as terminal
+import help_functions.lib_parser as lib_parser
+import help_functions.process_sequence as process_sequence
+import help_functions.filtering_list as filtering_list
 import control_exception
-import mass_error
-import input_dialog
-import lib_scanner
+import draw_functions.mass_error as mass_error
+from dlgs import (input_dialog, filtering_dialog)
+
+import help_functions.lib_scanner as lib_scanner
 
 
 sys.path.append(os.getcwd())
@@ -190,6 +191,11 @@ class MyApp(QMainWindow):
         listAction.triggered.connect(self.toggle_spectrum_list)
         ##
 
+        # _list filtering_
+        filteringAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Filter', self)
+        filteringAction.triggered.connect(self.filtering_action)
+        # _list filtering_ end
+
         self.statusBar()
 
         self.menubar = self.menuBar()
@@ -197,6 +203,7 @@ class MyApp(QMainWindow):
 
         filemenu = self.menubar.addMenu('&File')
         runmenu = self.menubar.addMenu('&Run')
+        viewmenu = self.menubar.addMenu('&View')
         docmenu = self.menubar.addMenu('&Document')
 
         filemenu.addAction(openFileAction)
@@ -205,6 +212,7 @@ class MyApp(QMainWindow):
         runmenu.addAction(runAction)
         runmenu.addAction(configAction)
         docmenu.addAction(docAction)
+        viewmenu.addAction(filteringAction)
         ##
 
         self.initUI()
@@ -851,7 +859,12 @@ C13 isotope tolerance:
         QMessageBox.information(self, 'config', configInfo)
 
 
+    def filtering_action(self):
+        filter_dlg = filtering_dialog.FilterDialog()
+        filter_dlg.exec()
 
+        return
+        
     def toggle_spectrum_list(self):
         if self.splitter.sizes()[0] == 0: # 지금은 안보니까 보이게 하기
             self.splitter.setSizes([218, 445])

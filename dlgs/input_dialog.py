@@ -1,9 +1,9 @@
 import os
 from PyQt6.QtWidgets import *
-from loading_dialog import LoadingDialog
+from dlgs.loading_dialog import LoadingDialog
 from PyQt6.QtCore import *
 import time
-import param_file
+import help_functions.param_file as param_file
 
 class ExecuteDeephos(QThread):
     def __init__(self):

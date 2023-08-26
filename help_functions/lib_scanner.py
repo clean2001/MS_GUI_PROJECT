@@ -2,7 +2,7 @@ import numpy as np
 import json
 import re
 import sys
-import process_sequence
+import help_functions.process_sequence as process_sequence
 
 # 라이브러리를 파싱하여 dict(hashmap)으로 바꾼뒤 json 파일로 저장
 def lib_scanner(filename: str) -> dict:
