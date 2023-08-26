@@ -3,54 +3,87 @@ import sys, os
 
 import numpy as np
 import pandas as pd
-import json
+import math
 import webbrowser
 
 from PyQt6.QtWidgets import *
+import PyQt6.QtWidgets as QtWidgets
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
+import PyQt6.QtGui as QtGui
 from PyQt6.QtCore import Qt, QFile, QTextStream
 
-from matplotlib.backends.backend_qt5agg import FigureCanvas as FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
 import matplotlib.pyplot as plt
 # import spectrum_utils.plot as sups
-import spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
+import draw_functions.spectrum_plot as sup # spectrum_util을 내 로컬로 가져온 것
 import spectrum_utils.spectrum as sus
 
 # custom modules
-import process_data
-import terminal
-import lib_parser
-import process_sequence
-import filtering_list
+import help_functions.process_data as process_data
+import help_functions.terminal as terminal
+import help_functions.lib_parser as lib_parser
+import help_functions.process_sequence as process_sequence
+import help_functions.filtering_list as filtering_list
 import control_exception
-import mass_error
-import input_dialog
-import lib_scanner
+import draw_functions.mass_error as mass_error
+from dlgs import (input_dialog, filtering_dialog)
+
+import help_functions.lib_scanner as lib_scanner
 
 
 sys.path.append(os.getcwd())
 cur_path = os.path.dirname(os.path.realpath(__file__))
 
 
-
-class InputDialog(QDialog):
+class GraphWrapperWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("input")
+
+# _mirror plot custom widget_ start
+class MirrorFigureCanvas(FigureCanvas):
+    lock = None
+    def __init__(self, figure=None, app=None):
+        self.myapp = app
+        figure.canvas.mpl_connect("button_press_event", self.click)
+        figure.canvas.mpl_connect("button_release_event", self.release)
+        figure.canvas.mpl_connect("motion_notify_event", self.moved)
+        self.start, self.end = 0, 0
+        super().__init__(figure = figure)
+
+    def mouseDoubleClickEvent(self, event):
+        plt.axis([0, self.myapp.max_peptide_mz, -1, 1])
+        self.myapp.canvas.draw()
+        return super().mouseDoubleClickEvent(event)
+
+    def click(self, event):
+        self.start = event.xdata
+
+    def release(self, event):
+        self.end = event.xdata
+        if self.end < self.start:
+            tmp = self.start
+            self.start = self.end
+            self.end = tmp
         
-        self.query_layout = QVBoxLayout()
-        inner_query_layout = QHBoxLayout()
-        self.addBtn = QPushButton("Add")
-        inner_query_layout.addWidget(QLabel("Query"))
-        inner_query_layout.addWidget(self.addBtn)
+        if self.end - self.start <= 5:
+            return
         
-        self.outer_layout = QVBoxLayout()
-        self.outer_layout.addWidget()
-        # self.setLayout(layout)
+        plt.axis([self.start, self.end, -1, 1])
+        self.myapp.canvas.draw()
+    
+    def moved(self, event):
+        x, y = event.xdata, event.ydata
+        if not (x and y):
+            self.myapp.loc_label.setText("")
+            return
+
+        self.myapp.loc_label.setText("x="+str(round(x, 2))+",  y="+str(round(y, 2)))
+# _mirror plot custom widget_ end
+
 
 
 class MyApp(QMainWindow):
@@ -59,10 +92,10 @@ class MyApp(QMainWindow):
         super().__init__()
         
         # load하는 코드를 삭제
-        with open('./data/target_lib.json') as f:
-            self.target_lib = json.load(f) # target lib의 딕셔너리. key: seq_charge / value: offset
-        with open('./data/decoy_lib.json') as f:
-            self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
+        # with open('./data/target_lib.json') as f:
+        #     self.target_lib = json.load(f) # target lib의 딕셔너리. key: seq_charge / value: offset
+        # with open('./data/decoy_lib.json') as f:
+        #     self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
 
         self.current_seq='A'
         self.top_seq = 'A'
@@ -71,20 +104,24 @@ class MyApp(QMainWindow):
         self.cur_idx = -1
         self.all_qscore = []
         self.qidx_to_ridx = dict()
-        self.spectrum_top = None
+        self.spectrum_query = None
+        self.spectrum_answer = None
         self.is_list_visible = True
         self.cur_row = 0
         self.target_lib_file = None
         self.decoy_lib_file = None
         self.data = dict() # filename : 파싱된 결과(dict) 리스트
         self.filenames = []
+        self.switch_btn = QCheckBox('switch mirror', self)
+        self.loc_label = QLabel("")
 
-        spectrum_top = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_top.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
-        spectrum_bottom = sus.MsmsSpectrum('', 0, 0, [], [])
-        spectrum_bottom.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
+        spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
+        spectrum_query.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
+        spectrum_answer = sus.MsmsSpectrum('', 0, 0, [], [])
+        spectrum_answer.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
-        sup.mirror(spectrum_top, spectrum_bottom, ax=self.ax)
+
+        sup.mirror(spectrum_answer, spectrum_answer, ax=self.ax)
         self.sa_target, self.sa_decoy = [], []
 
 
@@ -94,14 +131,18 @@ class MyApp(QMainWindow):
 
         self.n_btn = QPushButton('N', self)
         self.c_btn = QPushButton('C', self)
-        self.mass_error_btn = QPushButton('mass error', self)
+        self.mass_error_btn = QCheckBox('mass error', self)
         self.n_btn.setCheckable(False)
         self.c_btn.setCheckable(False)
         self.mass_error_btn.setCheckable(True)
 
+        self.switch_btn.setCheckable(True)
+        self.switch_status = QLabel('top: query / bottom: library')
+
         self.n_btn.toggled.connect(self.n_button)
         self.c_btn.toggled.connect(self.c_button)
         self.mass_error_btn.toggled.connect(self.mass_error_btn_clicked)
+        self.switch_btn.toggled.connect(self.switch_clicked)
 
         # filtering threshold
         self.filter_input = QLineEdit()
@@ -118,7 +159,7 @@ class MyApp(QMainWindow):
         self.frag_tol_input.setFixedWidth(50)
         self.frag_tol_btn = QPushButton('submit', self)
         self.frag_tol_btn.clicked.connect(self.change_tol)
-        self.frag_tol_label = QLabel('tolerance: ')
+        self.frag_tol_label = QLabel('tolerance(Da): ')
 
 
         self.tab1 = self.ui1()
@@ -150,6 +191,11 @@ class MyApp(QMainWindow):
         listAction.triggered.connect(self.toggle_spectrum_list)
         ##
 
+        # _list filtering_
+        filteringAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Filter', self)
+        filteringAction.triggered.connect(self.filtering_action)
+        # _list filtering_ end
+
         self.statusBar()
 
         self.menubar = self.menuBar()
@@ -157,6 +203,7 @@ class MyApp(QMainWindow):
 
         filemenu = self.menubar.addMenu('&File')
         runmenu = self.menubar.addMenu('&Run')
+        viewmenu = self.menubar.addMenu('&View')
         docmenu = self.menubar.addMenu('&Document')
 
         filemenu.addAction(openFileAction)
@@ -165,6 +212,7 @@ class MyApp(QMainWindow):
         runmenu.addAction(runAction)
         runmenu.addAction(configAction)
         docmenu.addAction(docAction)
+        viewmenu.addAction(filteringAction)
         ##
 
         self.initUI()
@@ -231,12 +279,16 @@ class MyApp(QMainWindow):
                 if obj is not None:
                     obj.deleteLater()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
-            self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
-            self.canvas = FigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            # self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
+
+            if self.switch_btn.isChecked():
+                self.fig = mass_error.mass_error_plot(self.spectrum_answer, self.spectrum_query)
+            else:
+                self.fig = mass_error.mass_error_plot(self.spectrum_query, self.spectrum_answer)
+            
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
 
             self.canvas.draw()
         else:
@@ -244,6 +296,17 @@ class MyApp(QMainWindow):
             self.make_graph(query_filename, self.cur_idx)
             self.n_btn.setCheckable(True)
             self.c_btn.setCheckable(True)
+
+    def switch_clicked(self):
+        query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+
+        if self.switch_btn.isChecked(): # 라이브러리가 위로
+            self.switch_status.setText('top: library / bottom: query')
+        else:
+            self.switch_status.setText('top: query / bottom: library')
+
+        self.make_graph(query_filename, self.cur_idx)
+        return
     
     def n_button(self):
         if self.n_btn.isChecked(): # 방금 체크 됨
@@ -263,18 +326,21 @@ class MyApp(QMainWindow):
             self.n_btn.setStyleSheet("background-color: #1E90FF")
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
-            sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
+            
+            if self.switch_btn.isChecked():
+                sup.mirror(self.spectrum_answer, self.spectrum_query, ax=self.ax)
+            else:
+                sup.mirror(self.spectrum_query, self.spectrum_answer, ax=self.ax)
 
             for i in reversed(range(self.graph_main_layout.count())): 
                 obj = self.graph_main_layout.itemAt(i).widget()
                 if obj is not None:
                     obj.deleteLater()
 
-            self.canvas = FigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            # self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[][self.cur_idx]['Charge'])))
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
 
             if self.c_btn.isChecked():
                 c_terms = terminal.make_cterm_list(self.current_seq)
@@ -308,18 +374,19 @@ class MyApp(QMainWindow):
             self.c_btn.setStyleSheet("background-color: #CD5C5C")
             plt.close()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
-            sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
-
+            if self.switch_btn.isChecked():
+                sup.mirror(self.spectrum_answer, self.spectrum_query, ax=self.ax)
+            else:
+                sup.mirror(self.spectrum_query, self.spectrum_answer, ax=self.ax)
             for i in reversed(range(self.graph_main_layout.count())): 
                 obj = self.graph_main_layout.itemAt(i).widget()
                 if obj is not None:
                     obj.deleteLater()
 
-            self.canvas = FigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            # self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
 
             if self.n_btn.isChecked():
                 n_terms = terminal.make_nterm_list(self.current_seq)
@@ -361,26 +428,26 @@ class MyApp(QMainWindow):
         self.current_seq = seq #terminal btn을 눌렀을 때 다시 그리기 위해 저장해놓는 것
         query_filename = self.spectrum_list.item(self.cur_row, 0).text()
         query_mz, query_intensity = lib_parser.parse_spectrum(query_filename, int(dict['offset']))
-        self.spectrum_top = sus.MsmsSpectrum(
+        self.spectrum_query = sus.MsmsSpectrum(
             dict['title'],
             float(dict['pepmass']),
             int(dict['charge']),
             np.array(list(map(float, query_mz))),
             np.array(list(map(float, query_intensity)))
         )
-        self.spectrum_top.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
+        self.spectrum_query.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
 
         # 이부분에서 offset으로 라이브러리를 열어서 mz, intensity를 파싱해서 리턴
         lib_mz, lib_intensity = lib_parser.parse_lib(lib_file, lib['num_peaks'], lib['offset'])
         
-        self.spectrum_bottom = sus.MsmsSpectrum(
+        self.spectrum_answer = sus.MsmsSpectrum(
             dict['title'],
             float(dict['pepmass']),
             int(dict['charge']),
             np.array(list(map(float, lib_mz))),
             np.array(list(map(float, lib_intensity)))
         )
-        self.spectrum_bottom.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
+        self.spectrum_answer.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
         plt.close()
 
         ## mass error를 그리는 부분
@@ -391,12 +458,23 @@ class MyApp(QMainWindow):
                 if obj is not None:
                     obj.deleteLater()
             self.fig, self.ax = plt.subplots(figsize=(15, 9))
-            self.fig = mass_error.mass_error_plot(self.spectrum_top, self.spectrum_bottom)
-            self.canvas = FigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            # self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
+
+            if self.switch_btn.isChecked():
+                self.fig = mass_error.mass_error_plot(self.spectrum_answer, self.spectrum_query)
+            else:
+                self.fig = mass_error.mass_error_plot(self.spectrum_query, self.spectrum_answer)
+
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
+
+            if self.switch_btn.isChecked():
+                self.ax.text(0.2, 0.5, 'library', fontsize=8)
+                self.ax.text(0.2, -0.5, 'query', fontsize=8)
+            else:
+                self.ax.text(0.2, 0.5, 'query', fontsize=8)
+                self.ax.text(0.2, -0.5, 'library', fontsize=8)
 
             self.canvas.draw()
             return
@@ -404,18 +482,28 @@ class MyApp(QMainWindow):
         ##
 
         self.fig, self.ax = plt.subplots(figsize=(15, 9))
-        sup.mirror(self.spectrum_top, self.spectrum_bottom, ax=self.ax)
+        if self.switch_btn.isChecked():
+            sup.mirror(self.spectrum_answer, self.spectrum_query, ax=self.ax)
+        else:
+            sup.mirror(self.spectrum_query, self.spectrum_answer, ax=self.ax)
+
+        # if self.switch_btn.isChecked():
+        #     self.ax.text(-200, 0.5, 'library', fontsize=8)
+        #     self.ax.text(-200, -0.5, 'query', fontsize=8)
+        # else:
+        #     self.ax.text(-200, 0.5, 'query', fontsize=8)
+        #     self.ax.text(-200, -0.5, 'library', fontsize=8)
+
 
         for i in reversed(range(self.graph_main_layout.count())): 
             obj = self.graph_main_layout.itemAt(i).widget()
             if obj is not None:
                 obj.deleteLater()
 
-        self.canvas = FigureCanvas(self.fig) # mirror plot
-        self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-        # self.graph_main_layout.addWidget(QLabel(self.top_seq + "   " + str(self.result_data[self.cur_idx]['Charge'])))
+        self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
-        self.graph_main_layout.addWidget(self.toolbar)
+        # self.graph_main_layout.addWidget(self.toolbar)
         
 
     def change_tol(self):
@@ -471,36 +559,44 @@ class MyApp(QMainWindow):
         
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
+        self.terminal_btn_layout.addStretch(25)
+        self.terminal_btn_layout.addWidget(self.loc_label)
+        self.terminal_btn_layout.addStretch(25)
+        self.terminal_btn_layout.addWidget(self.switch_btn)
+        self.terminal_btn_layout.addWidget(self.switch_status)
+        self.terminal_btn_layout.addStretch(5)
         self.terminal_btn_layout.addWidget(self.mass_error_btn)
-        self.terminal_btn_layout.addStretch(20)
+        self.terminal_btn_layout.addStretch(1)
         self.terminal_btn_layout.addWidget(self.frag_tol_label)
         self.terminal_btn_layout.addWidget(self.frag_tol_input)
         self.terminal_btn_layout.addWidget(self.frag_tol_btn)
         bottom_sp.addLayout(self.terminal_btn_layout)
         
-        self.canvas = FigureCanvas(self.fig) # mirror plot
+        self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
         self.canvas.setMinimumHeight(200) # 잠시 없앰
-        self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
-        self.graph_main_layout.addWidget(self.toolbar)
+        # self.graph_main_layout.addWidget(self.toolbar)
         bottom_sp.addLayout(self.graph_main_layout)
 
         main = QWidget()
 
         ## self.splitter를 위한 wrapper
         wrapper_widget1 = QWidget()
-        wrapper_widget2 = QWidget()
+        self.wrapper_widget2 = GraphWrapperWidget()
         wrapper_widget1.setLayout(top_sp)
-        wrapper_widget2.setLayout(bottom_sp)
+        self.wrapper_widget2.setLayout(bottom_sp)
 
         self.inner_sp = QSplitter()
-        self.inner_sp.addWidget(wrapper_widget2)
+        self.inner_sp.addWidget(self.wrapper_widget2)
         self.splitter.addWidget(wrapper_widget1)
         self.splitter.addWidget(self.inner_sp)
         self.splitter.setOrientation(Qt.Orientation.Vertical)
         self.graph_outer_layout.addWidget(self.splitter)
         self.splitter.setSizes([218, 445])
         # sp.setFrameShape(QFrame.Shape.Panel)
+
+        # 더블클릭하면 home으로 돌아감
 
         main.setLayout(self.graph_outer_layout)
 
@@ -568,8 +664,8 @@ class MyApp(QMainWindow):
                 
             
             self.ax.set_xlim(0, n_terms[-1])
+            self.max_peptide_mz = n_terms[-1]
 
-        
     
     def ui2(self):
         self.summary_layout = QGridLayout()
@@ -599,9 +695,28 @@ class MyApp(QMainWindow):
         # self.ppm_ax.set_xlabel('target')
         self.ppm_ax.set_ylabel('Mass Deviation(ppm)')
 
+        # number of charge
+        self.charge_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.charge_ax = self.charge_canvas.figure.subplots()
+        self.charge_ax.hist([])
+        self.charge_ax.set_ylabel('# of charge')
+
+
+        # peptide length
+        self.plength_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.plength_ax = self.plength_canvas.figure.subplots()
+        self.plength_ax.hist([])
+        self.plength_ax.set_ylabel('# of spectra')
+        self.plength_ax.set_xlabel('peptide length')
+
+
         self.summary_layout.addWidget(self.sa_canvas, 0, 0)
         self.summary_layout.addWidget(self.qs_canvas, 0, 1)
-        self.summary_layout.addWidget(self.ppm_canvas, 1, 0)
+        self.summary_layout.addWidget(self.ppm_canvas, 0, 2)
+        self.summary_layout.addWidget(self.charge_canvas, 1, 0)
+        self.summary_layout.addWidget(self.plength_canvas, 1, 1)
+
+
 
         main.setLayout(self.summary_layout)
         return main
@@ -724,10 +839,14 @@ class MyApp(QMainWindow):
 
             self.set_items_in_table()
 
+            self.top_label.setText(str(len(self.all_qscore)) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: 0')
+
+
             self.frag_tol_input.setText(str(self.frag_tol))
             self.make_summary()
 
-        except:
+        except Exception as e:
+            print('[Debug] error is\n', e)
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
         
     def openConfigDlg(self):
@@ -740,7 +859,12 @@ C13 isotope tolerance:
         QMessageBox.information(self, 'config', configInfo)
 
 
+    def filtering_action(self):
+        filter_dlg = filtering_dialog.FilterDialog()
+        filter_dlg.exec()
 
+        return
+        
     def toggle_spectrum_list(self):
         if self.splitter.sizes()[0] == 0: # 지금은 안보니까 보이게 하기
             self.splitter.setSizes([218, 445])
@@ -815,6 +939,8 @@ C13 isotope tolerance:
         self.sa_decoy, self.sa_target = [], []
         self.qs_decoy, self.qs_target = [], []
         self.ppm_list = []
+        self.plength = [0 for i in range(61)]
+        self.charge_list = [0 for i in range(5)]
         
         for r in self.results:
             cur_rslts = self.result_data[r]
@@ -822,13 +948,22 @@ C13 isotope tolerance:
                 if "TARGET" in cur_item['ProtSites']:
                     self.sa_target.append(float(cur_item['SA']))
                     self.qs_target.append(float(cur_item['QScore']))
-                    self.ppm_list.append(float(cur_item['ppmError']))
                 else:
                     self.sa_decoy.append(float(cur_item['SA']))
                     self.qs_decoy.append(float(cur_item['QScore']))
-                    self.ppm_list.append(float(cur_item['ppmError']))
 
+                self.ppm_list.append(float(cur_item['ppmError']))
                 self.all_qscore.append(float(cur_item['QScore']))
+                if len(cur_item['Peptide']) >= 60:
+                    self.plength[60] += 1
+                else:
+                    self.plength[len(cur_item['Peptide'])] += 1
+
+                
+                if int(cur_item['Charge']) >= 4:
+                    self.charge_list[4] += 1
+                else:
+                    self.charge_list[int(cur_item['Charge'])] += 1
         self.all_qscore.sort()
 
         # summary
@@ -843,12 +978,33 @@ C13 isotope tolerance:
         self.ppm_ax.boxplot([self.ppm_list])
         self.ppm_ax.set_title('ppm Error')
 
+        cx = np.arange(5)
+        charge_xticks = [str(i) for i in range(5)]
+        charge_xticks[-1] = '4+'
+        self.charge_ax.bar(cx, self.charge_list)
+        self.charge_ax.set_xticks(cx, charge_xticks)
+        self.charge_ax.set_title('charge')
+
+        x = np.arange(61)
+        plen_xticks = ['' for i in range(61)]
+        for i in range(len(plen_xticks)):
+            if i % 10 == 0:
+                plen_xticks[i] = str(i)
+        plen_xticks[-1] = '60+'
+        
+        self.plength_ax.bar(x, self.plength)
+        self.plength_ax.set_xticks(x, plen_xticks)
+        self.plength_ax.set_title('peptide length')
+
+
         labels= ['target', 'decoy']
         handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
         self.sa_ax.legend(handles, labels)
         self.sa_canvas.draw()
         self.qs_canvas.draw()
         self.ppm_canvas.draw()
+        self.charge_canvas.draw()
+        self.plength_canvas.draw()
 
 
 if __name__ == "__main__":

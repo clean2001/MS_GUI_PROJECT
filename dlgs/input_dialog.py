@@ -1,7 +1,22 @@
 import os
 from PyQt6.QtWidgets import *
+from dlgs.loading_dialog import LoadingDialog
+from PyQt6.QtCore import *
+import time
+import help_functions.param_file as param_file
 
-import param_file
+class ExecuteDeephos(QThread):
+    def __init__(self):
+        super().__init__()
+    
+    def run(self, query_file_list):
+        # deephos를 실행해요
+        for i in range(len(query_file_list)):
+            parameter = './deephos/foo' + str(i) + '.params'
+            print(parameter)
+            os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
+            time.sleep(30)
+
 
 class InputDialog(QDialog):
     def __init__(self):
@@ -75,6 +90,7 @@ class InputDialog(QDialog):
         # C13 Isotope
         self.isotope_tol_layout = QHBoxLayout()
         self.isotope_tol_layout.addWidget(QLabel("C13 Isotope: "))
+
         self.isotope_tol_min = QLineEdit()
         self.isotope_tol_max = QLineEdit()
         self.isotope_tol_min.setText("0")
@@ -100,7 +116,6 @@ class InputDialog(QDialog):
 
         self.isotope_max_btn_layout.addWidget(self.max_up)
         self.isotope_max_btn_layout.addWidget(self.max_down)
-
         self.isotope_tol_layout.addWidget(QLabel("min: (-5~0)"))
         self.isotope_tol_layout.addWidget(self.isotope_tol_min)
         self.isotope_tol_layout.addLayout(self.isotope_min_btn_layout)
@@ -310,6 +325,13 @@ class InputDialog(QDialog):
             parameter = './deephos/foo' + str(i) + '.params'
             print(parameter)
             os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
+
+        # ed = ExecuteDeephos()
+        # ed.run(self.query_file_list)
+
+        # loadingDlg = LoadingDialog("Executing Deephos...")
+        # loadingDlg.exec()
+        # loadingDlg.done(0)
         
         print("done!!")
         self.done(0)

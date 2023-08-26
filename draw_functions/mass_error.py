@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import mass_plot as mp
+import draw_functions.mass_plot as mp
 import spectrum_utils.spectrum as sus
 
 def mass_error_plot(spectrum_top, spectrum_bottom):
