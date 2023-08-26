@@ -939,8 +939,8 @@ C13 isotope tolerance:
         self.sa_decoy, self.sa_target = [], []
         self.qs_decoy, self.qs_target = [], []
         self.ppm_list = []
-        self.plength = [0 for i in range(60)]
-        self.charge_list = [0 for i in range(4)]
+        self.plength = [0 for i in range(61)]
+        self.charge_list = [0 for i in range(5)]
         
         for r in self.results:
             cur_rslts = self.result_data[r]
@@ -954,12 +954,16 @@ C13 isotope tolerance:
 
                 self.ppm_list.append(float(cur_item['ppmError']))
                 self.all_qscore.append(float(cur_item['QScore']))
-                if len(cur_item['Peptide']) > 60:
-                    self.plength[59] += 1
+                if len(cur_item['Peptide']) >= 60:
+                    self.plength[60] += 1
                 else:
                     self.plength[len(cur_item['Peptide'])] += 1
 
-                self.charge_list.append(int(cur_item['Charge']))
+                
+                if int(cur_item['Charge']) >= 4:
+                    self.charge_list[4] += 1
+                else:
+                    self.charge_list[int(cur_item['Charge'])] += 1
         self.all_qscore.sort()
 
         # summary
@@ -974,16 +978,22 @@ C13 isotope tolerance:
         self.ppm_ax.boxplot([self.ppm_list])
         self.ppm_ax.set_title('ppm Error')
 
-        self.charge_ax.hist([self.charge_list], range=[0, 4])
-        # self.charge_ax.hist([self.charge_list], range=[4,1000], bins = 1)
+        cx = np.arange(5)
+        charge_xticks = [str(i) for i in range(5)]
+        charge_xticks[-1] = '4+'
+        self.charge_ax.bar(cx, self.charge_list)
+        self.charge_ax.set_xticks(cx, charge_xticks)
         self.charge_ax.set_title('charge')
 
-        x = np.arange(60)
-        plen_xticks = [str(i) for i in range(60)]
+        x = np.arange(61)
+        plen_xticks = ['' for i in range(61)]
+        for i in range(len(plen_xticks)):
+            if i % 10 == 0:
+                plen_xticks[i] = str(i)
         plen_xticks[-1] = '60+'
         
         self.plength_ax.bar(x, self.plength)
-        # self.plength_ax.xticks(x, plen_xticks)
+        self.plength_ax.set_xticks(x, plen_xticks)
         self.plength_ax.set_title('peptide length')
 
 
