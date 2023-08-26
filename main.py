@@ -939,8 +939,8 @@ C13 isotope tolerance:
         self.sa_decoy, self.sa_target = [], []
         self.qs_decoy, self.qs_target = [], []
         self.ppm_list = []
-        self.plength = []
-        self.charge_list = []
+        self.plength = [0 for i in range(60)]
+        self.charge_list = [0 for i in range(4)]
         
         for r in self.results:
             cur_rslts = self.result_data[r]
@@ -954,7 +954,11 @@ C13 isotope tolerance:
 
                 self.ppm_list.append(float(cur_item['ppmError']))
                 self.all_qscore.append(float(cur_item['QScore']))
-                self.plength.append(int(len(cur_item['Peptide'])))
+                if len(cur_item['Peptide']) > 60:
+                    self.plength[59] += 1
+                else:
+                    self.plength[len(cur_item['Peptide'])] += 1
+
                 self.charge_list.append(int(cur_item['Charge']))
         self.all_qscore.sort()
 
@@ -970,11 +974,18 @@ C13 isotope tolerance:
         self.ppm_ax.boxplot([self.ppm_list])
         self.ppm_ax.set_title('ppm Error')
 
-        self.charge_ax.hist([self.charge_list])
+        self.charge_ax.hist([self.charge_list], range=[0, 4])
+        # self.charge_ax.hist([self.charge_list], range=[4,1000], bins = 1)
         self.charge_ax.set_title('charge')
-    
-        self.plength_ax.hist([self.plength])
+
+        x = np.arange(60)
+        plen_xticks = [str(i) for i in range(60)]
+        plen_xticks[-1] = '60+'
+        
+        self.plength_ax.bar(x, self.plength)
+        # self.plength_ax.xticks(x, plen_xticks)
         self.plength_ax.set_title('peptide length')
+
 
         labels= ['target', 'decoy']
         handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]

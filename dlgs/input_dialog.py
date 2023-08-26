@@ -90,6 +90,7 @@ class InputDialog(QDialog):
         # C13 Isotope
         self.isotope_tol_layout = QHBoxLayout()
         self.isotope_tol_layout.addWidget(QLabel("C13 Isotope: "))
+
         self.isotope_tol_min = QLineEdit()
         self.isotope_tol_max = QLineEdit()
         self.isotope_tol_min.setText("0")
@@ -115,7 +116,6 @@ class InputDialog(QDialog):
 
         self.isotope_max_btn_layout.addWidget(self.max_up)
         self.isotope_max_btn_layout.addWidget(self.max_down)
-
         self.isotope_tol_layout.addWidget(QLabel("min: (-5~0)"))
         self.isotope_tol_layout.addWidget(self.isotope_tol_min)
         self.isotope_tol_layout.addLayout(self.isotope_min_btn_layout)
