@@ -26,7 +26,7 @@ class MyApp(QWidget):
     def timerEvent(self, e):
         if self.step >= 100:
             self.timer.stop()
-            self.btn.setText('Finished')
+            # self.btn.setText('Finished')
             return
 
         self.step = self.step + 1

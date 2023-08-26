@@ -3,11 +3,13 @@ import sys, os
 
 import numpy as np
 import pandas as pd
-import json
+import math
 import webbrowser
 
 from PyQt6.QtWidgets import *
+import PyQt6.QtWidgets as QtWidgets
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
+import PyQt6.QtGui as QtGui
 from PyQt6.QtCore import Qt, QFile, QTextStream
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -36,33 +38,52 @@ sys.path.append(os.getcwd())
 cur_path = os.path.dirname(os.path.realpath(__file__))
 
 
-
-class InputDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("input")
-        
-        self.query_layout = QVBoxLayout()
-        inner_query_layout = QHBoxLayout()
-        self.addBtn = QPushButton("Add")
-        inner_query_layout.addWidget(QLabel("Query"))
-        inner_query_layout.addWidget(self.addBtn)
-        
-        self.outer_layout = QVBoxLayout()
-        self.outer_layout.addWidget()
-        # self.setLayout(layout)
-
 class GraphWrapperWidget(QWidget):
     def __init__(self):
         super().__init__()
 
+# _mirror plot custom widget_ start
 class MirrorFigureCanvas(FigureCanvas):
-    def __init__(self, figure=None):
+    lock = None
+    def __init__(self, figure=None, app=None):
+        self.myapp = app
+        figure.canvas.mpl_connect("button_press_event", self.click)
+        figure.canvas.mpl_connect("button_release_event", self.release)
+        figure.canvas.mpl_connect("motion_notify_event", self.moved)
+        self.start, self.end = 0, 0
         super().__init__(figure = figure)
 
     def mouseDoubleClickEvent(self, event):
-        print("d clicked: ", event.pos())
+        plt.axis([0, self.myapp.max_peptide_mz, -1, 1])
+        self.myapp.canvas.draw()
         return super().mouseDoubleClickEvent(event)
+
+    def click(self, event):
+        self.start = event.xdata
+
+    def release(self, event):
+        self.end = event.xdata
+        if self.end < self.start:
+            tmp = self.start
+            self.start = self.end
+            self.end = tmp
+        
+        if self.end - self.start <= 5:
+            return
+        
+        plt.axis([self.start, self.end, -1, 1])
+        self.myapp.canvas.draw()
+    
+    def moved(self, event):
+        x, y = event.xdata, event.ydata
+        if not (x and y):
+            self.myapp.loc_label.setText("")
+            return
+
+        self.myapp.loc_label.setText("x="+str(round(x, 2))+",  y="+str(round(y, 2)))
+# _mirror plot custom widget_ end
+
+
 
 class MyApp(QMainWindow):
 
@@ -91,6 +112,7 @@ class MyApp(QMainWindow):
         self.data = dict() # filename : 파싱된 결과(dict) 리스트
         self.filenames = []
         self.switch_btn = QCheckBox('switch mirror', self)
+        self.loc_label = QLabel("")
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_query.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
@@ -255,10 +277,10 @@ class MyApp(QMainWindow):
             else:
                 self.fig = mass_error.mass_error_plot(self.spectrum_query, self.spectrum_answer)
             
-            self.canvas = MirrorFigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
 
             self.canvas.draw()
         else:
@@ -307,10 +329,10 @@ class MyApp(QMainWindow):
                 if obj is not None:
                     obj.deleteLater()
 
-            self.canvas = MirrorFigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
 
             if self.c_btn.isChecked():
                 c_terms = terminal.make_cterm_list(self.current_seq)
@@ -353,10 +375,10 @@ class MyApp(QMainWindow):
                 if obj is not None:
                     obj.deleteLater()
 
-            self.canvas = MirrorFigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
 
             if self.n_btn.isChecked():
                 n_terms = terminal.make_nterm_list(self.current_seq)
@@ -434,10 +456,10 @@ class MyApp(QMainWindow):
             else:
                 self.fig = mass_error.mass_error_plot(self.spectrum_query, self.spectrum_answer)
 
-            self.canvas = MirrorFigureCanvas(self.fig) # mirror plot
-            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            self.graph_main_layout.addWidget(self.toolbar)
+            # self.graph_main_layout.addWidget(self.toolbar)
 
             if self.switch_btn.isChecked():
                 self.ax.text(0.2, 0.5, 'library', fontsize=8)
@@ -470,10 +492,10 @@ class MyApp(QMainWindow):
             if obj is not None:
                 obj.deleteLater()
 
-        self.canvas = MirrorFigureCanvas(self.fig) # mirror plot
-        self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+        self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
-        self.graph_main_layout.addWidget(self.toolbar)
+        # self.graph_main_layout.addWidget(self.toolbar)
         
 
     def change_tol(self):
@@ -529,7 +551,9 @@ class MyApp(QMainWindow):
         
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
-        self.terminal_btn_layout.addStretch(50)
+        self.terminal_btn_layout.addStretch(25)
+        self.terminal_btn_layout.addWidget(self.loc_label)
+        self.terminal_btn_layout.addStretch(25)
         self.terminal_btn_layout.addWidget(self.switch_btn)
         self.terminal_btn_layout.addWidget(self.switch_status)
         self.terminal_btn_layout.addStretch(5)
@@ -540,11 +564,11 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.frag_tol_btn)
         bottom_sp.addLayout(self.terminal_btn_layout)
         
-        self.canvas = MirrorFigureCanvas(self.fig) # mirror plot
+        self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
         self.canvas.setMinimumHeight(200) # 잠시 없앰
-        self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
-        self.graph_main_layout.addWidget(self.toolbar)
+        # self.graph_main_layout.addWidget(self.toolbar)
         bottom_sp.addLayout(self.graph_main_layout)
 
         main = QWidget()
@@ -632,6 +656,7 @@ class MyApp(QMainWindow):
                 
             
             self.ax.set_xlim(0, n_terms[-1])
+            self.max_peptide_mz = n_terms[-1]
 
     
     def ui2(self):
@@ -806,7 +831,7 @@ class MyApp(QMainWindow):
 
             self.set_items_in_table()
 
-            self.top_label.setText(str(self.all_qscore) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: 0')
+            self.top_label.setText(str(len(self.all_qscore)) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: 0')
 
 
             self.frag_tol_input.setText(str(self.frag_tol))

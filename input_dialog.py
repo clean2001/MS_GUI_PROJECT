@@ -1,7 +1,22 @@
 import os
 from PyQt6.QtWidgets import *
-
+from loading_dialog import LoadingDialog
+from PyQt6.QtCore import *
+import time
 import param_file
+
+class ExecuteDeephos(QThread):
+    def __init__(self):
+        super().__init__()
+    
+    def run(self, query_file_list):
+        # deephos를 실행해요
+        for i in range(len(query_file_list)):
+            parameter = './deephos/foo' + str(i) + '.params'
+            print(parameter)
+            os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
+            time.sleep(30)
+
 
 class InputDialog(QDialog):
     def __init__(self):
@@ -310,6 +325,13 @@ class InputDialog(QDialog):
             parameter = './deephos/foo' + str(i) + '.params'
             print(parameter)
             os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
+
+        # ed = ExecuteDeephos()
+        # ed.run(self.query_file_list)
+
+        # loadingDlg = LoadingDialog("Executing Deephos...")
+        # loadingDlg.exec()
+        # loadingDlg.done(0)
         
         print("done!!")
         self.done(0)
