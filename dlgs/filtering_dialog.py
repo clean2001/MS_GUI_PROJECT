@@ -19,51 +19,64 @@ class FilterDialog(QDialog):
 
         self.filters = {}
 
-        max_label_width = max(len(feature)
-                              for feature, dtype in features if dtype == float)
+        form_layout = QFormLayout()
 
         for feature, dtype in features:
-            feature_layout = QHBoxLayout()
-
             label = QLabel(feature)
-            feature_layout.addWidget(label)
+            input_widget = None
 
             # 문자열 input창
             if dtype == str:
                 input_widget = QLineEdit()
-                dummy_widget = QWidget()
-                dummy_widget.setMaximumWidth(20)
-                feature_layout.setSpacing(20)
-                feature_layout.addWidget(input_widget)
-                feature_layout.addWidget(dummy_widget)
-                self.filters[feature] = input_widget
             # int input창 (정수형)
             elif dtype == int:
-                int_input = QSpinBox()
-                int_input.setSingleStep(1)  # 1씩 증가/감소하도록 설정
-                feature_layout.addWidget(QLabel("Min:"))
-                feature_layout.addWidget(int_input)
-                feature_layout.addWidget(QLabel("Max:"))
-                # 다른 QSpinBox로 Max input 생성
-                # feature_layout.addSpacing(30)
-                feature_layout.addWidget(QSpinBox())
-                self.filters[feature] = (int_input, None)  # Max input은 필요 없음
-
+                min_input = QSpinBox()
+                min_input.setSingleStep(1)  # 1씩 증가/감소하도록 설정
+                max_input = QSpinBox()
+                max_input.setSingleStep(1)  # 1씩 증가/감소하도록 설정
+                range_label = QLabel("~")
+                input_widget = (min_input, range_label, max_input)
+                min_input.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                range_label.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                max_input.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                min_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
+                max_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
             # float input창
             else:
-                float_input = QDoubleSpinBox()
-                float_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
-                feature_layout.addWidget(QLabel("Min:"))
-                feature_layout.addWidget(float_input)
-                feature_layout.addWidget(QLabel("Max:"))
-                # 다른 QDoubleSpinBox으로 Max input 생성
-                feature_layout.addWidget(QDoubleSpinBox())
-                self.filters[feature] = (float_input, None)  # Max input은 필요 없음
+                min_input = QDoubleSpinBox()
+                min_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
+                max_input = QDoubleSpinBox()
+                max_input.setSingleStep(0.01)
+                range_label = QLabel("~")
+                input_widget = (min_input, range_label, max_input)
+                min_input.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                range_label.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                max_input.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                min_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
+                max_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
 
-                # self.filters[feature] = (min_input, max_input)
+            self.filters[feature] = input_widget
 
-            feature_layout.setSpacing(10)
-            self.layout.addLayout(feature_layout)
+            if isinstance(input_widget, tuple):  # 범위형 input (int, float)
+                widget_layout = QHBoxLayout()
+                widget_layout.addWidget(input_widget[0])
+                widget_layout.addWidget(input_widget[1])
+                widget_layout.addWidget(input_widget[2])
+                input_widget = widget_layout
+
+            form_layout.addRow(label, input_widget)
+
+        # Set field growth policy
+        form_layout.setFieldGrowthPolicy(
+            QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+
+        self.layout.addLayout(form_layout)
 
         # Apply button
         apply_button = QPushButton("Apply")
@@ -78,16 +91,16 @@ class FilterDialog(QDialog):
     def apply_filters(self):
         applied_filters = {}
         for feature, value in self.filters.items():
-            if isinstance(value, tuple):  # 범위형 input
-                min_input, max_input = value
-                min_value = min_input.value()
-                max_value = max_input.value()
-                if min_value != min_input.minimum() or max_value != max_input.maximum():
-                    applied_filters[feature] = (min_value, max_value)
-            else:
+            if isinstance(value, QLineEdit):  # 문자열 input
                 text = value.text().strip()
                 if text:
                     applied_filters[feature] = text
+            elif isinstance(value, tuple):  # 범위형 input (int, float)
+                min_input, _, max_input = value
+                min_value = min_input.value() if min_input.value() != min_input.minimum() else None
+                max_value = max_input.value() if max_input.value() != max_input.maximum() else None
+                if min_value is not None or max_value is not None:
+                    applied_filters[feature] = (min_value, max_value)
 
         print("Applied Filters:", applied_filters)
         # self.apply_table_filters(applied_filters)
