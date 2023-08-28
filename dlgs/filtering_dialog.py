@@ -8,16 +8,19 @@ class FilterDialog(QDialog):
 
         self.setWindowTitle("Filtering")
         self.layout = QVBoxLayout()
-        self.resize(500, 500)
+        self.resize(400, 400)
 
         features = [
-            ("Filename", str), ("Index", float), ("ScanNo", float), ("Title", str),
-            ("PMZ", float), ("Charge", float), ("Peptide", str), ("CalcMass", float),
-            ("SA", float), ("QScore", float), ("#Ions", float), ("#Sig", float),
-            ("ppmError", float), ("C13", float), ("ExpRatio", float), ("Protein", str)
+            ("Filename", str), ("Index", int), ("ScanNo", int), ("Title", str),
+            ("PMZ", float), ("Charge", int), ("Peptide", str), ("CalcMass", float),
+            ("SA", float), ("QScore", float), ("#Ions", int), ("#Sig", int),
+            ("ppmError", float), ("C13", int), ("ExpRatio", float), ("Protein", str)
         ]
 
         self.filters = {}
+
+        max_label_width = max(len(feature)
+                              for feature, dtype in features if dtype == float)
 
         for feature, dtype in features:
             feature_layout = QHBoxLayout()
@@ -29,28 +32,40 @@ class FilterDialog(QDialog):
             if dtype == str:
                 input_widget = QLineEdit()
                 dummy_widget = QWidget()
-                dummy_widget.setMaximumWidth(10)
+                dummy_widget.setMaximumWidth(20)
+                feature_layout.setSpacing(20)
                 feature_layout.addWidget(input_widget)
                 feature_layout.addWidget(dummy_widget)
                 self.filters[feature] = input_widget
-            # 숫자형 input창
-            else:
-                min_input = QDoubleSpinBox()
-                max_input = QDoubleSpinBox()
-
-                min_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
-                max_input.setSingleStep(0.01)
-
+            # int input창 (정수형)
+            elif dtype == int:
+                int_input = QSpinBox()
+                int_input.setSingleStep(1)  # 1씩 증가/감소하도록 설정
                 feature_layout.addWidget(QLabel("Min:"))
-                feature_layout.addWidget(min_input)
+                feature_layout.addWidget(int_input)
                 feature_layout.addWidget(QLabel("Max:"))
-                feature_layout.addWidget(max_input)
+                # 다른 QSpinBox로 Max input 생성
+                # feature_layout.addSpacing(30)
+                feature_layout.addWidget(QSpinBox())
+                self.filters[feature] = (int_input, None)  # Max input은 필요 없음
 
-                self.filters[feature] = (min_input, max_input)
+            # float input창
+            else:
+                float_input = QDoubleSpinBox()
+                float_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
+                feature_layout.addWidget(QLabel("Min:"))
+                feature_layout.addWidget(float_input)
+                feature_layout.addWidget(QLabel("Max:"))
+                # 다른 QDoubleSpinBox으로 Max input 생성
+                feature_layout.addWidget(QDoubleSpinBox())
+                self.filters[feature] = (float_input, None)  # Max input은 필요 없음
 
+                # self.filters[feature] = (min_input, max_input)
+
+            feature_layout.setSpacing(10)
             self.layout.addLayout(feature_layout)
 
-        # Applyt button
+        # Apply button
         apply_button = QPushButton("Apply")
         apply_button.clicked.connect(self.apply_filters)
         apply_layout = QHBoxLayout()
@@ -76,36 +91,8 @@ class FilterDialog(QDialog):
 
         print("Applied Filters:", applied_filters)
         # self.apply_table_filters(applied_filters)
-        
+
         self.accept()
-        
-    # filetering 했을 때 table에 적용하기
-    # def apply_table_filters(self, filters):
-    #     for row in range(self.spectrum_list.rowCount()):
-    #         row_visible = all(self.apply_row_filter(row, col, filters) for col in range(self.spectrum_list.columnCount()))
-    #         self.spectrum_list.setRowHidden(row, not row_visible)
-
-    # def apply_row_filter(self, row, col, filters):
-    #     if col not in filters:  # No filter for this column
-    #         return True
-
-    #     filter_value = filters[col]
-    #     item = self.spectrum_list.item(row, col)
-
-    #     if item is None:  # No item in this cell
-    #         return False
-
-    #     item_text = item.text()
-
-    #     if isinstance(filter_value, tuple):  # Range filter
-    #         min_value, max_value = filter_value
-    #         try:
-    #             cell_value = float(item_text)
-    #             return min_value <= cell_value <= max_value
-    #         except ValueError:
-    #             return False
-    #     else:  # String filter
-    #         return filter_value.lower() in item_text.lower()
 
 
 def main():
