@@ -28,6 +28,8 @@ class FilterDialog(QDialog):
             # 문자열 input창
             if dtype == str:
                 input_widget = QLineEdit()
+                self.filters[feature] = input_widget
+
             # int input창 (정수형)
             elif dtype == int:
                 min_input = QSpinBox()
@@ -42,22 +44,24 @@ class FilterDialog(QDialog):
                 max_input.setFixedSize(70, 25)
                 min_input.setSpecialValueText("")
                 max_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
+                self.filters[feature] = (min_input, max_input)
+                # print(self.filters[feature])
+
             # float input창
             else:
                 min_input = QDoubleSpinBox()
                 min_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
-                min_input.setDecimals(4)  # 소수점 이하 두 자리까지
+                min_input.setDecimals(4)
                 max_input = QDoubleSpinBox()
-                max_input.setSingleStep(0.01)  # 0.01씩 증가/감소하도록
-                max_input.setDecimals(4)  # 소수점 이하 두 자리까지
+                max_input.setSingleStep(0.01)
+                max_input.setDecimals(4)
                 range_label = QLabel("~")
                 input_widget = (min_input, range_label, max_input)
                 min_input.setFixedSize(70, 25)
                 max_input.setFixedSize(70, 25)
                 min_input.setSpecialValueText("")
                 max_input.setSpecialValueText("")
-
-            self.filters[feature] = input_widget
+                self.filters[feature] = (min_input, max_input)
 
             if isinstance(input_widget, tuple):  # 범위형 input (int, float)
                 widget_layout = QHBoxLayout()
@@ -85,21 +89,42 @@ class FilterDialog(QDialog):
 
     def apply_filters(self):
         applied_filters = {}
+        changes_made = False  # 입력이 변경되었는지 확인
+
         for feature, value in self.filters.items():
             if isinstance(value, QLineEdit):  # 문자열 input
                 text = value.text().strip()
-                if text:
-                    applied_filters[feature] = text
-                else:
-                    applied_filters[feature] = None  # 입력이 없을 경우 None으로 설정
+                applied_filters[feature] = text if text else None
+                if text != self.filters[feature]:
+                    changes_made = True
             elif isinstance(value, QSpinBox):  # 정수형 input
                 if value.value() != 0:
                     applied_filters[feature] = value.value()
+                    if value.value() != self.filters[feature][0]:
+                        changes_made = True
             elif isinstance(value, QDoubleSpinBox):  # 실수형 input
                 if value.value() != 0.0:
                     applied_filters[feature] = value.value()
+                    if value.value() != self.filters[feature][0]:
+                        changes_made = True
 
-        print("Applied Filters:", applied_filters)
+        # 범위형 스핀박스에 대한 값을 저장
+        for feature, value in self.filters.items():
+            if isinstance(value, tuple):
+                min_input, max_input = value
+                if isinstance(min_input, QSpinBox) or isinstance(min_input, QDoubleSpinBox):
+                    min_value = min_input.value()
+                    max_value = max_input.value()
+                    if min_value != min_input.minimum() or max_value != max_input.maximum():
+                        applied_filters[feature] = (min_value, max_value)
+                        if (min_value, max_value) != self.filters[feature]:
+                            changes_made = True
+
+        if changes_made:
+            print("Applied Filters:", applied_filters)
+            # self.apply_table_filters(applied_filters)
+        else:
+            print("No changes made.")
 
         self.accept()
 
