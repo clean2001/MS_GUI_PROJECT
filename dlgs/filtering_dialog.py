@@ -32,34 +32,30 @@ class FilterDialog(QDialog):
             elif dtype == int:
                 min_input = QSpinBox()
                 min_input.setSingleStep(1)  # 1씩 증가/감소하도록 설정
+                min_input.setRange(-9999, 9999)  # -9999부터 9999까지 범위 설정
                 max_input = QSpinBox()
-                max_input.setSingleStep(1)  # 1씩 증가/감소하도록 설정
+                max_input.setSingleStep(1)
+                max_input.setRange(-9999, 9999)
                 range_label = QLabel("~")
                 input_widget = (min_input, range_label, max_input)
-                min_input.setSizePolicy(
-                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                range_label.setSizePolicy(
-                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                max_input.setSizePolicy(
-                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                min_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
+                min_input.setFixedSize(70, 25)  # spinbox 사이즈 설정
+                max_input.setFixedSize(70, 25)
+                min_input.setSpecialValueText("")
                 max_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
             # float input창
             else:
                 min_input = QDoubleSpinBox()
                 min_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
+                min_input.setDecimals(4)  # 소수점 이하 두 자리까지
                 max_input = QDoubleSpinBox()
-                max_input.setSingleStep(0.01)
+                max_input.setSingleStep(0.01)  # 0.01씩 증가/감소하도록
+                max_input.setDecimals(4)  # 소수점 이하 두 자리까지
                 range_label = QLabel("~")
                 input_widget = (min_input, range_label, max_input)
-                min_input.setSizePolicy(
-                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                range_label.setSizePolicy(
-                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                max_input.setSizePolicy(
-                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                min_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
-                max_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
+                min_input.setFixedSize(70, 25)
+                max_input.setFixedSize(70, 25)
+                min_input.setSpecialValueText("")
+                max_input.setSpecialValueText("")
 
             self.filters[feature] = input_widget
 
@@ -72,7 +68,6 @@ class FilterDialog(QDialog):
 
             form_layout.addRow(label, input_widget)
 
-        # Set field growth policy
         form_layout.setFieldGrowthPolicy(
             QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
@@ -103,7 +98,6 @@ class FilterDialog(QDialog):
                     applied_filters[feature] = (min_value, max_value)
 
         print("Applied Filters:", applied_filters)
-        # self.apply_table_filters(applied_filters)
 
         self.accept()
 
