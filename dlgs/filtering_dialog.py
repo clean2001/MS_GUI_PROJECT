@@ -90,12 +90,14 @@ class FilterDialog(QDialog):
                 text = value.text().strip()
                 if text:
                     applied_filters[feature] = text
-            elif isinstance(value, tuple):  # 범위형 input (int, float)
-                min_input, _, max_input = value
-                min_value = min_input.value() if min_input.value() != min_input.minimum() else None
-                max_value = max_input.value() if max_input.value() != max_input.maximum() else None
-                if min_value is not None or max_value is not None:
-                    applied_filters[feature] = (min_value, max_value)
+                else:
+                    applied_filters[feature] = None  # 입력이 없을 경우 None으로 설정
+            elif isinstance(value, QSpinBox):  # 정수형 input
+                if value.value() != 0:
+                    applied_filters[feature] = value.value()
+            elif isinstance(value, QDoubleSpinBox):  # 실수형 input
+                if value.value() != 0.0:
+                    applied_filters[feature] = value.value()
 
         print("Applied Filters:", applied_filters)
 
