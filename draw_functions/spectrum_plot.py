@@ -98,7 +98,7 @@ def _annotate_ion(
             ax.text(mz, y, annot_fmt(annotation), **kws)
         # 특정 이온의 m/z값을 회색 텍스트로 표시
         if ion_type != "?":
-            ax.text(mz, y, str(round(mz, 3)), fontsize=7, color="#A9A9A9", alpha=0.5)
+            ax.text(mz, y, str(round(mz, 3)), fontsize=7, color="#353535", alpha=0.6)
     return color, zorder
 
 

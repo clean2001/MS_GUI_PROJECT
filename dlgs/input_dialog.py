@@ -333,6 +333,5 @@ class InputDialog(QDialog):
         # loadingDlg.exec()
         # loadingDlg.done(0)
         
-        print("done!!")
         self.done(0)
 

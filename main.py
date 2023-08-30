@@ -32,6 +32,8 @@ import control_exception
 import draw_functions.mass_error as mass_error
 from dlgs import (input_dialog, filtering_dialog)
 
+from custom_class.filter import FilterInfo
+
 import help_functions.lib_scanner as lib_scanner
 
 
@@ -56,6 +58,7 @@ class MirrorFigureCanvas(FigureCanvas):
 
     def mouseDoubleClickEvent(self, event):
         plt.axis([0, self.myapp.max_peptide_mz, -1, 1])
+        self.myapp.graph_x_start, self.myapp.graph_x_end = -1, -1
         self.myapp.canvas.draw()
         return super().mouseDoubleClickEvent(event)
 
@@ -73,6 +76,7 @@ class MirrorFigureCanvas(FigureCanvas):
             return
         
         plt.axis([self.start, self.end, -1, 1])
+        self.myapp.graph_x_start, self.myapp.graph_x_end = self.start, self.end
         self.myapp.canvas.draw()
     
     def moved(self, event):
@@ -81,7 +85,8 @@ class MirrorFigureCanvas(FigureCanvas):
             self.myapp.loc_label.setText("")
             return
 
-        self.myapp.loc_label.setText("x="+str(round(x, 2))+",  y="+str(round(y, 2)))
+        self.myapp.loc_label.setText("m/z = "+str(round(x, 2))+",   intensity = "+str(abs(round(y, 2))))
+
 # _mirror plot custom widget_ end
 
 
@@ -113,7 +118,12 @@ class MyApp(QMainWindow):
         self.data = dict() # filename : 파싱된 결과(dict) 리스트
         self.filenames = []
         self.switch_btn = QCheckBox('switch mirror', self)
-        self.loc_label = QLabel("")
+        self.loc_label = QLabel("") #그래프 내에 현재 마우스 위치 정보 label
+        self.max_peptide_mz = 100 # 초기값 100
+        self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
+        self.results = []
+        self.graph_x_start, self.graph_y_start = -1, -1 ## 그래프의 확대, (x axis 값, -1 -1 이면 기본크기)
+
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_query.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
@@ -144,13 +154,8 @@ class MyApp(QMainWindow):
         self.mass_error_btn.toggled.connect(self.mass_error_btn_clicked)
         self.switch_btn.toggled.connect(self.switch_clicked)
 
-        # filtering threshold
-        self.filter_input = QLineEdit()
-        self.filter_input.setText(str(self.filtering_threshold))
-        self.filter_input.setFixedWidth(50)
-        self.filter_button = QPushButton('submit', self)
+        # filtering reset btn
         self.filter_reset_button = QPushButton('reset', self)
-        self.filter_button.clicked.connect(self.filter_spectrums)
         self.filter_reset_button.clicked.connect(self.filter_reset)
 
         # tolerance
@@ -313,8 +318,8 @@ class MyApp(QMainWindow):
             self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
             for mz in n_terms:
-                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
+                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
             text = process_sequence.process_text(self.top_seq) # 0723
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
@@ -345,8 +350,8 @@ class MyApp(QMainWindow):
             if self.c_btn.isChecked():
                 c_terms = terminal.make_cterm_list(self.current_seq)
                 for mz in c_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
                 text = process_sequence.process_text(self.top_seq) # 0723
                 text = text[::-1]
                 for i in range(0, len(c_terms)-1):
@@ -354,14 +359,17 @@ class MyApp(QMainWindow):
                     end = c_terms[i+1]
                     self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
 
+            if self.graph_x_start != -1 and self.graph_x_end != -1:
+                plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+
    
     def c_button(self):
         if self.c_btn.isChecked():
             self.c_btn.setStyleSheet("background-color: #800000")#CD5C5C
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
-                self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
+                self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
             text = process_sequence.process_text(self.top_seq) # 0723
             text = text[::-1]
             for i in range(0, len(c_terms)-1):
@@ -391,15 +399,16 @@ class MyApp(QMainWindow):
             if self.n_btn.isChecked():
                 n_terms = terminal.make_nterm_list(self.current_seq)
                 for mz in n_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
                 text = process_sequence.process_text(self.top_seq) # 0723
                 for i in range(0, len(n_terms)-1):
                     start = n_terms[i]
                     end = n_terms[i+1]
                     self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i],fontsize=10, color='blue')
 
-                
+            if self.graph_x_start != -1 and self.graph_x_end != -1:
+                plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
             self.canvas.draw() # refresh plot
 
     def make_graph(self, filename:str, qidx:int):
@@ -504,6 +513,10 @@ class MyApp(QMainWindow):
         # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
         # self.graph_main_layout.addWidget(self.toolbar)
+        if self.graph_x_start != -1 and self.graph_x_end != -1:
+            plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+        self.canvas.draw()
+
         
 
     def change_tol(self):
@@ -534,14 +547,10 @@ class MyApp(QMainWindow):
 
         self.splitter = QSplitter()
 
-        self.top_label = QLabel('0 spectrums (threshold: ' + str(self.filtering_threshold) + ')')
-        # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
+        self.top_label = QLabel('0 spectra')
 
         filter_hbox.addWidget(self.top_label)
         filter_hbox.addStretch(40)
-        filter_hbox.addWidget(QLabel('filter threshold(QScore): '))
-        filter_hbox.addWidget(self.filter_input)
-        filter_hbox.addWidget(self.filter_button)
         filter_hbox.addWidget(self.filter_reset_button)
         top_sp.addLayout(filter_hbox)
 
@@ -609,6 +618,7 @@ class MyApp(QMainWindow):
     
         
     def chkItemChanged(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
+        self.graph_x_start, self.graph_x_end = -1, -1
 
         # 해제된 항목의 색을 돌려놓기      
         if self.spectrum_list.item(self.cur_row, 0):
@@ -641,8 +651,8 @@ class MyApp(QMainWindow):
             n_terms = terminal.make_nterm_list(self.current_seq)
             if self.n_btn.isChecked(): # n terminal 표시
                 for mz in n_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
 
                 text = process_sequence.process_text(self.top_seq) # 0723
                 for i in range(0, len(n_terms)-1):
@@ -653,8 +663,8 @@ class MyApp(QMainWindow):
             if self.c_btn.isChecked(): # c terminal 표시
                 c_terms = terminal.make_cterm_list(self.current_seq)
                 for mz in c_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
                 text = process_sequence.process_text(self.top_seq) # 0723
                 text = text[::-1]
                 for i in range(0, len(c_terms)-1):
@@ -720,42 +730,125 @@ class MyApp(QMainWindow):
 
         main.setLayout(self.summary_layout)
         return main
-
     
-    def filter_spectrums(self):
-        if control_exception.check_qscore_threshold(self.filter_input.text()):
-            threshold = float(self.filter_input.text())
-        else:
-            self.filter_input.setText(str(self.filtering_threshold))
-            self.Warning_event()
-            return
-        if self.filtering_threshold == threshold:
-            return
-        
-        self.filtering_threshold = threshold
-        self.cur_row = 0
-        self.spectrum_list.setCurrentItem(self.spectrum_list.item(0, 0))
-        
-        lb = filtering_list.lower_bound(self.all_qscore, threshold)
-        filtered_number = len(self.all_qscore) - lb
+    def check_spectrum_item(self, cur):
+        fi = self.filter_info
 
-        self.spectrum_list.clear()
+        # 1. 파일 이름을 필터링 -> str
+        if fi.filename:
+            if not fi.filename in cur['File']:
+                return False
+        # 2. 인덱스 필터링 -> int 
+        if fi.index:
+            if int(fi.index[0]) > 0 and int(cur['Index']) < int(fi.index[0]):
+                return False
+            if int(fi.index[1]) > 0 and int(cur['Index']) > int(fi.index[1]):
+                return False
+        # 3. ScanNo 필터링 -> int
+        if fi.scanno:
+            if int(fi.scanno[0]) > 0 and int(cur['ScanNo']) < int(fi.scanno[0]):
+                return False
+            if int(fi.scanno[1]) > 0 and int(cur['ScanNo']) > int(fi.scanno[1]):
+                return False
+            
+        # 4. Title 필터링 -> str
+        if fi.title:
+            if not fi.title in cur['Title']:
+                return False
+        
+        # 5. PMZ 필터링 -> float
+        if fi.pmz:
+            if float(fi.pmz[0]) > 0 and float(cur['PMZ']) < float(fi.pmz[0]):
+                return False
+            if float(fi.pmz[1]) > 0 and float(cur['PMZ']) > float(fi.pmz[1]):
+                return False
+            
+        # 6. Charge 필터링 -> int
+        if fi.charge:
+            if int(fi.charge[0]) > 0 and int(cur['Charge']) < int(fi.charge[0]):
+                return False
+            if int(fi.charge[1]) > 0 and int(cur['Charge']) > int(fi.charge[1]):
+                return False
 
-        # 상단 라벨 변경
-        self.top_label.setText(str(filtered_number) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: ' + str(threshold) + ')')
+        # 7. Peptide 필터링 -> str 
+        if fi.peptide:
+            if not fi.peptide in cur['Peptide']:
+                return False
+            
+        # 8. CalcMass 필터링 -> float
+        if fi.calcmass:
+            if float(fi.calcmass[0]) > 0 and float(cur['CalcMass']) < float(fi.calcmass[0]):
+                return False
+            if float(fi.calcmass[1]) > 0 and float(cur['CalcMass']) > float(fi.calcmass[1]):
+                return False
+            
+        # 9. SA 필터링 -> float
+        if fi.sa:
+            if float(fi.sa[0]) > 0 and float(cur['SA']) < float(fi.sa[0]):
+                return False
+            if float(fi.sa[1]) > 0 and float(cur['SA']) > float(fi.sa[1]):
+                return False
+        
+        # 10. QScore 필터링 -> float
+        if fi.qscore:
+            if float(fi.qscore[0]) > 0 and float(cur['QScore']) < float(fi.qscore[0]):
+                return False
+            if float(fi.qscore[1]) > 0 and float(cur['QScore']) > float(fi.qscore[1]):
+                return False
+            
+        # 11. #Ions 필터링 -> int
+        if fi.ions:
+            if int(fi.ions[0]) > 0 and int(cur['#Ions']) < int(fi.ions[0]):
+                return False
+            if int(fi.ions[1]) > 0 and int(cur['#Ions']) > int(fi.ions[1]):
+                return False
+        
+        # 12. #Sig 필터링 -> int
+        if fi.sig:
+            if int(fi.sig[0]) > 0 and int(cur['#Sig']) < int(fi.sig[0]):
+                return False
+            if int(fi.sig[1]) > 0 and int(cur['#Sig']) > int(fi.sig[1]):
+                return False
+        
+        # 13. ppmError -> float
+        if fi.ppmerror:
+            if float(fi.ppmerror[0]) > 0 and float(cur['ppmError']) < float(fi.ppmerror[0]):
+                return False
+            if float(fi.ppmerror[1]) and float(cur['ppmError']) > float(fi.ppmerror[1]):
+                return False
+            
+        # 14. C13 -> float
+        if fi.c13:
+            if float(fi.c13[0]) > 0 and float(cur['C13']) < float(fi.c13[0]):
+                return False
+            if float(fi.c13[1]) > 0 and float(cur['C13']) > float(fi.c13[1]):
+                return False
+
+        # 15. expRatio -> float
+        if fi.expratio:
+            if float(fi.expratio[0]) > 0 and float(cur['ExpRatio']) < float(fi.expratio[0]):
+                return False
+            if float(fi.expratio[1]) > 0 and float(cur['ExpRatio']) > float(fi.expratio[1]):
+                return False
+        
+        # 16. ProSites -> str
+        if fi.protsites:
+            if not fi.protsites in cur['ProtSites']:
+                return False
+
+        
+        return True
+    
+
+    def refilter_spectrums(self):
         idx = 0
-        self.cur_idx = 0
-        self.spectrum_list.setRowCount(int(filtered_number))
-        # 다시 테이블에 추가
-        column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites' ]
-        self.spectrum_list.setHorizontalHeaderLabels(column_headers)
-
+        self.spectrum_list.setRowCount(len(self.all_qscore))
         for i in range(0, len(self.results)):
             cur_result = self.result_data[self.results[i]]
             for j in range(0, len(cur_result)):
-                if float(cur_result[j]['QScore']) < threshold:
+                if not self.check_spectrum_item(cur_result[j]):
                     continue
-
+                
                 qidx = int(cur_result[j]['Index'])
                 seq = cur_result[j]['Peptide']
                 charge = cur_result[j]['Charge']
@@ -792,18 +885,17 @@ class MyApp(QMainWindow):
                     self.spectrum_list.item(idx, k).setFlags(Qt.ItemFlag.ItemIsEnabled)
 
                 idx += 1
-
+        
+        self.spectrum_list.setRowCount(idx)
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
+        self.top_label.setText(str(idx) +' / ' + str(len(self.all_qscore))+ ' spectra')
 
-        return
+
     
     def filter_reset(self):
-        if self.filtering_threshold == 0:
-            return
-        
-        self.filter_input.setText('0')
-        self.filter_spectrums()
+        self.filter_info.reset_all_values()
+        self.set_items_in_table()
         return
     
 
@@ -839,9 +931,6 @@ class MyApp(QMainWindow):
 
             self.set_items_in_table()
 
-            self.top_label.setText(str(len(self.all_qscore)) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: 0')
-
-
             self.frag_tol_input.setText(str(self.frag_tol))
             self.make_summary()
 
@@ -860,8 +949,13 @@ C13 isotope tolerance:
 
 
     def filtering_action(self):
-        filter_dlg = filtering_dialog.FilterDialog()
+        filter_dlg = filtering_dialog.FilterDialog(self.filter_info)
         filter_dlg.exec()
+
+        # 정보 바꾸기
+        print('main, line 870. filname:', self.filter_info.filename)
+        self.refilter_spectrums()
+
 
         return
         
@@ -931,8 +1025,10 @@ C13 isotope tolerance:
 
                 rowcnt += 1
 
-            self.n_btn.setCheckable(True)
-            self.c_btn.setCheckable(True)
+        self.n_btn.setCheckable(True)
+        self.c_btn.setCheckable(True)
+
+        self.top_label.setText(str(rowcnt) +' / ' + str(rowcnt)+ ' spectra')
 
 
     def make_summary(self):
