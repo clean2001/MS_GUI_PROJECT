@@ -58,6 +58,7 @@ class MirrorFigureCanvas(FigureCanvas):
 
     def mouseDoubleClickEvent(self, event):
         plt.axis([0, self.myapp.max_peptide_mz, -1, 1])
+        self.myapp.graph_x_start, self.myapp.graph_x_end = -1, -1
         self.myapp.canvas.draw()
         return super().mouseDoubleClickEvent(event)
 
@@ -75,6 +76,7 @@ class MirrorFigureCanvas(FigureCanvas):
             return
         
         plt.axis([self.start, self.end, -1, 1])
+        self.myapp.graph_x_start, self.myapp.graph_x_end = self.start, self.end
         self.myapp.canvas.draw()
     
     def moved(self, event):
@@ -83,7 +85,8 @@ class MirrorFigureCanvas(FigureCanvas):
             self.myapp.loc_label.setText("")
             return
 
-        self.myapp.loc_label.setText("x="+str(round(x, 2))+",  y="+str(round(y, 2)))
+        self.myapp.loc_label.setText("m/z = "+str(round(x, 2))+",   intensity = "+str(abs(round(y, 2))))
+
 # _mirror plot custom widget_ end
 
 
@@ -119,6 +122,8 @@ class MyApp(QMainWindow):
         self.max_peptide_mz = 100 # 초기값 100
         self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
         self.results = []
+        self.graph_x_start, self.graph_y_start = -1, -1 ## 그래프의 확대, (x axis 값, -1 -1 이면 기본크기)
+
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_query.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
@@ -313,8 +318,8 @@ class MyApp(QMainWindow):
             self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
             for mz in n_terms:
-                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
+                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
             text = process_sequence.process_text(self.top_seq) # 0723
             for i in range(0, len(n_terms)-1):
                 start = n_terms[i]
@@ -345,8 +350,8 @@ class MyApp(QMainWindow):
             if self.c_btn.isChecked():
                 c_terms = terminal.make_cterm_list(self.current_seq)
                 for mz in c_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
                 text = process_sequence.process_text(self.top_seq) # 0723
                 text = text[::-1]
                 for i in range(0, len(c_terms)-1):
@@ -354,14 +359,17 @@ class MyApp(QMainWindow):
                     end = c_terms[i+1]
                     self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
 
+            if self.graph_x_start != -1 and self.graph_x_end != -1:
+                plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+
    
     def c_button(self):
         if self.c_btn.isChecked():
             self.c_btn.setStyleSheet("background-color: #800000")#CD5C5C
             c_terms = terminal.make_cterm_list(self.current_seq)
             for mz in c_terms:
-                self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
+                self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
             text = process_sequence.process_text(self.top_seq) # 0723
             text = text[::-1]
             for i in range(0, len(c_terms)-1):
@@ -391,15 +399,16 @@ class MyApp(QMainWindow):
             if self.n_btn.isChecked():
                 n_terms = terminal.make_nterm_list(self.current_seq)
                 for mz in n_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
                 text = process_sequence.process_text(self.top_seq) # 0723
                 for i in range(0, len(n_terms)-1):
                     start = n_terms[i]
                     end = n_terms[i+1]
                     self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i],fontsize=10, color='blue')
 
-                
+            if self.graph_x_start != -1 and self.graph_x_end != -1:
+                plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
             self.canvas.draw() # refresh plot
 
     def make_graph(self, filename:str, qidx:int):
@@ -504,6 +513,10 @@ class MyApp(QMainWindow):
         # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
         # self.graph_main_layout.addWidget(self.toolbar)
+        if self.graph_x_start != -1 and self.graph_x_end != -1:
+            plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+        self.canvas.draw()
+
         
 
     def change_tol(self):
@@ -605,6 +618,7 @@ class MyApp(QMainWindow):
     
         
     def chkItemChanged(self): # index를 반환 받아서 그걸로 그래프 새로 그리기
+        self.graph_x_start, self.graph_x_end = -1, -1
 
         # 해제된 항목의 색을 돌려놓기      
         if self.spectrum_list.item(self.cur_row, 0):
@@ -637,8 +651,8 @@ class MyApp(QMainWindow):
             n_terms = terminal.make_nterm_list(self.current_seq)
             if self.n_btn.isChecked(): # n terminal 표시
                 for mz in n_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
 
                 text = process_sequence.process_text(self.top_seq) # 0723
                 for i in range(0, len(n_terms)-1):
@@ -649,8 +663,8 @@ class MyApp(QMainWindow):
             if self.c_btn.isChecked(): # c terminal 표시
                 c_terms = terminal.make_cterm_list(self.current_seq)
                 for mz in c_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle='dashed')
-                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle='dashed')
+                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
+                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
                 text = process_sequence.process_text(self.top_seq) # 0723
                 text = text[::-1]
                 for i in range(0, len(c_terms)-1):
@@ -835,7 +849,6 @@ class MyApp(QMainWindow):
                 if not self.check_spectrum_item(cur_result[j]):
                     continue
                 
-                # print('통과')
                 qidx = int(cur_result[j]['Index'])
                 seq = cur_result[j]['Peptide']
                 charge = cur_result[j]['Charge']
