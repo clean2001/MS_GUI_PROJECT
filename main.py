@@ -32,6 +32,8 @@ import control_exception
 import draw_functions.mass_error as mass_error
 from dlgs import (input_dialog, filtering_dialog)
 
+from custom_class.filter import FilterInfo
+
 import help_functions.lib_scanner as lib_scanner
 
 
@@ -113,7 +115,9 @@ class MyApp(QMainWindow):
         self.data = dict() # filename : 파싱된 결과(dict) 리스트
         self.filenames = []
         self.switch_btn = QCheckBox('switch mirror', self)
-        self.loc_label = QLabel("")
+        self.loc_label = QLabel("") #그래프 내에 현재 마우스 위치 정보 label
+        self.max_peptide_mz = 100 # 초기값 100
+        self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_query.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
@@ -798,12 +802,172 @@ class MyApp(QMainWindow):
 
         return
     
+    def check_spectrum_item(self, cur):
+        fi = self.filter_info
+
+        # 1. 파일 이름을 필터링 -> str
+        if fi.filename:
+            if not fi.filename in cur['File']:
+                return False
+        # 2. 인덱스 필터링 -> int 
+        if fi.index:
+            if int(fi.index[0]) > 0 and int(cur['Index']) < int(fi.index[0]):
+                return False
+            if int(fi.index[1]) > 0 and int(cur['Index']) > int(fi.index[1]):
+                return False
+        # 3. ScanNo 필터링 -> int
+        if fi.scanno:
+            if int(fi.scanno[0]) > 0 and int(cur['ScanNo']) < int(fi.scanno[0]):
+                return False
+            if int(fi.scanno[1]) > 0 and int(cur['ScanNo']) > int(fi.scanno[1]):
+                return False
+            
+        # 4. Title 필터링 -> str
+        if fi.title:
+            if not fi.title in cur['Title']:
+                return False
+        
+        # 5. PMZ 필터링 -> float
+        if fi.pmz:
+            if float(fi.pmz[0]) > 0 and float(cur['PMZ']) < float(fi.pmz[0]):
+                return False
+            if float(fi.pmz[1]) > 0 and float(cur['PMZ']) < float(fi.pmz[1]):
+                return False
+            
+        # 6. Charge 필터링 -> int
+        if fi.charge:
+            if int(fi.charge[0]) > 0 and int(cur['Charge']) < int(fi.charge[0]):
+                return False
+            if int(fi.charge[1]) > 0 and int(cur['Charge']) > int(fi.charge[1]):
+                return False
+
+        # 7. Peptide 필터링 -> str 
+        if fi.peptide:
+            if not fi.peptide in cur['Peptide']:
+                return False
+            
+        # 8. CalcMass 필터링 -> float
+        if fi.calcmass:
+            if float(fi.calcmass[0]) > 0 and float(cur['CalcMass']) < float(fi.calcmass[0]):
+                return False
+            if float(fi.calcmass[1]) > 0 and float(cur['CalcMass']) < float(fi.calcmass[1]):
+                return False
+            
+        # 9. SA 필터링 -> float
+        if fi.sa:
+            if float(fi.sa[0]) > 0 and float(cur['SA']) < float(fi.sa[0]):
+                return False
+            if float(fi.sa[1]) > 0 and float(cur['SA']) < float(fi.sa[1]):
+                return False
+        
+        # 10. QScore 필터링 -> float
+        if fi.qscore:
+            if float(fi.qscore[0]) > 0 and float(cur['QScore']) < float(fi.qscore[0]):
+                return False
+            if float(fi.qscore[1]) > 0 and float(cur['QScore']) < float(fi.qscore[1]):
+                return False
+            
+        # 11. #Ions 필터링 -> int
+        if fi.ions:
+            if int(fi.ions[0]) > 0 and int(cur['#Ions']) < int(fi.ions[0]):
+                return False
+            if int(fi.ions[1]) > 0 and int(cur['#Ions']) > int(fi.ions[1]):
+                return False
+        
+        # 12. #Sig 필터링 -> int
+        if fi.sig:
+            if int(fi.sig[0]) > 0 and int(cur['#Sig']) < int(fi.sig[0]):
+                return False
+            if int(fi.sig[1]) > 0 and int(cur['#Sig']) > int(fi.sig[1]):
+                return False
+        
+        # 13. ppmError -> float
+        if fi.ppmerror:
+            if float(fi.ppmerror[0]) > 0 and float(cur['ppmError']) < float(fi.ppmerror[0]):
+                return False
+            if float(fi.ppmerror[1]) and float(cur['ppmError']) < float(fi.ppmerror[1]):
+                return False
+            
+        # 14. C13 -> float
+        if fi.c13:
+            if float(fi.c13[0]) > 0 and float(cur['C13']) < float(fi.c13[0]):
+                return False
+            if float(fi.c13[1]) > 0 and float(cur['C13']) < float(fi.c13[1]):
+                return False
+
+        # 15. expRatio -> float
+        if fi.expratio:
+            if float(fi.expratio[0]) > 0 and float(cur['ExpRatio']) < float(fi.expratio[0]):
+                return False
+            if float(fi.expratio[1]) > 0 and float(cur['ExpRatio']) < float(fi.expratio[1]):
+                return False
+        
+        # 16. ProSites -> str
+        if fi.protsites:
+            if not fi.protsites in cur['ProtSites']:
+                return False
+
+        
+        return True
+    
+
+    def refilter_spectrums(self):
+        idx = 0
+        self.spectrum_list.setRowCount(len(self.all_qscore))
+        for i in range(0, len(self.results)):
+            cur_result = self.result_data[self.results[i]]
+            for j in range(0, len(cur_result)):
+                if not self.check_spectrum_item(cur_result[j]):
+                    continue
+                
+                # print('통과')
+                qidx = int(cur_result[j]['Index'])
+                seq = cur_result[j]['Peptide']
+                charge = cur_result[j]['Charge']
+
+                seq = process_sequence.brace_modifications(seq) # 0723
+                seq = process_sequence.remove_modifications(seq)
+
+                charge = self.data[self.filenames[i]][qidx]['charge']
+                if 'TARGET' in self.result_data[self.results[i]][j]['ProtSites']:
+                    match = str(self.result_data[self.results[i]][j]['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
+                else:
+                    match = str(self.result_data[self.results[i]][j]['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
+
+                # item = '%5s %5s %45s %12s %20s %15s %12s %30s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), str(match), 'SA: '+str(self.result_data[i]['SA']), 'charge: '+str(charge), 'seq: '+str(seq))
+                self.spectrum_list.setItem(idx, 0, QTableWidgetItem(self.result_data[self.results[i]][j]['File']))
+                self.spectrum_list.setItem(idx, 1, QTableWidgetItem(self.result_data[self.results[i]][j]['Index']))
+                self.spectrum_list.setItem(idx, 2, QTableWidgetItem(self.result_data[self.results[i]][j]['ScanNo']))
+                self.spectrum_list.setItem(idx, 3, QTableWidgetItem(self.result_data[self.results[i]][j]['Title']))
+                self.spectrum_list.setItem(idx, 4, QTableWidgetItem(self.result_data[self.results[i]][j]['PMZ']))
+                self.spectrum_list.setItem(idx, 5, QTableWidgetItem(self.result_data[self.results[i]][j]['Charge']))
+                self.spectrum_list.setItem(idx, 6, QTableWidgetItem(self.result_data[self.results[i]][j]['Peptide']))
+                self.spectrum_list.setItem(idx, 7, QTableWidgetItem(self.result_data[self.results[i]][j]['CalcMass']))
+                self.spectrum_list.setItem(idx, 8, QTableWidgetItem(self.result_data[self.results[i]][j]['SA']))
+                self.spectrum_list.setItem(idx, 9, QTableWidgetItem(self.result_data[self.results[i]][j]['QScore']))
+                self.spectrum_list.setItem(idx, 10, QTableWidgetItem(self.result_data[self.results[i]][j]['#Ions']))
+                self.spectrum_list.setItem(idx, 11, QTableWidgetItem(self.result_data[self.results[i]][j]['#Sig']))
+                self.spectrum_list.setItem(idx, 12, QTableWidgetItem(self.result_data[self.results[i]][j]['ppmError']))
+                self.spectrum_list.setItem(idx, 13, QTableWidgetItem(self.result_data[self.results[i]][j]['C13']))
+                self.spectrum_list.setItem(idx, 14, QTableWidgetItem(self.result_data[self.results[i]][j]['ExpRatio']))
+                self.spectrum_list.setItem(idx, 15, QTableWidgetItem(match))
+                self.spectrum_list.setRowHeight(idx, 20)
+
+                for k in range(0, 16):
+                    self.spectrum_list.item(idx, k).setFlags(Qt.ItemFlag.ItemIsEnabled)
+
+                idx += 1
+        
+        self.spectrum_list.setRowCount(idx)
+        self.n_btn.setCheckable(True)
+        self.c_btn.setCheckable(True)
+
+    
     def filter_reset(self):
         if self.filtering_threshold == 0:
             return
         
         self.filter_input.setText('0')
-        self.filter_spectrums()
         return
     
 
@@ -860,8 +1024,13 @@ C13 isotope tolerance:
 
 
     def filtering_action(self):
-        filter_dlg = filtering_dialog.FilterDialog()
+        filter_dlg = filtering_dialog.FilterDialog(self.filter_info)
         filter_dlg.exec()
+
+        # 정보 바꾸기
+        print('main, line 870. filname:', self.filter_info.filename)
+        self.refilter_spectrums()
+
 
         return
         
