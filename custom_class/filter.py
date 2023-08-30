@@ -5,7 +5,9 @@ class FilterInfo:
         self.myapp = myapp
         self.filename, self.index, self.scanno, self.title, self.pmz, self.charge, self.peptide, self.calcmass, self.sa, self.qscore, self.ions, self.sig, self.ppmerror, self.c13, self.expratio,self.protsites = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
-    
+    def reset_all_values(self):
+        self.filename, self.index, self.scanno, self.title, self.pmz, self.charge, self.peptide, self.calcmass, self.sa, self.qscore, self.ions, self.sig, self.ppmerror, self.c13, self.expratio,self.protsites = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+
     # 범위 값의 유효성 체크
     def check_range_values(_value : list[2]):
         # 실수인지 확인

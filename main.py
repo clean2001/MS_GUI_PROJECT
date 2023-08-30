@@ -118,6 +118,7 @@ class MyApp(QMainWindow):
         self.loc_label = QLabel("") #그래프 내에 현재 마우스 위치 정보 label
         self.max_peptide_mz = 100 # 초기값 100
         self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
+        self.results = []
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_query.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
@@ -148,13 +149,8 @@ class MyApp(QMainWindow):
         self.mass_error_btn.toggled.connect(self.mass_error_btn_clicked)
         self.switch_btn.toggled.connect(self.switch_clicked)
 
-        # filtering threshold
-        self.filter_input = QLineEdit()
-        self.filter_input.setText(str(self.filtering_threshold))
-        self.filter_input.setFixedWidth(50)
-        self.filter_button = QPushButton('submit', self)
+        # filtering reset btn
         self.filter_reset_button = QPushButton('reset', self)
-        self.filter_button.clicked.connect(self.filter_spectrums)
         self.filter_reset_button.clicked.connect(self.filter_reset)
 
         # tolerance
@@ -538,14 +534,10 @@ class MyApp(QMainWindow):
 
         self.splitter = QSplitter()
 
-        self.top_label = QLabel('0 spectrums (threshold: ' + str(self.filtering_threshold) + ')')
-        # self.graph_outer_layout.addWidget(QLabel(self.top_label)) # top_label 일단은 지워놓자
+        self.top_label = QLabel('0 spectra')
 
         filter_hbox.addWidget(self.top_label)
         filter_hbox.addStretch(40)
-        filter_hbox.addWidget(QLabel('filter threshold(QScore): '))
-        filter_hbox.addWidget(self.filter_input)
-        filter_hbox.addWidget(self.filter_button)
         filter_hbox.addWidget(self.filter_reset_button)
         top_sp.addLayout(filter_hbox)
 
@@ -724,83 +716,6 @@ class MyApp(QMainWindow):
 
         main.setLayout(self.summary_layout)
         return main
-
-    
-    def filter_spectrums(self):
-        if control_exception.check_qscore_threshold(self.filter_input.text()):
-            threshold = float(self.filter_input.text())
-        else:
-            self.filter_input.setText(str(self.filtering_threshold))
-            self.Warning_event()
-            return
-        if self.filtering_threshold == threshold:
-            return
-        
-        self.filtering_threshold = threshold
-        self.cur_row = 0
-        self.spectrum_list.setCurrentItem(self.spectrum_list.item(0, 0))
-        
-        lb = filtering_list.lower_bound(self.all_qscore, threshold)
-        filtered_number = len(self.all_qscore) - lb
-
-        self.spectrum_list.clear()
-
-        # 상단 라벨 변경
-        self.top_label.setText(str(filtered_number) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: ' + str(threshold) + ')')
-        idx = 0
-        self.cur_idx = 0
-        self.spectrum_list.setRowCount(int(filtered_number))
-        # 다시 테이블에 추가
-        column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites' ]
-        self.spectrum_list.setHorizontalHeaderLabels(column_headers)
-
-        for i in range(0, len(self.results)):
-            cur_result = self.result_data[self.results[i]]
-            for j in range(0, len(cur_result)):
-                if float(cur_result[j]['QScore']) < threshold:
-                    continue
-
-                qidx = int(cur_result[j]['Index'])
-                seq = cur_result[j]['Peptide']
-                charge = cur_result[j]['Charge']
-
-                seq = process_sequence.brace_modifications(seq) # 0723
-                seq = process_sequence.remove_modifications(seq)
-
-                charge = self.data[self.filenames[i]][qidx]['charge']
-                if 'TARGET' in self.result_data[self.results[i]][j]['ProtSites']:
-                    match = str(self.result_data[self.results[i]][j]['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
-                else:
-                    match = str(self.result_data[self.results[i]][j]['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
-
-                # item = '%5s %5s %45s %12s %20s %15s %12s %30s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), str(match), 'SA: '+str(self.result_data[i]['SA']), 'charge: '+str(charge), 'seq: '+str(seq))
-                self.spectrum_list.setItem(idx, 0, QTableWidgetItem(self.result_data[self.results[i]][j]['File']))
-                self.spectrum_list.setItem(idx, 1, QTableWidgetItem(self.result_data[self.results[i]][j]['Index']))
-                self.spectrum_list.setItem(idx, 2, QTableWidgetItem(self.result_data[self.results[i]][j]['ScanNo']))
-                self.spectrum_list.setItem(idx, 3, QTableWidgetItem(self.result_data[self.results[i]][j]['Title']))
-                self.spectrum_list.setItem(idx, 4, QTableWidgetItem(self.result_data[self.results[i]][j]['PMZ']))
-                self.spectrum_list.setItem(idx, 5, QTableWidgetItem(self.result_data[self.results[i]][j]['Charge']))
-                self.spectrum_list.setItem(idx, 6, QTableWidgetItem(self.result_data[self.results[i]][j]['Peptide']))
-                self.spectrum_list.setItem(idx, 7, QTableWidgetItem(self.result_data[self.results[i]][j]['CalcMass']))
-                self.spectrum_list.setItem(idx, 8, QTableWidgetItem(self.result_data[self.results[i]][j]['SA']))
-                self.spectrum_list.setItem(idx, 9, QTableWidgetItem(self.result_data[self.results[i]][j]['QScore']))
-                self.spectrum_list.setItem(idx, 10, QTableWidgetItem(self.result_data[self.results[i]][j]['#Ions']))
-                self.spectrum_list.setItem(idx, 11, QTableWidgetItem(self.result_data[self.results[i]][j]['#Sig']))
-                self.spectrum_list.setItem(idx, 12, QTableWidgetItem(self.result_data[self.results[i]][j]['ppmError']))
-                self.spectrum_list.setItem(idx, 13, QTableWidgetItem(self.result_data[self.results[i]][j]['C13']))
-                self.spectrum_list.setItem(idx, 14, QTableWidgetItem(self.result_data[self.results[i]][j]['ExpRatio']))
-                self.spectrum_list.setItem(idx, 15, QTableWidgetItem(match))
-                self.spectrum_list.setRowHeight(idx, 20)
-
-                for k in range(0, 16):
-                    self.spectrum_list.item(idx, k).setFlags(Qt.ItemFlag.ItemIsEnabled)
-
-                idx += 1
-
-        self.n_btn.setCheckable(True)
-        self.c_btn.setCheckable(True)
-
-        return
     
     def check_spectrum_item(self, cur):
         fi = self.filter_info
@@ -831,7 +746,7 @@ class MyApp(QMainWindow):
         if fi.pmz:
             if float(fi.pmz[0]) > 0 and float(cur['PMZ']) < float(fi.pmz[0]):
                 return False
-            if float(fi.pmz[1]) > 0 and float(cur['PMZ']) < float(fi.pmz[1]):
+            if float(fi.pmz[1]) > 0 and float(cur['PMZ']) > float(fi.pmz[1]):
                 return False
             
         # 6. Charge 필터링 -> int
@@ -850,21 +765,21 @@ class MyApp(QMainWindow):
         if fi.calcmass:
             if float(fi.calcmass[0]) > 0 and float(cur['CalcMass']) < float(fi.calcmass[0]):
                 return False
-            if float(fi.calcmass[1]) > 0 and float(cur['CalcMass']) < float(fi.calcmass[1]):
+            if float(fi.calcmass[1]) > 0 and float(cur['CalcMass']) > float(fi.calcmass[1]):
                 return False
             
         # 9. SA 필터링 -> float
         if fi.sa:
             if float(fi.sa[0]) > 0 and float(cur['SA']) < float(fi.sa[0]):
                 return False
-            if float(fi.sa[1]) > 0 and float(cur['SA']) < float(fi.sa[1]):
+            if float(fi.sa[1]) > 0 and float(cur['SA']) > float(fi.sa[1]):
                 return False
         
         # 10. QScore 필터링 -> float
         if fi.qscore:
             if float(fi.qscore[0]) > 0 and float(cur['QScore']) < float(fi.qscore[0]):
                 return False
-            if float(fi.qscore[1]) > 0 and float(cur['QScore']) < float(fi.qscore[1]):
+            if float(fi.qscore[1]) > 0 and float(cur['QScore']) > float(fi.qscore[1]):
                 return False
             
         # 11. #Ions 필터링 -> int
@@ -885,21 +800,21 @@ class MyApp(QMainWindow):
         if fi.ppmerror:
             if float(fi.ppmerror[0]) > 0 and float(cur['ppmError']) < float(fi.ppmerror[0]):
                 return False
-            if float(fi.ppmerror[1]) and float(cur['ppmError']) < float(fi.ppmerror[1]):
+            if float(fi.ppmerror[1]) and float(cur['ppmError']) > float(fi.ppmerror[1]):
                 return False
             
         # 14. C13 -> float
         if fi.c13:
             if float(fi.c13[0]) > 0 and float(cur['C13']) < float(fi.c13[0]):
                 return False
-            if float(fi.c13[1]) > 0 and float(cur['C13']) < float(fi.c13[1]):
+            if float(fi.c13[1]) > 0 and float(cur['C13']) > float(fi.c13[1]):
                 return False
 
         # 15. expRatio -> float
         if fi.expratio:
             if float(fi.expratio[0]) > 0 and float(cur['ExpRatio']) < float(fi.expratio[0]):
                 return False
-            if float(fi.expratio[1]) > 0 and float(cur['ExpRatio']) < float(fi.expratio[1]):
+            if float(fi.expratio[1]) > 0 and float(cur['ExpRatio']) > float(fi.expratio[1]):
                 return False
         
         # 16. ProSites -> str
@@ -961,13 +876,13 @@ class MyApp(QMainWindow):
         self.spectrum_list.setRowCount(idx)
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
+        self.top_label.setText(str(idx) +' / ' + str(len(self.all_qscore))+ ' spectra')
+
 
     
     def filter_reset(self):
-        if self.filtering_threshold == 0:
-            return
-        
-        self.filter_input.setText('0')
+        self.filter_info.reset_all_values()
+        self.set_items_in_table()
         return
     
 
@@ -1002,9 +917,6 @@ class MyApp(QMainWindow):
             self.result_data = process_data.process_results(self.results)
 
             self.set_items_in_table()
-
-            self.top_label.setText(str(len(self.all_qscore)) +' / ' + str(len(self.all_qscore))+ ' spectrums (QScore threshold: 0')
-
 
             self.frag_tol_input.setText(str(self.frag_tol))
             self.make_summary()
@@ -1100,8 +1012,10 @@ C13 isotope tolerance:
 
                 rowcnt += 1
 
-            self.n_btn.setCheckable(True)
-            self.c_btn.setCheckable(True)
+        self.n_btn.setCheckable(True)
+        self.c_btn.setCheckable(True)
+
+        self.top_label.setText(str(rowcnt) +' / ' + str(rowcnt)+ ' spectra')
 
 
     def make_summary(self):
