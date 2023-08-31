@@ -978,9 +978,7 @@ C13 isotope tolerance:
             cur_file_list = self.result_data[r] # 리스트
             for j in range(len(cur_file_list)):
                 data_item = cur_file_list[j]
-                # mapping
-                # self.data[data_item['File']][int(data_item['Index'])]['seq'] = data_item['Peptide']
-                # self.data[data_item['File']][int(data_item)['Index']]['charge'] = data_item['Charge']
+
                 query_filename = r.split('_deephos')[0] + '.mgf'
                 self.data[query_filename][int(data_item['Index'])]['seq'] = data_item['Peptide']
                 self.data[query_filename][int(data_item['Index'])]['charge'] = data_item['Charge']
@@ -1024,6 +1022,24 @@ C13 isotope tolerance:
                 self.qidx_to_ridx[qidx] = str(j)
 
                 rowcnt += 1
+
+        # colum들의 크기를 조정
+        self.spectrum_list.setColumnWidth(1, 60) # index
+        self.spectrum_list.setColumnWidth(2, 60) # scanno
+        self.spectrum_list.setColumnWidth(4, 80) # pmz
+        self.spectrum_list.setColumnWidth(5, 60) # charge
+        self.spectrum_list.setColumnWidth(6, 280) # peptide
+        self.spectrum_list.setColumnWidth(7, 80) # calcmass
+        self.spectrum_list.setColumnWidth(8, 70) # sa
+        self.spectrum_list.setColumnWidth(9, 70) # QSCORE
+        self.spectrum_list.setColumnWidth(10, 60) # ions
+        self.spectrum_list.setColumnWidth(11, 60) # sig
+        self.spectrum_list.setColumnWidth(12, 70) # ppmerror
+        self.spectrum_list.setColumnWidth(13, 60) # C13
+        self.spectrum_list.setColumnWidth(14, 60) # expratio
+        self.spectrum_list.setColumnWidth(15, 120) # protsites
+
+
 
         self.n_btn.setCheckable(True)
         self.c_btn.setCheckable(True)
