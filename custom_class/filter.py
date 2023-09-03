@@ -84,6 +84,4 @@ class FilterInfo:
         self.sa, self.qscore, self.ions, self.sig,
         self.ppmerror, self.c13, self.expratio, self.protsites] = info
 
-        print('잘 바뀌었나??', self.filename, self.index)
-
         return True

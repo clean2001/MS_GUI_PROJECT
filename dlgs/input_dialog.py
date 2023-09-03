@@ -13,7 +13,7 @@ class ExecuteDeephos(QThread):
         # deephos를 실행해요
         for i in range(len(query_file_list)):
             parameter = './deephos/foo' + str(i) + '.params'
-            print(parameter)
+            # print(parameter)
             os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
             time.sleep(30)
 
@@ -203,7 +203,6 @@ class InputDialog(QDialog):
         reply = QMessageBox().question(self, "Remove", "Are you sure to remove the files below?\n"+files, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         
         if reply == QMessageBox.StandardButton.Yes:
-            print("yes")
             self.query_list.removeItemWidget(self.query_list.takeItem(self.query_list.currentRow()))
     
         
@@ -323,7 +322,6 @@ class InputDialog(QDialog):
         # deephos를 실행해요
         for i in range(len(self.query_file_list)):
             parameter = './deephos/foo' + str(i) + '.params'
-            print(parameter)
             os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
 
         # ed = ExecuteDeephos()
