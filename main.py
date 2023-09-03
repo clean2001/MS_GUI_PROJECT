@@ -30,6 +30,7 @@ import help_functions.process_sequence as process_sequence
 import help_functions.filtering_list as filtering_list
 import control_exception
 import draw_functions.mass_error as mass_error
+from draw_functions import draw_terminal_line
 from dlgs import (input_dialog, filtering_dialog)
 
 from custom_class.filter import FilterInfo
@@ -57,7 +58,7 @@ class MirrorFigureCanvas(FigureCanvas):
         super().__init__(figure = figure)
 
     def mouseDoubleClickEvent(self, event):
-        plt.axis([0, self.myapp.max_peptide_mz, -1, 1])
+        plt.xlim([0, self.myapp.max_peptide_mz])
         self.myapp.graph_x_start, self.myapp.graph_x_end = -1, -1
         self.myapp.canvas.draw()
         return super().mouseDoubleClickEvent(event)
@@ -75,7 +76,7 @@ class MirrorFigureCanvas(FigureCanvas):
         if self.end - self.start <= 5:
             return
         
-        plt.axis([self.start, self.end, -1, 1])
+        plt.xlim([self.start, self.end])
         self.myapp.graph_x_start, self.myapp.graph_x_end = self.start, self.end
         self.myapp.canvas.draw()
     
@@ -117,7 +118,6 @@ class MyApp(QMainWindow):
         self.decoy_lib_file = None
         self.data = dict() # filename : 파싱된 결과(dict) 리스트
         self.filenames = []
-        self.switch_btn = QCheckBox('switch mirror', self)
         self.loc_label = QLabel("") #그래프 내에 현재 마우스 위치 정보 label
         self.max_peptide_mz = 100 # 초기값 100
         self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
@@ -144,9 +144,10 @@ class MyApp(QMainWindow):
         self.mass_error_btn = QCheckBox('mass error', self)
         self.n_btn.setCheckable(False)
         self.c_btn.setCheckable(False)
-        self.mass_error_btn.setCheckable(True)
+        self.mass_error_btn.setCheckable(False)
 
-        self.switch_btn.setCheckable(True)
+        self.switch_btn = QCheckBox('switch mirror', self)
+        self.switch_btn.setCheckable(False)
         self.switch_status = QLabel('top: query / bottom: library')
 
         self.n_btn.toggled.connect(self.n_button)
@@ -155,7 +156,7 @@ class MyApp(QMainWindow):
         self.switch_btn.toggled.connect(self.switch_clicked)
 
         # filtering reset btn
-        self.filter_reset_button = QPushButton('reset', self)
+        self.filter_reset_button = QPushButton('filter reset', self)
         self.filter_reset_button.clicked.connect(self.filter_reset)
 
         # tolerance
@@ -276,8 +277,6 @@ class MyApp(QMainWindow):
     def mass_error_btn_clicked(self):
         # mass_error 그래프 나타내는 함수
         if self.mass_error_btn.isChecked():
-            self.n_btn.setCheckable(False)
-            self.c_btn.setCheckable(False)
             plt.close()
             for i in reversed(range(self.graph_main_layout.count())): 
                 obj = self.graph_main_layout.itemAt(i).widget()
@@ -299,8 +298,22 @@ class MyApp(QMainWindow):
         else:
             query_filename = self.spectrum_list.item(self.cur_row, 0).text()
             self.make_graph(query_filename, self.cur_idx)
-            self.n_btn.setCheckable(True)
-            self.c_btn.setCheckable(True)
+
+        s, e, n, c = 0, 1, 1.0, 1.1
+        if self.mass_error_btn.isChecked():
+            s, e, n, c = 4, 5, -0.8, -0.9
+        if self.n_btn.isChecked(): # 방금 체크 됨
+            self.n_btn.setStyleSheet("background-color: #191970")
+            n_terms = terminal.make_nterm_list(self.current_seq)
+            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+
+
+        if self.c_btn.isChecked():
+            c_terms = terminal.make_cterm_list(self.current_seq)
+            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+
+        self.canvas.draw()
+        
 
     def switch_clicked(self):
         query_filename = self.spectrum_list.item(self.cur_row, 0).text()
@@ -311,101 +324,70 @@ class MyApp(QMainWindow):
             self.switch_status.setText('top: query / bottom: library')
 
         self.make_graph(query_filename, self.cur_idx)
-        return
-    
-    def n_button(self):
+        s, e, n, c = 0, 1, 1.0, 1.1
+        if self.mass_error_btn.isChecked():
+            s, e, n, c = 4, 5, -0.8, -0.9
+
         if self.n_btn.isChecked(): # 방금 체크 됨
             self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
-            for mz in n_terms:
-                self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
-                self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
-            text = process_sequence.process_text(self.top_seq) # 0723
-            for i in range(0, len(n_terms)-1):
-                start = n_terms[i]
-                end = n_terms[i+1]
-                self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
+            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+
+
+        if self.c_btn.isChecked():
+            c_terms = terminal.make_cterm_list(self.current_seq)
+            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+
+            
+        self.canvas.draw() # refresh plot
+    
+    def n_button(self):
+        s, e, n, c = 0, 1, 1.0, 1.1
+        if self.mass_error_btn.isChecked():
+            s, e, n , c = 4, 5, -0.8, -0.9
+
+        if self.n_btn.isChecked(): # 방금 체크 됨
+            self.n_btn.setStyleSheet("background-color: #191970")
+            n_terms = terminal.make_nterm_list(self.current_seq)
+            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
             
             self.canvas.draw() # refresh plot
         else:
             self.n_btn.setStyleSheet("background-color: #1E90FF")
             plt.close()
-            self.fig, self.ax = plt.subplots(figsize=(15, 9))
             
-            if self.switch_btn.isChecked():
-                sup.mirror(self.spectrum_answer, self.spectrum_query, ax=self.ax)
-            else:
-                sup.mirror(self.spectrum_query, self.spectrum_answer, ax=self.ax)
-
-            for i in reversed(range(self.graph_main_layout.count())): 
-                obj = self.graph_main_layout.itemAt(i).widget()
-                if obj is not None:
-                    obj.deleteLater()
-
-            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
-            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(self.canvas)
-            # self.graph_main_layout.addWidget(self.toolbar)
+            query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+            self.make_graph(query_filename, self.cur_idx)
 
             if self.c_btn.isChecked():
                 c_terms = terminal.make_cterm_list(self.current_seq)
-                for mz in c_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
-                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
-                text = process_sequence.process_text(self.top_seq) # 0723
-                text = text[::-1]
-                for i in range(0, len(c_terms)-1):
-                    start = c_terms[i]
-                    end = c_terms[i+1]
-                    self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+                draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
 
             if self.graph_x_start != -1 and self.graph_x_end != -1:
                 plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
 
    
     def c_button(self):
+        s, e, n, c = 0, 1, 1.0, 1.1
+        if self.mass_error_btn.isChecked():
+            s, e, n , c = 4, 5, -0.8, -0.9
+
         if self.c_btn.isChecked():
             self.c_btn.setStyleSheet("background-color: #800000")#CD5C5C
             c_terms = terminal.make_cterm_list(self.current_seq)
-            for mz in c_terms:
-                self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
-                self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
-            text = process_sequence.process_text(self.top_seq) # 0723
-            text = text[::-1]
-            for i in range(0, len(c_terms)-1):
-                start = c_terms[i]
-                end = c_terms[i+1]
-                self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+
         
             self.canvas.draw() # refresh plot
         else:
             self.c_btn.setStyleSheet("background-color: #CD5C5C")
-            plt.close()
-            self.fig, self.ax = plt.subplots(figsize=(15, 9))
-            if self.switch_btn.isChecked():
-                sup.mirror(self.spectrum_answer, self.spectrum_query, ax=self.ax)
-            else:
-                sup.mirror(self.spectrum_query, self.spectrum_answer, ax=self.ax)
-            for i in reversed(range(self.graph_main_layout.count())): 
-                obj = self.graph_main_layout.itemAt(i).widget()
-                if obj is not None:
-                    obj.deleteLater()
 
-            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
-            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
-            self.graph_main_layout.addWidget(self.canvas)
-            # self.graph_main_layout.addWidget(self.toolbar)
+            query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+            self.make_graph(query_filename, self.cur_idx)
 
             if self.n_btn.isChecked():
                 n_terms = terminal.make_nterm_list(self.current_seq)
-                for mz in n_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
-                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
-                text = process_sequence.process_text(self.top_seq) # 0723
-                for i in range(0, len(n_terms)-1):
-                    start = n_terms[i]
-                    end = n_terms[i+1]
-                    self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i],fontsize=10, color='blue')
+                draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
 
             if self.graph_x_start != -1 and self.graph_x_end != -1:
                 plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
@@ -474,17 +456,9 @@ class MyApp(QMainWindow):
                 self.fig = mass_error.mass_error_plot(self.spectrum_query, self.spectrum_answer)
 
             self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
-            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            # self.graph_main_layout.addWidget(self.toolbar)
 
-            if self.switch_btn.isChecked():
-                self.ax.text(0.2, 0.5, 'library', fontsize=8)
-                self.ax.text(0.2, -0.5, 'query', fontsize=8)
-            else:
-                self.ax.text(0.2, 0.5, 'query', fontsize=8)
-                self.ax.text(0.2, -0.5, 'library', fontsize=8)
-
+            
             self.canvas.draw()
             return
         
@@ -495,14 +469,6 @@ class MyApp(QMainWindow):
             sup.mirror(self.spectrum_answer, self.spectrum_query, ax=self.ax)
         else:
             sup.mirror(self.spectrum_query, self.spectrum_answer, ax=self.ax)
-
-        # if self.switch_btn.isChecked():
-        #     self.ax.text(-200, 0.5, 'library', fontsize=8)
-        #     self.ax.text(-200, -0.5, 'query', fontsize=8)
-        # else:
-        #     self.ax.text(-200, 0.5, 'query', fontsize=8)
-        #     self.ax.text(-200, -0.5, 'library', fontsize=8)
-
 
         for i in reversed(range(self.graph_main_layout.count())): 
             obj = self.graph_main_layout.itemAt(i).widget()
@@ -515,6 +481,7 @@ class MyApp(QMainWindow):
         # self.graph_main_layout.addWidget(self.toolbar)
         if self.graph_x_start != -1 and self.graph_x_end != -1:
             plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+        
         self.canvas.draw()
 
         
@@ -633,6 +600,11 @@ class MyApp(QMainWindow):
 
         if self.cur_row >= 0:
             cur_query_file = self.spectrum_list.item(self.cur_row, 0).text()
+            self.n_btn.setCheckable(True)
+            self.c_btn.setCheckable(True)
+            self.mass_error_btn.setCheckable(True)
+            self.switch_btn.setCheckable(True)
+
         else:
             return
         query_filename = self.spectrum_list.item(self.cur_row, 0).text()
@@ -647,30 +619,19 @@ class MyApp(QMainWindow):
                 item.setBackground(QColor(72, 123, 225, 70))
         
             self.make_graph(cur_query_file, self.cur_idx)
+            s, e, n, c = 0, 1, 1.0, 1.1
+            if self.mass_error_btn.isChecked():
+                s, e, n, c = 4, 5, -0.8, -0.9
 
             n_terms = terminal.make_nterm_list(self.current_seq)
             if self.n_btn.isChecked(): # n terminal 표시
-                for mz in n_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='blue', linestyle = ':', alpha = 0.5)
-                    self.ax.plot([mz, mz], [0, -1], color='blue', linestyle = ':', alpha = 0.5)
+                draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
 
-                text = process_sequence.process_text(self.top_seq) # 0723
-                for i in range(0, len(n_terms)-1):
-                    start = n_terms[i]
-                    end = n_terms[i+1]
-                    self.ax.text((start + end)/2 - len(text[i])*7, 1.0, text[i], fontsize=10, color='blue')
 
             if self.c_btn.isChecked(): # c terminal 표시
                 c_terms = terminal.make_cterm_list(self.current_seq)
-                for mz in c_terms:
-                    self.ax.plot([mz, mz], [0, 1], color='red', linestyle = ':', alpha = 0.5)
-                    self.ax.plot([mz, mz], [0, -1], color='red', linestyle = ':', alpha = 0.5)
-                text = process_sequence.process_text(self.top_seq) # 0723
-                text = text[::-1]
-                for i in range(0, len(c_terms)-1):
-                    start = c_terms[i]
-                    end = c_terms[i+1]
-                    self.ax.text((start + end)/2 - len(text[i])*7, 1.1, text[i],fontsize=10, color='red')
+                draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+
                 
             
             self.ax.set_xlim(0, n_terms[-1])
@@ -688,22 +649,22 @@ class MyApp(QMainWindow):
         self.sa_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.sa_ax = self.sa_canvas.figure.subplots()
         self.sa_ax.hist([])
-        self.sa_ax.set_xlabel('SA')
-        self.sa_ax.set_ylabel('# of PSMs')
+        # self.sa_ax.set_xlabel('SA')
+        # self.sa_ax.set_ylabel('# of PSMs')
 
         # QScore
         self.qs_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.qs_ax = self.qs_canvas.figure.subplots()
         self.qs_ax.hist([])
-        self.qs_ax.set_xlabel('QScore')
-        self.qs_ax.set_ylabel('# of PSMs')
+        # self.qs_ax.set_xlabel('QScore')
+        # self.qs_ax.set_ylabel('# of PSMs')
 
         # ppm error
         self.ppm_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.ppm_ax = self.ppm_canvas.figure.subplots()
         self.ppm_ax.boxplot([])
         # self.ppm_ax.set_xlabel('target')
-        self.ppm_ax.set_ylabel('Mass Deviation(ppm)')
+        # self.ppm_ax.set_ylabel('Mass Deviation(ppm)')
 
         # number of charge
         self.charge_canvas = FigureCanvas(Figure(figsize=(4, 3)))
@@ -717,7 +678,7 @@ class MyApp(QMainWindow):
         self.plength_ax = self.plength_canvas.figure.subplots()
         self.plength_ax.hist([])
         self.plength_ax.set_ylabel('# of spectra')
-        self.plength_ax.set_xlabel('peptide length')
+        # self.plength_ax.set_xlabel('peptide length')
 
 
         self.summary_layout.addWidget(self.sa_canvas, 0, 0)
@@ -887,8 +848,6 @@ class MyApp(QMainWindow):
                 idx += 1
         
         self.spectrum_list.setRowCount(idx)
-        self.n_btn.setCheckable(True)
-        self.c_btn.setCheckable(True)
         self.top_label.setText(str(idx) +' / ' + str(len(self.all_qscore))+ ' spectra')
 
 
@@ -978,9 +937,7 @@ C13 isotope tolerance:
             cur_file_list = self.result_data[r] # 리스트
             for j in range(len(cur_file_list)):
                 data_item = cur_file_list[j]
-                # mapping
-                # self.data[data_item['File']][int(data_item['Index'])]['seq'] = data_item['Peptide']
-                # self.data[data_item['File']][int(data_item)['Index']]['charge'] = data_item['Charge']
+
                 query_filename = r.split('_deephos')[0] + '.mgf'
                 self.data[query_filename][int(data_item['Index'])]['seq'] = data_item['Peptide']
                 self.data[query_filename][int(data_item['Index'])]['charge'] = data_item['Charge']
@@ -1025,8 +982,22 @@ C13 isotope tolerance:
 
                 rowcnt += 1
 
-        self.n_btn.setCheckable(True)
-        self.c_btn.setCheckable(True)
+        # colum들의 크기를 조정
+        self.spectrum_list.setColumnWidth(1, 60) # index
+        self.spectrum_list.setColumnWidth(2, 60) # scanno
+        self.spectrum_list.setColumnWidth(4, 80) # pmz
+        self.spectrum_list.setColumnWidth(5, 60) # charge
+        self.spectrum_list.setColumnWidth(6, 280) # peptide
+        self.spectrum_list.setColumnWidth(7, 80) # calcmass
+        self.spectrum_list.setColumnWidth(8, 70) # sa
+        self.spectrum_list.setColumnWidth(9, 70) # QScore
+        self.spectrum_list.setColumnWidth(10, 60) # ions
+        self.spectrum_list.setColumnWidth(11, 60) # sig
+        self.spectrum_list.setColumnWidth(12, 70) # ppmerror
+        self.spectrum_list.setColumnWidth(13, 60) # C13
+        self.spectrum_list.setColumnWidth(14, 60) # expratio
+        self.spectrum_list.setColumnWidth(15, 120) # protsites
+
 
         self.top_label.setText(str(rowcnt) +' / ' + str(rowcnt)+ ' spectra')
 
@@ -1036,7 +1007,7 @@ C13 isotope tolerance:
         self.qs_decoy, self.qs_target = [], []
         self.ppm_list = []
         self.plength = [0 for i in range(61)]
-        self.charge_list = [0 for i in range(5)]
+        self.charge_list = [0 for i in range(4)] # 1, 2, 3, 4
         
         for r in self.results:
             cur_rslts = self.result_data[r]
@@ -1057,9 +1028,9 @@ C13 isotope tolerance:
 
                 
                 if int(cur_item['Charge']) >= 4:
-                    self.charge_list[4] += 1
+                    self.charge_list[3] += 1
                 else:
-                    self.charge_list[int(cur_item['Charge'])] += 1
+                    self.charge_list[int(cur_item['Charge'])-1] += 1
         self.all_qscore.sort()
 
         # summary
@@ -1074,8 +1045,8 @@ C13 isotope tolerance:
         self.ppm_ax.boxplot([self.ppm_list])
         self.ppm_ax.set_title('ppm Error')
 
-        cx = np.arange(5)
-        charge_xticks = [str(i) for i in range(5)]
+        cx = np.arange(4)
+        charge_xticks = [str(i) for i in range(1, 5)]
         charge_xticks[-1] = '4+'
         self.charge_ax.bar(cx, self.charge_list)
         self.charge_ax.set_xticks(cx, charge_xticks)
