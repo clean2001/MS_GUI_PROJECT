@@ -22,6 +22,12 @@ class RunConfigDlg(QDialog):
         self.query_file_list.setMaximumHeight(200)
         file_layout.addWidget(self.query_file_list)
 
+        # library config
+        library_layout = QVBoxLayout()
+        library_layout.addWidget(QLabel('Target lib: ' + str(self.myapp.target_lib_file)))
+        library_layout.addWidget(QLabel('Decoy lib: ' + str(self.myapp.decoy_lib_file)))
+
+
         # peptide tol config
         peptide_tol_layout = QHBoxLayout()
         peptide_tol_layout.addWidget(QLabel('Peptide Tolerance(ppm): ' + str(self.myapp.peptide_tol)))
@@ -35,6 +41,8 @@ class RunConfigDlg(QDialog):
         c13_isotope_tol_layout.addWidget(QLabel('C13 Isotope Tolerance: ' + str(round(self.myapp.c13_isotope_tol_min, 2)) + ', ' + str(round(self.myapp.c13_isotope_tol_max, 2))))
 
         self.outer_layout.addLayout(file_layout)
+        self.outer_layout.addStretch(1)
+        self.outer_layout.addLayout(library_layout)
         self.outer_layout.addStretch(1)
         self.outer_layout.addLayout(peptide_tol_layout)
         self.outer_layout.addStretch(1)

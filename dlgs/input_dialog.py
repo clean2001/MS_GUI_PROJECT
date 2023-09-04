@@ -91,12 +91,10 @@ class InputDialog(QDialog):
         self.isotope_tol_layout = QHBoxLayout()
         self.isotope_tol_layout.addWidget(QLabel("C13 Isotope: "))
 
-        self.isotope_tol_min = QDoubleSpinBox()
-        self.isotope_tol_max = QDoubleSpinBox()
-        self.isotope_tol_min.setSingleStep(0.01)
-        self.isotope_tol_max.setSingleStep(0.01)
-        self.isotope_tol_min.setDecimals(2)
-        self.isotope_tol_max.setDecimals(2)
+        self.isotope_tol_min = QSpinBox()
+        self.isotope_tol_max = QSpinBox()
+        self.isotope_tol_min.setSingleStep(1)
+        self.isotope_tol_max.setSingleStep(1)
         self.isotope_tol_min.setRange(-5, 0)
         self.isotope_tol_max.setRange(0, 5)
         self.isotope_tol_min.setMinimumWidth(70)
@@ -249,8 +247,8 @@ class InputDialog(QDialog):
 
         c13_isotope_tol_min, c13_isotope_tol_max = 0, 0
         try:
-            c13_isotope_tol_min = float(self.isotope_tol_min.value())
-            c13_isotope_tol_max = float(self.isotope_tol_max.value())
+            c13_isotope_tol_min = int(self.isotope_tol_min.value())
+            c13_isotope_tol_max = int(self.isotope_tol_max.value())
             self.isotope_tol_value_min = c13_isotope_tol_min
             self.isotope_tol_value_max = c13_isotope_tol_max
         except:

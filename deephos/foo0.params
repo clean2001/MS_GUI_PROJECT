@@ -14,14 +14,14 @@ DecoyLib= /Users/sejeong/Documents/project/MS_GUI_PROJECT/data/revDecoy_predicte
 
 # PeptTolerance=[VALUE]
 # Sets a precursor mass tolerance in ppm. (Default value is 10)
-PeptTolerance= 5.0
+PeptTolerance= 10
 
 # C13Isotope=[MIN],[MAX]
 # Sets the numbers of C13 (or isotope error) allowed in peptide masses. (Default values are 0,2)
 # 1.00235 Da is used as an isotope spacing
-C13Isotope= -0.2,0.02
+C13Isotope= -3,5
 
 # FragTolerance=[MASS]
 # Sets a fragment ion mass tolerance in dalton. (Default value is 0.02)
-FragTolerance= 0.005
+FragTolerance= 0.02
         

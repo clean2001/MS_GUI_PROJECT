@@ -366,7 +366,7 @@ class MyApp(QMainWindow):
                 draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
 
             if self.graph_x_start != -1 and self.graph_x_end != -1:
-                plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+                plt.xlim(self.graph_x_start, self.graph_x_end)
 
    
     def c_button(self):
@@ -392,7 +392,7 @@ class MyApp(QMainWindow):
                 draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
 
             if self.graph_x_start != -1 and self.graph_x_end != -1:
-                plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+                plt.xlim([self.graph_x_start, self.graph_x_end])
             self.canvas.draw() # refresh plot
 
     def make_graph(self, filename:str, qidx:int):
@@ -482,7 +482,7 @@ class MyApp(QMainWindow):
         self.graph_main_layout.addWidget(self.canvas)
         # self.graph_main_layout.addWidget(self.toolbar)
         if self.graph_x_start != -1 and self.graph_x_end != -1:
-            plt.axis([self.graph_x_start, self.graph_x_end, -1, 1])
+            plt.xlim([self.graph_x_start, self.graph_x_end])
         
         self.canvas.draw()
 
