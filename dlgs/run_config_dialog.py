@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import *
 class RunConfigDlg(QDialog):
     def __init__(self, myapp):
         super().__init__()
-        self.setWindowTitle("Config")
+        self.setWindowTitle("View Config")
         self.resize(400, 400)
         self.myapp = myapp
 
@@ -28,11 +28,11 @@ class RunConfigDlg(QDialog):
 
         # fragment tol config
         fragment_tol_layout = QHBoxLayout()
-        fragment_tol_layout.addWidget(QLabel('Fragment Tolerance(Da): ' + str(self.myapp.frag_tol)))
+        fragment_tol_layout.addWidget(QLabel('Fragment Tolerance(Da): ' + str(round(self.myapp.frag_tol, 2))))
 
         # C13 isotope tol config
         c13_isotope_tol_layout = QHBoxLayout()
-        c13_isotope_tol_layout.addWidget(QLabel('C13 Isotope Tolerance: ' + str(self.myapp.c13_isotope_tol_min) + ', ' + str(self.myapp.c13_isotope_tol_max)))
+        c13_isotope_tol_layout.addWidget(QLabel('C13 Isotope Tolerance: ' + str(round(self.myapp.c13_isotope_tol_min, 2)) + ', ' + str(round(self.myapp.c13_isotope_tol_max, 2))))
 
         self.outer_layout.addLayout(file_layout)
         self.outer_layout.addStretch(1)
