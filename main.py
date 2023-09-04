@@ -148,6 +148,13 @@ class MyApp(QMainWindow):
         self.c_btn.setCheckable(False)
         self.mass_error_btn.setCheckable(False)
 
+        self.peptide_change_text_box = QLineEdit()
+        self.peptide_change_text_box.setMinimumWidth(280)
+        self.peptide_change_btn = QPushButton('apply', self)
+        self.peptide_reset_btn = QPushButton('reset', self)
+        self.peptide_change_btn.clicked.connect(self.peptide_change_clicked)
+        self.peptide_reset_btn.clicked.connect(self.peptide_reset_clicked)
+
         self.switch_btn = QCheckBox('switch mirror', self)
         self.switch_btn.setCheckable(False)
         self.switch_status = QLabel('top: query / bottom: library')
@@ -307,12 +314,12 @@ class MyApp(QMainWindow):
         if self.n_btn.isChecked(): # 방금 체크 됨
             self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
-            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+            draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
 
 
         if self.c_btn.isChecked():
             c_terms = terminal.make_cterm_list(self.current_seq)
-            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+            draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
         self.canvas.draw()
         
@@ -333,12 +340,12 @@ class MyApp(QMainWindow):
         if self.n_btn.isChecked(): # 방금 체크 됨
             self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
-            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+            draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
 
 
         if self.c_btn.isChecked():
             c_terms = terminal.make_cterm_list(self.current_seq)
-            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+            draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
             
         self.canvas.draw() # refresh plot
@@ -351,7 +358,7 @@ class MyApp(QMainWindow):
         if self.n_btn.isChecked(): # 방금 체크 됨
             self.n_btn.setStyleSheet("background-color: #191970")
             n_terms = terminal.make_nterm_list(self.current_seq)
-            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+            draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
             
             self.canvas.draw() # refresh plot
         else:
@@ -363,7 +370,7 @@ class MyApp(QMainWindow):
 
             if self.c_btn.isChecked():
                 c_terms = terminal.make_cterm_list(self.current_seq)
-                draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+                draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
             if self.graph_x_start != -1 and self.graph_x_end != -1:
                 plt.xlim(self.graph_x_start, self.graph_x_end)
@@ -377,7 +384,7 @@ class MyApp(QMainWindow):
         if self.c_btn.isChecked():
             self.c_btn.setStyleSheet("background-color: #800000")#CD5C5C
             c_terms = terminal.make_cterm_list(self.current_seq)
-            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+            draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
         
             self.canvas.draw() # refresh plot
@@ -389,7 +396,7 @@ class MyApp(QMainWindow):
 
             if self.n_btn.isChecked():
                 n_terms = terminal.make_nterm_list(self.current_seq)
-                draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+                draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
 
             if self.graph_x_start != -1 and self.graph_x_end != -1:
                 plt.xlim([self.graph_x_start, self.graph_x_end])
@@ -415,6 +422,7 @@ class MyApp(QMainWindow):
             lib_file = self.decoy_lib_file
 
         self.top_seq = rdict['Peptide'] # Qlabel에 표시
+
         seq = self.top_seq
         seq = process_sequence.brace_modifications(self.top_seq)
         
@@ -487,6 +495,165 @@ class MyApp(QMainWindow):
         self.canvas.draw()
 
         
+    def make_graph_with_top_seq(self, filename:str, qidx:int):
+        ridx = int(self.qidx_to_ridx[filename + '_' + str(qidx)])
+        dict = self.data[filename][qidx]
+        rdict = self.result_data[self.results[0]][ridx]
+
+        # 라이브러리
+        lib, lib_file = None, None # lib is {num_peaks, offset}
+        charge = dict['charge']
+        seq = dict['seq']
+        seq = process_sequence.brace_modifications(seq) # 0723
+        seq = process_sequence.remove_modifications(seq)
+
+        if "TARGET" in rdict['ProtSites']:
+            lib = self.target_lib[str(seq)+'_'+str(charge)]
+            lib_file = self.target_lib_file
+        else:
+            lib = self.decoy_lib[str(seq)+'_'+str(charge)]
+            lib_file = self.decoy_lib_file
+
+        seq = self.top_seq
+        seq = process_sequence.brace_modifications(self.top_seq)
+        
+        self.current_seq = seq #terminal btn을 눌렀을 때 다시 그리기 위해 저장해놓는 것
+        query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+        query_mz, query_intensity = lib_parser.parse_spectrum(query_filename, int(dict['offset']))
+        self.spectrum_query = sus.MsmsSpectrum(
+            dict['title'],
+            float(dict['pepmass']),
+            int(dict['charge']),
+            np.array(list(map(float, query_mz))),
+            np.array(list(map(float, query_intensity)))
+        )
+        self.spectrum_query.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
+
+        # 이부분에서 offset으로 라이브러리를 열어서 mz, intensity를 파싱해서 리턴
+        lib_mz, lib_intensity = lib_parser.parse_lib(lib_file, lib['num_peaks'], lib['offset'])
+        
+        self.spectrum_answer = sus.MsmsSpectrum(
+            dict['title'],
+            float(dict['pepmass']),
+            int(dict['charge']),
+            np.array(list(map(float, lib_mz))),
+            np.array(list(map(float, lib_intensity)))
+        )
+        self.spectrum_answer.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
+        plt.close()
+
+        ## mass error를 그리는 부분
+        if self.mass_error_btn.isChecked():
+            plt.close()
+            for i in reversed(range(self.graph_main_layout.count())): 
+                obj = self.graph_main_layout.itemAt(i).widget()
+                if obj is not None:
+                    obj.deleteLater()
+            self.fig, self.ax = plt.subplots(figsize=(15, 9))
+
+            if self.switch_btn.isChecked():
+                self.fig = mass_error.mass_error_plot(self.spectrum_answer, self.spectrum_query)
+            else:
+                self.fig = mass_error.mass_error_plot(self.spectrum_query, self.spectrum_answer)
+
+            self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+            self.graph_main_layout.addWidget(self.canvas)
+
+            
+            self.canvas.draw()
+            return
+        
+        ##
+
+        self.fig, self.ax = plt.subplots(figsize=(15, 9))
+        if self.switch_btn.isChecked():
+            sup.mirror(self.spectrum_answer, self.spectrum_query, ax=self.ax)
+        else:
+            sup.mirror(self.spectrum_query, self.spectrum_answer, ax=self.ax)
+
+        for i in reversed(range(self.graph_main_layout.count())): 
+            obj = self.graph_main_layout.itemAt(i).widget()
+            if obj is not None:
+                obj.deleteLater()
+
+        self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
+        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+        self.graph_main_layout.addWidget(self.canvas)
+        # self.graph_main_layout.addWidget(self.toolbar)
+        if self.graph_x_start != -1 and self.graph_x_end != -1:
+            plt.xlim([self.graph_x_start, self.graph_x_end])
+        
+        self.canvas.draw()
+
+    def peptide_change_clicked(self):
+        peptide_seq, query_filename = '', ''
+        try:
+            peptide_seq = self.peptide_change_text_box.text()
+            query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+
+            self.make_graph(query_filename, self.cur_idx)
+
+            s, e, n, c = 0, 1, 1.0, 1.1
+            if self.mass_error_btn.isChecked():
+                s, e, n, c = 4, 5, -0.8, -0.9
+
+            n_terms = terminal.make_nterm_list(peptide_seq)
+            if self.n_btn.isChecked(): # n terminal 표시
+                draw_terminal_line.draw_nterm_line(n_terms, peptide_seq, s, e, n)
+
+
+            if self.c_btn.isChecked(): # c terminal 표시
+                c_terms = terminal.make_cterm_list(peptide_seq)
+                draw_terminal_line.draw_cterm_line(c_terms, peptide_seq, s, e, c)
+        except:
+            self.peptide_change_text_box.setText(self.top_seq)
+
+            s, e, n, c = 0, 1, 1.0, 1.1
+            if self.mass_error_btn.isChecked():
+                s, e, n, c = 4, 5, -0.8, -0.9
+
+            n_terms = terminal.make_nterm_list(self.top_seq)
+            if self.n_btn.isChecked(): # n terminal 표시
+                draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
+
+
+            if self.c_btn.isChecked(): # c terminal 표시
+                c_terms = terminal.make_cterm_list(self.top_seq)
+                draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
+
+            return
+        
+        self.current_seq, self.top_seq = peptide_seq, peptide_seq
+
+
+    def peptide_reset_clicked(self):
+        peptide_seq, query_filename = '', ''
+        try:    
+            peptide_seq = self.spectrum_list.item(self.cur_row, 6).text()
+            query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+
+        except:
+            return
+        
+        self.make_graph(query_filename, self.cur_idx)
+
+        s, e, n, c = 0, 1, 1.0, 1.1
+        if self.mass_error_btn.isChecked():
+            s, e, n, c = 4, 5, -0.8, -0.9
+
+        n_terms = terminal.make_nterm_list(peptide_seq)
+        if self.n_btn.isChecked(): # n terminal 표시
+            draw_terminal_line.draw_nterm_line(n_terms, peptide_seq, s, e, n)
+
+
+        if self.c_btn.isChecked(): # c terminal 표시
+            c_terms = terminal.make_cterm_list(peptide_seq)
+            draw_terminal_line.draw_cterm_line(c_terms, peptide_seq, s, e, c)
+        
+        self.top_seq, self.current_seq = peptide_seq, peptide_seq
+        self.peptide_change_text_box.setText(self.top_seq)
+
+
 
     def change_tol(self):
         if control_exception.check_tolerence(self.frag_tol_input.text()):
@@ -508,12 +675,12 @@ class MyApp(QMainWindow):
 
         n_terms = terminal.make_nterm_list(self.current_seq)
         if self.n_btn.isChecked(): # n terminal 표시
-            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+            draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
 
 
         if self.c_btn.isChecked(): # c terminal 표시
             c_terms = terminal.make_cterm_list(self.current_seq)
-            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+            draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
         
 
@@ -552,12 +719,14 @@ class MyApp(QMainWindow):
         
         self.terminal_btn_layout.addWidget(self.n_btn)
         self.terminal_btn_layout.addWidget(self.c_btn)
-        self.terminal_btn_layout.addStretch(25)
-        self.terminal_btn_layout.addWidget(self.loc_label)
-        self.terminal_btn_layout.addStretch(25)
+        self.terminal_btn_layout.addStretch(5)
+        self.terminal_btn_layout.addWidget(self.peptide_change_text_box)
+        self.terminal_btn_layout.addWidget(self.peptide_change_btn)
+        self.terminal_btn_layout.addWidget(self.peptide_reset_btn)
+        self.terminal_btn_layout.addStretch(5)
         self.terminal_btn_layout.addWidget(self.switch_btn)
         self.terminal_btn_layout.addWidget(self.switch_status)
-        self.terminal_btn_layout.addStretch(5)
+        self.terminal_btn_layout.addStretch(4)
         self.terminal_btn_layout.addWidget(self.mass_error_btn)
         self.terminal_btn_layout.addStretch(1)
         self.terminal_btn_layout.addWidget(self.frag_tol_label)
@@ -588,6 +757,7 @@ class MyApp(QMainWindow):
         self.graph_outer_layout.addWidget(self.splitter)
         self.splitter.setSizes([218, 445])
         # sp.setFrameShape(QFrame.Shape.Panel)
+        self.graph_outer_layout.addWidget(self.loc_label)
 
         # 더블클릭하면 home으로 돌아감
 
@@ -642,15 +812,17 @@ class MyApp(QMainWindow):
 
             n_terms = terminal.make_nterm_list(self.current_seq)
             if self.n_btn.isChecked(): # n terminal 표시
-                draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+                draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
 
 
             if self.c_btn.isChecked(): # c terminal 표시
                 c_terms = terminal.make_cterm_list(self.current_seq)
-                draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+                draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
             
             self.ax.set_xlim(0, n_terms[-1])
             self.max_peptide_mz = n_terms[-1]
+
+            self.peptide_change_text_box.setText(self.top_seq)
 
     
     def ui2(self):
