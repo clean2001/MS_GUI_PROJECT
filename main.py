@@ -532,6 +532,44 @@ class MyApp(QMainWindow):
                 draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
             return
+
+    def peptide_change_clicked(self):
+        peptide_seq, query_filename = '', ''
+        try:
+            peptide_seq = self.peptide_change_text_box.text()
+            query_filename = self.spectrum_list.item(self.cur_row, 0).text()
+
+            self.make_graph(query_filename, self.cur_idx)
+
+            s, e, n, c = 0, 1, 1.0, 1.1
+            if self.mass_error_btn.isChecked():
+                s, e, n, c = 4, 5, -0.8, -0.9
+
+            n_terms = terminal.make_nterm_list(peptide_seq)
+            if self.n_btn.isChecked(): # n terminal 표시
+                draw_terminal_line.draw_nterm_line(n_terms, peptide_seq, s, e, n)
+
+
+            if self.c_btn.isChecked(): # c terminal 표시
+                c_terms = terminal.make_cterm_list(peptide_seq)
+                draw_terminal_line.draw_cterm_line(c_terms, peptide_seq, s, e, c)
+        except:
+            self.peptide_change_text_box.setText(self.top_seq)
+
+            s, e, n, c = 0, 1, 1.0, 1.1
+            if self.mass_error_btn.isChecked():
+                s, e, n, c = 4, 5, -0.8, -0.9
+
+            n_terms = terminal.make_nterm_list(self.top_seq)
+            if self.n_btn.isChecked(): # n terminal 표시
+                draw_terminal_line.draw_nterm_line(n_terms, self.top_seq, s, e, n)
+
+
+            if self.c_btn.isChecked(): # c terminal 표시
+                c_terms = terminal.make_cterm_list(self.top_seq)
+                draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
+
+            return
         
         self.current_seq, self.top_seq = peptide_seq, peptide_seq
 
