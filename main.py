@@ -31,7 +31,7 @@ import help_functions.filtering_list as filtering_list
 import control_exception
 import draw_functions.mass_error as mass_error
 from draw_functions import draw_terminal_line
-from dlgs import (input_dialog, filtering_dialog)
+from dlgs import (input_dialog, filtering_dialog, run_config_dialog)
 
 from custom_class.filter import FilterInfo
 
@@ -106,6 +106,7 @@ class MyApp(QMainWindow):
         self.current_seq='A'
         self.top_seq = 'A'
         self.frag_tol = 0.02
+        self.peptide_tol = 10
         self.filtering_threshold = 0
         self.cur_idx = -1
         self.all_qscore = []
@@ -123,6 +124,7 @@ class MyApp(QMainWindow):
         self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
         self.results = []
         self.graph_x_start, self.graph_y_start = -1, -1 ## 그래프의 확대, (x axis 값, -1 -1 이면 기본크기)
+        self.c13_isotope_tol_min, self.c13_isotope_tol_max = 0, 0
 
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
@@ -183,10 +185,10 @@ class MyApp(QMainWindow):
         # openFileAction.triggered.connect(self.openFile)
 
         runAction = QAction(QIcon(cur_path), 'Run', self)
-        runAction.triggered.connect(self.openInputDlg)
+        runAction.triggered.connect(self.open_input_dlg)
         
         configAction = QAction(QIcon(cur_path), 'View Config', self)
-        configAction.triggered.connect(self.openConfigDlg)
+        configAction.triggered.connect(self.open_config_dlg)
 
         docAction = QAction(QIcon(cur_path), 'Document', self)
         docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
@@ -500,6 +502,21 @@ class MyApp(QMainWindow):
         query_filename = self.spectrum_list.item(self.cur_row, 0).text()
         self.make_graph(query_filename, self.cur_idx)
 
+        s, e, n, c = 0, 1, 1.0, 1.1
+        if self.mass_error_btn.isChecked():
+            s, e, n, c = 4, 5, -0.8, -0.9
+
+        n_terms = terminal.make_nterm_list(self.current_seq)
+        if self.n_btn.isChecked(): # n terminal 표시
+            draw_terminal_line.draw_nterm_line(self, n_terms, self.top_seq, s, e, n)
+
+
+        if self.c_btn.isChecked(): # c terminal 표시
+            c_terms = terminal.make_cterm_list(self.current_seq)
+            draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
+
+        
+
 
     def ui1(self):
         self.graph_outer_layout = QVBoxLayout()
@@ -631,8 +648,6 @@ class MyApp(QMainWindow):
             if self.c_btn.isChecked(): # c terminal 표시
                 c_terms = terminal.make_cterm_list(self.current_seq)
                 draw_terminal_line.draw_cterm_line(self, c_terms, self.top_seq, s, e, c)
-
-                
             
             self.ax.set_xlim(0, n_terms[-1])
             self.max_peptide_mz = n_terms[-1]
@@ -823,7 +838,6 @@ class MyApp(QMainWindow):
                 else:
                     match = str(self.result_data[self.results[i]][j]['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
 
-                # item = '%5s %5s %45s %12s %20s %15s %12s %30s ' % (str(self.result_data[i]['Index']), str(self.result_data[i]['ScanNo']), str(self.data[qidx]['title']), str(self.result_data[i]['PMZ']), str(match), 'SA: '+str(self.result_data[i]['SA']), 'charge: '+str(charge), 'seq: '+str(seq))
                 self.spectrum_list.setItem(idx, 0, QTableWidgetItem(self.result_data[self.results[i]][j]['File']))
                 self.spectrum_list.setItem(idx, 1, QTableWidgetItem(self.result_data[self.results[i]][j]['Index']))
                 self.spectrum_list.setItem(idx, 2, QTableWidgetItem(self.result_data[self.results[i]][j]['ScanNo']))
@@ -856,23 +870,25 @@ class MyApp(QMainWindow):
         self.filter_info.reset_all_values()
         self.set_items_in_table()
         return
-    
 
-    def openInputDlg(self):
-        inputDlg = input_dialog.InputDialog()
-        inputDlg.exec()
+    def open_input_dlg(self):
+        input_dlg = input_dialog.InputDialog()
+        input_dlg.exec()
 
         # dialog의 파라미터들을 가져오기
         try:
             # 뭔가 입력이 안된 상태 -> 에러를 띄우지 않고 리턴
-            if not (inputDlg.query_file_list and inputDlg.target_lib_file and inputDlg.decoy_lib_file):
+            if not (input_dlg.query_file_list and input_dlg.target_lib_file and input_dlg.decoy_lib_file):
                 return
             
-            self.filenames = inputDlg.query_file_list # 쿼리 파일들
+            self.filenames = input_dlg.query_file_list # 쿼리 파일들
             self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
-            self.target_lib_file = inputDlg.target_lib_file
-            self.decoy_lib_file = inputDlg.decoy_lib_file
-            self.frag_tol = inputDlg.frag_tol_value
+            self.target_lib_file = input_dlg.target_lib_file
+            self.decoy_lib_file = input_dlg.decoy_lib_file
+            self.frag_tol = input_dlg.frag_tol_value
+            self.peptide_tol = input_dlg.pept_tol_value
+            self.c13_isotope_tol_min = input_dlg.isotope_tol_value_min
+            self.c13_isotope_tol_max = input_dlg.isotope_tol_value_max
         
         except:
             return
@@ -896,15 +912,11 @@ class MyApp(QMainWindow):
         except Exception as e:
             print('[Debug] error is\n', e)
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
-        
-    def openConfigDlg(self):
-        configInfo = f'''
-Files: {self.filenames}
-peptide tolerance:
-fragment tolerance: {self.frag_tol}
-C13 isotope tolerance:
-'''
-        QMessageBox.information(self, 'config', configInfo)
+    
+
+    def open_config_dlg(self):
+        config_dlg = run_config_dialog.RunConfigDlg(self)
+        config_dlg.exec()
 
 
     def filtering_action(self):

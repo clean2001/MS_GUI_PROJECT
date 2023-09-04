@@ -126,7 +126,6 @@ class InputDialog(QDialog):
         self.isotope_tol_layout.addStretch(10)
 
     
-
         # Fragment Tolerance
         self.frag_tol_layout = QHBoxLayout()
         self.frag_tol_layout.addWidget(QLabel("Fragment Tolerance: "))
@@ -175,8 +174,6 @@ class InputDialog(QDialog):
         self.min_down.setMaximumHeight(12)
         self.max_up.setMaximumHeight(12)
         self.max_down.setMaximumHeight(12)
-
-
     
         self.setLayout(self.outer_layout)
 
