@@ -53,26 +53,6 @@ class FilterInfo:
                 _pmz, _charge, _peptide, _calcmass, _sa, _qscore,
                 _ions, _sig, _ppmerror, _c13, _expratio, _prosites]
 
-        # null check는 하지 않아도 된다. -> Null인 항목은 필터링에 들어가지 않음
-
-        # # 정수 체크 (index, scanno, charge, ions, sig)
-        # int_vals = [_index, _scanno, _charge, _ions, _sig]
-        # for v in int_vals:
-        #     if not v:
-        #         continue
-
-        #     if not (self.check_int_values(v[0]) and self.check_int_values(v[1])):
-        #         return False
-
-        # # 실수 체크 (pmz, calcmass, sa, qscore, ppmerror, c13, expratio)
-        # float_vals = [_pmz, _calcmass, _sa, _qscore, _ppmerror, _c13, _expratio]
-        # for v in float_vals:
-        #     if not v:
-        #         continue
-
-        #     if not (self.check_float_values(v[0]) and self.check_float_values(v[1])):
-        #         return False
-
         # 모든 테스트 통과. 적용
         info = [_filename, _index, _scanno, _title,
                 _pmz, _charge, _peptide, _calcmass, _sa, _qscore,
@@ -82,7 +62,5 @@ class FilterInfo:
          self.pmz, self.charge, self.peptide, self.calcmass,
          self.sa, self.qscore, self.ions, self.sig,
          self.ppmerror, self.c13, self.expratio, self.protsites] = info
-
-        print('잘 바뀌었나??', self.filename, self.index)
 
         return True

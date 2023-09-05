@@ -13,7 +13,7 @@ class ExecuteDeephos(QThread):
         # deephos를 실행해요
         for i in range(len(query_file_list)):
             parameter = './deephos/foo' + str(i) + '.params'
-            print(parameter)
+            # print(parameter)
             os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
             time.sleep(30)
 
@@ -91,42 +91,26 @@ class InputDialog(QDialog):
         self.isotope_tol_layout = QHBoxLayout()
         self.isotope_tol_layout.addWidget(QLabel("C13 Isotope: "))
 
-        self.isotope_tol_min = QLineEdit()
-        self.isotope_tol_max = QLineEdit()
-        self.isotope_tol_min.setText("0")
-        self.isotope_tol_max.setText("0")
-        self.isotope_tol_max.setReadOnly(True)
-        self.isotope_tol_min.setReadOnly(True)
+        self.isotope_tol_min = QSpinBox()
+        self.isotope_tol_max = QSpinBox()
+        self.isotope_tol_min.setSingleStep(1)
+        self.isotope_tol_max.setSingleStep(1)
+        self.isotope_tol_min.setRange(-5, 0)
+        self.isotope_tol_max.setRange(0, 5)
+        self.isotope_tol_min.setMinimumWidth(70)
+        self.isotope_tol_max.setMinimumWidth(70)
 
-        self.isotope_min_btn_layout = QVBoxLayout()
-        self.isotope_max_btn_layout = QVBoxLayout()
-        self.min_up = QPushButton("△")
-        self.min_down = QPushButton("▽")
-        self.max_up = QPushButton("△")
-        self.max_down = QPushButton("▽")
 
-        # 클릭 이벤트 연결
-        self.min_up.clicked.connect(self.min_up_clicked)
-        self.min_down.clicked.connect(self.min_down_clicked)
-        self.max_up.clicked.connect(self.max_up_clicked)
-        self.max_down.clicked.connect(self.max_down_clicked)
 
-        self.isotope_min_btn_layout.addWidget(self.min_up)
-        self.isotope_min_btn_layout.addWidget(self.min_down)
 
-        self.isotope_max_btn_layout.addWidget(self.max_up)
-        self.isotope_max_btn_layout.addWidget(self.max_down)
         self.isotope_tol_layout.addWidget(QLabel("min: (-5~0)"))
         self.isotope_tol_layout.addWidget(self.isotope_tol_min)
-        self.isotope_tol_layout.addLayout(self.isotope_min_btn_layout)
         self.isotope_tol_layout.addStretch(1)
         self.isotope_tol_layout.addWidget(QLabel("max: (0~5)"))
         self.isotope_tol_layout.addWidget(self.isotope_tol_max)
-        self.isotope_tol_layout.addLayout(self.isotope_max_btn_layout)
-        self.isotope_tol_layout.addStretch(10)
+        self.isotope_tol_layout.addStretch(8)
 
     
-
         # Fragment Tolerance
         self.frag_tol_layout = QHBoxLayout()
         self.frag_tol_layout.addWidget(QLabel("Fragment Tolerance: "))
@@ -166,17 +150,6 @@ class InputDialog(QDialog):
         # 크기 조정
         self.isotope_tol_min.setMaximumWidth(50)
         self.isotope_tol_max.setMaximumWidth(50)
-
-        self.min_up.setMaximumWidth(20)
-        self.min_down.setMaximumWidth(20)
-        self.max_up.setMaximumWidth(20)
-        self.max_down.setMaximumWidth(20)
-        self.min_up.setMaximumHeight(12)
-        self.min_down.setMaximumHeight(12)
-        self.max_up.setMaximumHeight(12)
-        self.max_down.setMaximumHeight(12)
-
-
     
         self.setLayout(self.outer_layout)
 
@@ -203,7 +176,6 @@ class InputDialog(QDialog):
         reply = QMessageBox().question(self, "Remove", "Are you sure to remove the files below?\n"+files, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         
         if reply == QMessageBox.StandardButton.Yes:
-            print("yes")
             self.query_list.removeItemWidget(self.query_list.takeItem(self.query_list.currentRow()))
     
         
@@ -233,41 +205,6 @@ class InputDialog(QDialog):
             if len(filenames):
                 self.decoy_lib_title.setText(filenames[0])
                 self.decoy_lib_file = filenames[0]
-
-
-    def min_up_clicked(self) -> None:
-        min_val = float(self.isotope_tol_min.text())
-        min_val += 0.5
-        if min_val < -5 or min_val > 0:
-            return
-        self.isotope_tol_min.setText(str(min_val))
-        self.isotope_tol_value_min = min_val
-
-    def max_up_clicked(self) -> None:
-        max_val = float(self.isotope_tol_max.text())
-        max_val += 0.5
-        if max_val > 5 or max_val < 0:
-            return
-        self.isotope_tol_max.setText(str(max_val))
-        self.isotope_tol_value_max = max_val
-
-
-    def min_down_clicked(self) -> None:
-        min_val = float(self.isotope_tol_min.text())
-        min_val -= 0.5
-        if min_val < -5 or min_val > 0:
-            return
-        self.isotope_tol_min.setText(str(min_val))
-        self.isotope_tol_value_min = min_val
-
-    
-    def max_down_clicked(self) -> None:
-        max_val = float(self.isotope_tol_max.text())
-        max_val -= 0.5
-        if max_val > 5 or max_val < 0:
-            return
-        self.isotope_tol_max.setText(str(max_val))
-        self.isotope_tol_value_max = max_val
 
 
     def return_infomations(self):
@@ -308,6 +245,17 @@ class InputDialog(QDialog):
         except:
             frag_tol = 0.02
 
+        c13_isotope_tol_min, c13_isotope_tol_max = 0, 0
+        try:
+            c13_isotope_tol_min = int(self.isotope_tol_min.value())
+            c13_isotope_tol_max = int(self.isotope_tol_max.value())
+            self.isotope_tol_value_min = c13_isotope_tol_min
+            self.isotope_tol_value_max = c13_isotope_tol_max
+        except:
+            c13_isotope_tol_min, c13_isotope_tol_max = 0, 0
+
+
+
 
         # Deephos
         # 파라미터 파일을 만들어요
@@ -323,7 +271,6 @@ class InputDialog(QDialog):
         # deephos를 실행해요
         for i in range(len(self.query_file_list)):
             parameter = './deephos/foo' + str(i) + '.params'
-            print(parameter)
             os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
 
         # ed = ExecuteDeephos()
