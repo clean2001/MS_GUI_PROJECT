@@ -42,9 +42,6 @@ class FilterDialog(QDialog):
 
         form_layout = QFormLayout()
 
-        def clear_event(input):
-            input.clear()
-
         for feature, dtype in features:
             label = QLabel(feature)
             input_widget = None
@@ -69,7 +66,6 @@ class FilterDialog(QDialog):
                 max_input = QSpinBox()
                 max_input.setSingleStep(1)
                 max_input.setRange(0, 5000000)  # 범위 수정함
-                # max_input.setSpecialValueText("")
                 max_input.clear()
                 max_input.setLineEdit(QLineEdit())  # 입력 필드 설정
                 max_input.lineEdit().setPlaceholderText("Max")
@@ -78,8 +74,7 @@ class FilterDialog(QDialog):
                 input_widget = (min_input, range_label, max_input)
                 min_input.setFixedSize(70, 25)  # spinbox 사이즈 설정
                 max_input.setFixedSize(70, 25)
-                # min_input.setSpecialValueText("")
-                # max_input.setSpecialValueText("")
+
                 self.filters[feature] = (min_input, max_input)
                 # 기존 값 적용
                 if cur_info[feature]:
@@ -93,7 +88,6 @@ class FilterDialog(QDialog):
                 min_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
                 min_input.setRange(-100, 5000000)  # 범위 수정함
                 min_input.setDecimals(5)
-                # min_input.setSpecialValueText("Min")
                 min_input.clear()
                 min_input.setLineEdit(QLineEdit())  # 입력 필드 설정
                 min_input.lineEdit().setPlaceholderText("Min")
@@ -102,7 +96,6 @@ class FilterDialog(QDialog):
                 max_input.setSingleStep(0.01)
                 max_input.setRange(-100, 5000000)  # 범위 수정함
                 max_input.setDecimals(5)
-                # max_input.setSpecialValueText("Max")
                 max_input.clear()
                 max_input.setLineEdit(QLineEdit())  # 입력 필드 설정
                 max_input.lineEdit().setPlaceholderText("Max")
@@ -111,8 +104,7 @@ class FilterDialog(QDialog):
                 input_widget = (min_input, range_label, max_input)
                 min_input.setFixedSize(70, 25)
                 max_input.setFixedSize(70, 25)
-                # min_input.setSpecialValueText("")
-                # max_input.setSpecialValueText("")
+
                 # 기존 값 적용
                 if cur_info[feature]:
                     min_input.setValue(float(cur_info[feature][0]))
