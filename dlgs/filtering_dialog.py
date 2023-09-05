@@ -78,8 +78,10 @@ class FilterDialog(QDialog):
                 self.filters[feature] = (min_input, max_input)
                 # 기존 값 적용
                 if cur_info[feature]:
-                    min_input.setValue(int(cur_info[feature][0]))
-                    max_input.setValue(int(cur_info[feature][1]))
+                    if cur_info[feature][0]:
+                        min_input.setValue(int(cur_info[feature][0]))
+                    if cur_info[feature][1]:
+                        max_input.setValue(int(cur_info[feature][1]))
                 # print(self.filters[feature])
 
             # float input창
@@ -107,8 +109,10 @@ class FilterDialog(QDialog):
 
                 # 기존 값 적용
                 if cur_info[feature]:
-                    min_input.setValue(float(cur_info[feature][0]))
-                    max_input.setValue(float(cur_info[feature][1]))
+                    if cur_info[feature][0]:
+                        min_input.setValue(float(cur_info[feature][0]))
+                    if cur_info[feature][1]:
+                        max_input.setValue(float(cur_info[feature][1]))
                 self.filters[feature] = (min_input, max_input)
 
             if isinstance(input_widget, tuple):  # 범위형 input (int, float)
