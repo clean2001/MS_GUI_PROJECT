@@ -128,7 +128,8 @@ def _annotate_ion(
             ax.text(mz, y, annot_fmt(annotation), **kws)
         # 특정 이온의 m/z값을 회색 텍스트로 표시
         if ion_type != "?":
-            ax.text(mz, y, str(round(mz, 3)), fontsize=7, color="#A9A9A9", alpha=0.5)
+            ax.text(mz, y, str(round(mz, 3)), fontsize=7,
+                    color="#A9A9A9", alpha=0.5)
     return color, zorder
 
 
@@ -339,6 +340,7 @@ def mass_errors(
     dot_colors = []
     mz_deltas = []
     mz_delta_units = []
+
     for ann in annotations:
         # Use the first annotation in case there are multiple options.
         ion_type = ann[0].ion_type[0] if ann is not None else None

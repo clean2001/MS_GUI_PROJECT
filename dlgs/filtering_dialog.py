@@ -58,16 +58,23 @@ class FilterDialog(QDialog):
             elif dtype == int:
                 min_input = QSpinBox()
                 min_input.setSingleStep(1)  # 1씩 증가/감소하도록 설정
-                min_input.setRange(-100, 5000000)  # 범위 수정함
+                min_input.setRange(0, 5000000)  # 범위 수정함
+                min_input.clear()
+                min_input.setLineEdit(QLineEdit())  # 입력 필드 설정
+                min_input.lineEdit().setPlaceholderText("Min")  # 플레이스홀더 설정
+
                 max_input = QSpinBox()
                 max_input.setSingleStep(1)
-                max_input.setRange(-100, 5000000) # 범위 수정함
+                max_input.setRange(0, 5000000)  # 범위 수정함
+                max_input.clear()
+                max_input.setLineEdit(QLineEdit())  # 입력 필드 설정
+                max_input.lineEdit().setPlaceholderText("Max")
+
                 range_label = QLabel("~")
                 input_widget = (min_input, range_label, max_input)
                 min_input.setFixedSize(70, 25)  # spinbox 사이즈 설정
                 max_input.setFixedSize(70, 25)
-                min_input.setSpecialValueText("")
-                max_input.setSpecialValueText("")  # 빈 칸으로 표시되도록 설정
+
                 self.filters[feature] = (min_input, max_input)
                 # 기존 값 적용
                 if cur_info[feature]:
@@ -79,16 +86,25 @@ class FilterDialog(QDialog):
             else:
                 min_input = QDoubleSpinBox()
                 min_input.setSingleStep(0.01)   # 0.01씩 증가/감소하도록
-                min_input.setDecimals(4)
+                min_input.setRange(-100, 5000000)  # 범위 수정함
+                min_input.setDecimals(5)
+                min_input.clear()
+                min_input.setLineEdit(QLineEdit())  # 입력 필드 설정
+                min_input.lineEdit().setPlaceholderText("Min")
+
                 max_input = QDoubleSpinBox()
                 max_input.setSingleStep(0.01)
-                max_input.setDecimals(4)
+                max_input.setRange(-100, 5000000)  # 범위 수정함
+                max_input.setDecimals(5)
+                max_input.clear()
+                max_input.setLineEdit(QLineEdit())  # 입력 필드 설정
+                max_input.lineEdit().setPlaceholderText("Max")
+
                 range_label = QLabel("~")
                 input_widget = (min_input, range_label, max_input)
                 min_input.setFixedSize(70, 25)
                 max_input.setFixedSize(70, 25)
-                min_input.setSpecialValueText("")
-                max_input.setSpecialValueText("")
+
                 # 기존 값 적용
                 if cur_info[feature]:
                     min_input.setValue(float(cur_info[feature][0]))
@@ -118,8 +134,6 @@ class FilterDialog(QDialog):
         self.layout.addLayout(apply_layout)
 
         self.setLayout(self.layout)
-
-
 
     def apply_filters(self):
         applied_filters = {}
@@ -157,26 +171,25 @@ class FilterDialog(QDialog):
         if changes_made:
             # print("Applied Filters:", applied_filters)
             a = [applied_filters['Filename'],
-             list(applied_filters['Index']),
-             list(applied_filters['ScanNo']),
-             applied_filters['Title'],
-             list(applied_filters['PMZ']),
-             list(applied_filters['Charge']),
-             applied_filters['Peptide'],
-             list(applied_filters['CalcMass']),
-             list(applied_filters['SA']),
-             list(applied_filters['QScore']),
-             list(applied_filters['#Ions']),
-             list(applied_filters['#Sig']),
-             list(applied_filters['ppmError']),
-             list(applied_filters['C13']),
-             list(applied_filters['ExpRatio']),
-             applied_filters['Prosites']
-             ]
-            
+                 list(applied_filters['Index']),
+                 list(applied_filters['ScanNo']),
+                 applied_filters['Title'],
+                 list(applied_filters['PMZ']),
+                 list(applied_filters['Charge']),
+                 applied_filters['Peptide'],
+                 list(applied_filters['CalcMass']),
+                 list(applied_filters['SA']),
+                 list(applied_filters['QScore']),
+                 list(applied_filters['#Ions']),
+                 list(applied_filters['#Sig']),
+                 list(applied_filters['ppmError']),
+                 list(applied_filters['C13']),
+                 list(applied_filters['ExpRatio']),
+                 applied_filters['Prosites']
+                 ]
 
-
-            rslt = self.filter_info.setFilterInfo(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15]) # args -> 16개
+            rslt = self.filter_info.setFilterInfo(
+                a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15])  # args -> 16개
 
 
         self.accept()
