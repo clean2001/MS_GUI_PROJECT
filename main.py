@@ -576,9 +576,7 @@ class MyApp(QMainWindow):
                 draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
             plt.xlim(0, n_terms[-1])
-            QMessageBox.warning(self,'Error','Invalid Peptide Sequence😵‍💫')
-
-
+            # QMessageBox.warning(self,'Error','Invalid Peptide Sequence😵‍💫')
             return
         
 
