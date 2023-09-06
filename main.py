@@ -242,8 +242,8 @@ class MyApp(QMainWindow):
             style = f.read()
         app.setStyleSheet(style)
 
-    def Warning_event(self) :
-        QMessageBox.warning(self,'Invalid value!','Invalid Value!😵‍💫')
+    def Warning_event(self, warning_msg) :
+        QMessageBox.warning(self,'Erorr!',warning_msg)
 
     def initUI(self):
         left_layout = QHBoxLayout()
@@ -421,7 +421,6 @@ class MyApp(QMainWindow):
             lib = self.decoy_lib[str(seq)+'_'+str(charge)]
             lib_file = self.decoy_lib_file
 
-        self.top_seq = rdict['Peptide'] # Qlabel에 표시
 
         seq = self.top_seq
         seq = process_sequence.brace_modifications(self.top_seq)
@@ -511,11 +510,12 @@ class MyApp(QMainWindow):
             if self.n_btn.isChecked(): # n terminal 표시
                 draw_terminal_line.draw_nterm_line(n_terms, peptide_seq, s, e, n)
 
-
             if self.c_btn.isChecked(): # c terminal 표시
                 c_terms = terminal.make_cterm_list(peptide_seq)
                 draw_terminal_line.draw_cterm_line(c_terms, peptide_seq, s, e, c)
+
         except:
+            
             self.peptide_change_text_box.setText(self.top_seq)
 
             s, e, n, c = 0, 1, 1.0, 1.1
@@ -533,12 +533,14 @@ class MyApp(QMainWindow):
 
             return
 
+
     def peptide_change_clicked(self):
         peptide_seq, query_filename = '', ''
         try:
             peptide_seq = self.peptide_change_text_box.text()
             query_filename = self.spectrum_list.item(self.cur_row, 0).text()
 
+            self.current_seq, self.top_seq = peptide_seq, peptide_seq # make_graph 내부를 고치면서 수정한 부분
             self.make_graph(query_filename, self.cur_idx)
 
             s, e, n, c = 0, 1, 1.0, 1.1
@@ -554,7 +556,11 @@ class MyApp(QMainWindow):
                 c_terms = terminal.make_cterm_list(peptide_seq)
                 draw_terminal_line.draw_cterm_line(c_terms, peptide_seq, s, e, c)
         except:
+
+            # 유효하지 않은 펩타이드
+            self.top_seq = self.spectrum_list.item(self.cur_row, 6).text() # make_graph 내부를 고치면서 수정한 부분
             self.peptide_change_text_box.setText(self.top_seq)
+            self.make_graph(query_filename, self.cur_idx)
 
             s, e, n, c = 0, 1, 1.0, 1.1
             if self.mass_error_btn.isChecked():
@@ -569,9 +575,12 @@ class MyApp(QMainWindow):
                 c_terms = terminal.make_cterm_list(self.top_seq)
                 draw_terminal_line.draw_cterm_line(c_terms, self.top_seq, s, e, c)
 
+            plt.xlim(0, n_terms[-1])
+            QMessageBox.warning(self,'Error','Invalid Peptide Sequence😵‍💫')
+
+
             return
         
-        self.current_seq, self.top_seq = peptide_seq, peptide_seq
 
 
     def peptide_reset_clicked(self):
@@ -583,6 +592,7 @@ class MyApp(QMainWindow):
         except:
             return
         
+        self.top_seq = self.spectrum_list.item(self.cur_row, 6).text() # make_graph 내부를 고치면서 수정한 부분
         self.make_graph(query_filename, self.cur_idx)
 
         s, e, n, c = 0, 1, 1.0, 1.1
@@ -608,7 +618,7 @@ class MyApp(QMainWindow):
             tolerance = float(self.frag_tol_input.text())
         else:
             self.frag_tol_input.setText(str(self.frag_tol))
-            self.Warning_event()
+            self.Warning_event('Invalid Value!😵‍💫')
             return
         if self.frag_tol == tolerance:
             return
@@ -752,7 +762,8 @@ class MyApp(QMainWindow):
             for i in range(0, 16):
                 item = self.spectrum_list.item(int(self.spectrum_list.currentRow()), i)
                 item.setBackground(QColor(72, 123, 225, 70))
-        
+
+            self.top_seq = self.spectrum_list.item(self.cur_row, 6).text()
             self.make_graph(cur_query_file, self.cur_idx)
             s, e, n, c = 0, 1, 1.0, 1.1
             if self.mass_error_btn.isChecked():

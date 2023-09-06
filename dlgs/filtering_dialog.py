@@ -82,7 +82,6 @@ class FilterDialog(QDialog):
                         min_input.setValue(int(cur_info[feature][0]))
                     if cur_info[feature][1]:
                         max_input.setValue(int(cur_info[feature][1]))
-                # print(self.filters[feature])
 
             # float input창
             else:

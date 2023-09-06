@@ -100,9 +100,6 @@ class InputDialog(QDialog):
         self.isotope_tol_min.setMinimumWidth(70)
         self.isotope_tol_max.setMinimumWidth(70)
 
-
-
-
         self.isotope_tol_layout.addWidget(QLabel("min: (-5~0)"))
         self.isotope_tol_layout.addWidget(self.isotope_tol_min)
         self.isotope_tol_layout.addStretch(1)
@@ -165,6 +162,7 @@ class InputDialog(QDialog):
             if f.split('.')[1] != 'mgf':
                 continue
             self.query_list.addItem(f)
+
     
 
     def removeQuery(self):
