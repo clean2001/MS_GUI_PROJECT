@@ -1,6 +1,7 @@
 import functools
 import itertools
 import math
+import re
 from typing import (
     Any,
     Callable,
@@ -341,14 +342,24 @@ def mass_errors(
     mz_deltas = []
     mz_delta_units = []
 
-    for ann in annotations:
+    max_intensity_by_ion = {}
+
+    for i, ann in enumerate(annotations):
         # Use the first annotation in case there are multiple options.
-        ion_type = ann[0].ion_type[0] if ann is not None else None
-        is_known_ion = ion_type is not None and ion_type != "?"
+        ion_type = ann[0].ion_type if ann is not None else None
+        ion_type_without_numbers = re.sub(r'\d+', '', ion_type)
+        is_known_ion = ion_type_without_numbers is not None and ion_type_without_numbers != "?"
         known_ions.append(is_known_ion)
-        dot_colors.append(colors.get(ion_type if color_ions else None))
+        dot_colors.append(colors.get(
+            ion_type_without_numbers if color_ions else None))
         mz_deltas.append(ann[0].mz_delta[0] if is_known_ion else 0.0)
         mz_delta_units.append(ann[0].mz_delta[1] if is_known_ion else None)
+
+        # 이부분에서 intensity를 가져와서 최대값인지 확인합니다.
+        intensity = spec.intensity[i] if i < len(spec.intensity) else 0.0
+        if is_known_ion:
+            if ion_type not in max_intensity_by_ion or intensity > max_intensity_by_ion[ion_type]:
+                max_intensity_by_ion[ion_type] = intensity
 
     dot_colors = np.array(dot_colors)
     mz_deltas = np.array(mz_deltas)
@@ -377,14 +388,27 @@ def mass_errors(
     ax.set_xlim(*_get_xlim(spec))
     ax.set_ylabel(f"Mass error ({unit or annotation_unit})")
 
-    ax.scatter(
-        spec.mz[mask],
-        mz_deltas[mask],
-        s=intensity_scaled[mask],
-        c=dot_colors[mask],
-        alpha=0.5,
-        edgecolors="none",
-    )
+    # 최대 intensity를 고려하여 적절한 이온만 플롯합니다.
+    for i, mz_delta in enumerate(mz_deltas):
+        if mask[i]:
+            ion_type = annotations[i][0].ion_type
+            if ion_type in max_intensity_by_ion and spec.intensity[i] == max_intensity_by_ion[ion_type]:
+                ax.scatter(
+                    spec.mz[i],
+                    mz_delta,
+                    s=intensity_scaled[i],
+                    c=dot_colors[i],
+                    alpha=0.5,
+                    edgecolors="none",
+                )
+    # ax.scatter(
+    #     spec.mz[mask],
+    #     mz_deltas[mask],
+    #     s=intensity_scaled[mask],
+    #     c=dot_colors[mask],
+    #     alpha=0.5,
+    #     edgecolors="none",
+    # )
 
     return ax
 
