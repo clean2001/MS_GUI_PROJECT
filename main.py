@@ -154,6 +154,9 @@ class MyApp(QMainWindow):
         self.peptide_reset_btn = QPushButton('reset', self)
         self.peptide_change_btn.clicked.connect(self.peptide_change_clicked)
         self.peptide_reset_btn.clicked.connect(self.peptide_reset_clicked)
+        self.peptide_change_btn.setCheckable(False)
+        self.peptide_change_btn.setCheckable(False)
+
 
         self.switch_btn = QCheckBox('switch mirror', self)
         self.switch_btn.setCheckable(False)
@@ -274,7 +277,6 @@ class MyApp(QMainWindow):
 
         self.n_btn.setMaximumWidth(50)
         self.c_btn.setMaximumWidth(50)
-
 
 
     def button1(self):
@@ -807,8 +809,6 @@ class MyApp(QMainWindow):
         self.ppm_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.ppm_ax = self.ppm_canvas.figure.subplots()
         self.ppm_ax.boxplot([])
-        # self.ppm_ax.set_xlabel('target')
-        # self.ppm_ax.set_ylabel('Mass Deviation(ppm)')
 
         # number of charge
         self.charge_canvas = FigureCanvas(Figure(figsize=(4, 3)))
@@ -830,8 +830,6 @@ class MyApp(QMainWindow):
         self.summary_layout.addWidget(self.ppm_canvas, 0, 2)
         self.summary_layout.addWidget(self.charge_canvas, 1, 0)
         self.summary_layout.addWidget(self.plength_canvas, 1, 1)
-
-
 
         main.setLayout(self.summary_layout)
         return main
@@ -1126,7 +1124,7 @@ class MyApp(QMainWindow):
         # colum들의 크기를 조정
         self.spectrum_list.setColumnWidth(1, 60) # index
         self.spectrum_list.setColumnWidth(2, 60) # scanno
-        self.spectrum_list.setColumnWidth(4, 80) # pmz
+        self.spectrum_list.setColumnWidth(4, 80) # pmzㄴ
         self.spectrum_list.setColumnWidth(5, 60) # charge
         self.spectrum_list.setColumnWidth(6, 280) # peptide
         self.spectrum_list.setColumnWidth(7, 80) # calcmass
@@ -1141,14 +1139,59 @@ class MyApp(QMainWindow):
 
 
         self.top_label.setText(str(rowcnt) +' / ' + str(rowcnt)+ ' spectra')
+        self.peptide_change_btn.setCheckable(True)
+        self.peptide_change_btn.setCheckable(True)
+
 
 
     def make_summary(self):
         self.sa_decoy, self.sa_target = [], []
         self.qs_decoy, self.qs_target = [], []
-        self.ppm_list = []
+        self.ppm_decoy_list, self.ppm_target_list = [], []
         self.plength = [0 for i in range(61)]
         self.charge_list = [0 for i in range(4)] # 1, 2, 3, 4
+
+        for i in reversed(range(self.summary_layout.count())): 
+                obj = self.summary_layout.itemAt(i).widget()
+                if obj is not None:
+                    obj.deleteLater()
+        
+        # SA
+        self.sa_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.sa_ax = self.sa_canvas.figure.subplots()
+        self.sa_ax.hist([])
+        # self.sa_ax.set_xlabel('SA')
+        # self.sa_ax.set_ylabel('# of PSMs')
+
+        # QScore
+        self.qs_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.qs_ax = self.qs_canvas.figure.subplots()
+        self.qs_ax.hist([])
+
+        # ppm error
+        self.ppm_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.ppm_ax = self.ppm_canvas.figure.subplots()
+        self.ppm_ax.boxplot([])
+
+        # number of charge
+        self.charge_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.charge_ax = self.charge_canvas.figure.subplots()
+        self.charge_ax.hist([])
+        self.charge_ax.set_ylabel('# of charge')
+
+
+        # peptide length
+        self.plength_canvas = FigureCanvas(Figure(figsize=(4, 3)))
+        self.plength_ax = self.plength_canvas.figure.subplots()
+        self.plength_ax.hist([])
+        self.plength_ax.set_ylabel('# of spectra')
+
+
+        self.summary_layout.addWidget(self.sa_canvas, 0, 0)
+        self.summary_layout.addWidget(self.qs_canvas, 0, 1)
+        self.summary_layout.addWidget(self.ppm_canvas, 0, 2)
+        self.summary_layout.addWidget(self.charge_canvas, 1, 0)
+        self.summary_layout.addWidget(self.plength_canvas, 1, 1)
         
         for r in self.results:
             cur_rslts = self.result_data[r]
@@ -1156,11 +1199,13 @@ class MyApp(QMainWindow):
                 if "TARGET" in cur_item['ProtSites']:
                     self.sa_target.append(float(cur_item['SA']))
                     self.qs_target.append(float(cur_item['QScore']))
+                    self.ppm_target_list.append(float(cur_item['ppmError']))
+
                 else:
                     self.sa_decoy.append(float(cur_item['SA']))
                     self.qs_decoy.append(float(cur_item['QScore']))
+                    self.ppm_decoy_list.append(float(cur_item['ppmError']))
 
-                self.ppm_list.append(float(cur_item['ppmError']))
                 self.all_qscore.append(float(cur_item['QScore']))
                 if len(cur_item['Peptide']) >= 60:
                     self.plength[60] += 1
@@ -1175,15 +1220,18 @@ class MyApp(QMainWindow):
         self.all_qscore.sort()
 
         # summary
-        self.sa_ax.hist(self.sa_target, bins = 100, color='#3669CF')
-        self.sa_ax.hist(self.sa_decoy, bins = 100, color='#FF9595')
+
+        self.qs_ax.hist(self.sa_target, bins = 100, color='#3669CF')
+        self.qs_ax.hist(self.sa_decoy, bins = 100, color='#FF9595')
         self.sa_ax.set_title('SA')
 
         self.qs_ax.hist(self.qs_target, bins = 100, color='#3669CF')
         self.qs_ax.hist(self.qs_decoy, bins = 100, color='#FF9595')
         self.qs_ax.set_title('QScore')
 
-        self.ppm_ax.boxplot([self.ppm_list])
+        self.ppm_ax.boxplot([self.ppm_target_list, self.ppm_decoy_list])
+        ppm_error_labels = ['target', 'decoy']
+        self.ppm_ax.set_xticks(np.array([1, 2]), ppm_error_labels)
         self.ppm_ax.set_title('ppm Error')
 
         cx = np.arange(4)
@@ -1203,7 +1251,6 @@ class MyApp(QMainWindow):
         self.plength_ax.bar(x, self.plength)
         self.plength_ax.set_xticks(x, plen_xticks)
         self.plength_ax.set_title('peptide length')
-
 
         labels= ['target', 'decoy']
         handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
