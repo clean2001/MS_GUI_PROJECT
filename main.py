@@ -126,6 +126,8 @@ class MyApp(QMainWindow):
         self.graph_x_start, self.graph_y_start = -1, -1 ## 그래프의 확대, (x axis 값, -1 -1 이면 기본크기)
         self.c13_isotope_tol_min, self.c13_isotope_tol_max = 0, 0
 
+        self.top_graph_label, self.bottom_graph_label = QLabel("top: "), QLabel("Bottom: ")
+
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
         spectrum_query.annotate_proforma('A', self.frag_tol, "Da", ion_types="by")
@@ -134,7 +136,7 @@ class MyApp(QMainWindow):
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
 
         sup.mirror(spectrum_answer, spectrum_answer, ax=self.ax)
-        self.sa_target, self.sa_decoy = [], []
+        self.sa_target, self.sa_decoy = [0 for i in range(10)], [0 for i in range(10)]
 
 
         self.main_widget = QWidget() # Make main window
@@ -301,9 +303,8 @@ class MyApp(QMainWindow):
                 self.fig = mass_error.mass_error_plot(self.spectrum_query, self.spectrum_answer)
             
             self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
-            # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+            self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
             self.graph_main_layout.addWidget(self.canvas)
-            # self.graph_main_layout.addWidget(self.toolbar)
 
             self.canvas.draw()
         else:
@@ -669,8 +670,9 @@ class MyApp(QMainWindow):
         self.spectrum_list.setColumnCount(16)
         self.spectrum_list.itemClicked.connect(self.chkItemChanged)
         self.spectrum_list.currentItemChanged.connect(self.chkItemChanged)
-        column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites' ]
-        self.spectrum_list.setHorizontalHeaderLabels(column_headers)
+        self.column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites' ]
+        self.spectrum_list.setHorizontalHeaderLabels(self.column_headers)
+        self.spectrum_list.horizontalHeader().sectionClicked.connect(self.onHeaderClicked)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
         top_sp.addLayout(self.spectrum_list_layout)
@@ -783,7 +785,12 @@ class MyApp(QMainWindow):
 
             self.peptide_change_text_box.setText(self.top_seq)
 
-    
+    def onHeaderClicked(self, logicalIndex):
+        print("index is ", logicalIndex)
+        # self.result_data.sort(key=lambda x: self.result_data[logicalIndex])
+        # self.refilter_spectrums()
+        
+
     def ui2(self):
         self.summary_layout = QGridLayout()
         main_layout = QVBoxLayout()
@@ -1053,8 +1060,6 @@ class MyApp(QMainWindow):
         # 정보 바꾸기
         print('main, line 870. filname:', self.filter_info.filename)
         self.refilter_spectrums()
-
-
         return
         
     def toggle_spectrum_list(self):
@@ -1145,16 +1150,18 @@ class MyApp(QMainWindow):
 
 
     def make_summary(self):
-        self.sa_decoy, self.sa_target = [], []
-        self.qs_decoy, self.qs_target = [], []
+        self.sa_decoy, self.sa_target = [0 for i in range(10)], [0 for i in range(10)]
+        self.qs_decoy, self.qs_target = [0 for i in range(35)], [0 for i in range(35)]
         self.ppm_decoy_list, self.ppm_target_list = [], []
-        self.plength = [0 for i in range(61)]
-        self.charge_list = [0 for i in range(4)] # 1, 2, 3, 4
+        self.plength_target = [0 for i in range(61)]
+        self.plength_decoy = [0 for i in range(61)]
+        self.charge_target_list = [0 for i in range(4)] # 1, 2, 3, 4
+        self.charge_decoy_list = [0 for i in range(4)] # 1, 2, 3, 4
 
         for i in reversed(range(self.summary_layout.count())): 
-                obj = self.summary_layout.itemAt(i).widget()
-                if obj is not None:
-                    obj.deleteLater()
+            obj = self.summary_layout.itemAt(i).widget()
+            if obj is not None:
+                obj.deleteLater()
         
         # SA
         self.sa_canvas = FigureCanvas(Figure(figsize=(4, 3)))
@@ -1197,37 +1204,62 @@ class MyApp(QMainWindow):
             cur_rslts = self.result_data[r]
             for cur_item in cur_rslts:
                 if "TARGET" in cur_item['ProtSites']:
-                    self.sa_target.append(float(cur_item['SA']))
-                    self.qs_target.append(float(cur_item['QScore']))
+                    self.sa_target[int(10*float(cur_item['SA']))] += 1
+                    self.qs_target[math.trunc(float(cur_item['QScore']))] += 1
                     self.ppm_target_list.append(float(cur_item['ppmError']))
 
+                    if int(cur_item['Charge']) >= 4:
+                        self.charge_target_list[3] += 1
+                    else:
+                        self.charge_target_list[int(cur_item['Charge'])-1] += 1
+
+                    if len(cur_item['Peptide']) >= 60:
+                        self.plength_target[60] += 1
+                    else:
+                        self.plength_target[len(cur_item['Peptide'])] += 1
+
+
+                    
+
                 else:
-                    self.sa_decoy.append(float(cur_item['SA']))
-                    self.qs_decoy.append(float(cur_item['QScore']))
+                    self.sa_decoy[int(10*float(cur_item['SA']))] += 1
+                    self.qs_decoy[math.trunc(float(cur_item['QScore']))] += 1
                     self.ppm_decoy_list.append(float(cur_item['ppmError']))
 
+                    if int(cur_item['Charge']) >= 4:
+                        self.charge_decoy_list[3] += 1
+                    else:
+                        self.charge_decoy_list[int(cur_item['Charge'])-1] += 1
+
+                    if len(cur_item['Peptide']) >= 60:
+                        self.plength_decoy[60] += 1
+                    else:
+                        self.plength_decoy[len(cur_item['Peptide'])] += 1
+
+
                 self.all_qscore.append(float(cur_item['QScore']))
-                if len(cur_item['Peptide']) >= 60:
-                    self.plength[60] += 1
-                else:
-                    self.plength[len(cur_item['Peptide'])] += 1
 
                 
-                if int(cur_item['Charge']) >= 4:
-                    self.charge_list[3] += 1
-                else:
-                    self.charge_list[int(cur_item['Charge'])-1] += 1
+
         self.all_qscore.sort()
 
         # summary
+        labels= ['target', 'decoy']
+        handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
 
-        self.qs_ax.hist(self.sa_target, bins = 100, color='#3669CF')
-        self.qs_ax.hist(self.sa_decoy, bins = 100, color='#FF9595')
+        sa_bins = np.arange(0, 1, 0.1)
+        self.sa_ax.plot(sa_bins, self.sa_target, marker='.', linestyle='--', color='#3669CF')
+        self.sa_ax.plot(sa_bins, self.sa_decoy, marker='.', linestyle='--', color='#FF9595')
         self.sa_ax.set_title('SA')
+        self.sa_ax.legend(handles, labels)
 
-        self.qs_ax.hist(self.qs_target, bins = 100, color='#3669CF')
-        self.qs_ax.hist(self.qs_decoy, bins = 100, color='#FF9595')
+
+        qs_bins = np.arange(0, 35, 1)
+        self.qs_ax.plot(qs_bins, self.qs_target, marker='.', linestyle='--', color='#3669CF')
+        self.qs_ax.plot(qs_bins, self.qs_decoy, marker='.', linestyle='--', color='#FF9595')
         self.qs_ax.set_title('QScore')
+        self.qs_ax.legend(handles, labels)
+
 
         self.ppm_ax.boxplot([self.ppm_target_list, self.ppm_decoy_list])
         ppm_error_labels = ['target', 'decoy']
@@ -1237,9 +1269,12 @@ class MyApp(QMainWindow):
         cx = np.arange(4)
         charge_xticks = [str(i) for i in range(1, 5)]
         charge_xticks[-1] = '4+'
-        self.charge_ax.bar(cx, self.charge_list)
+        charge_bar_width = 0.25
+        self.charge_ax.bar(cx, self.charge_target_list, charge_bar_width, label='target', color='blue', alpha=0.4)
+        self.charge_ax.bar(cx+charge_bar_width, self.charge_decoy_list, charge_bar_width, label='decoy', color='red', alpha=0.4)
         self.charge_ax.set_xticks(cx, charge_xticks)
         self.charge_ax.set_title('charge')
+        self.charge_ax.legend()
 
         x = np.arange(61)
         plen_xticks = ['' for i in range(61)]
@@ -1248,13 +1283,13 @@ class MyApp(QMainWindow):
                 plen_xticks[i] = str(i)
         plen_xticks[-1] = '60+'
         
-        self.plength_ax.bar(x, self.plength)
+        plength_bar_width = 0.25
+        self.plength_ax.bar(x, self.plength_target, plength_bar_width, color='blue', alpha=0.4, label='target')
+        self.plength_ax.bar(x+plength_bar_width, self.plength_decoy, plength_bar_width, color='red', alpha=0.4, label='decoy')
         self.plength_ax.set_xticks(x, plen_xticks)
         self.plength_ax.set_title('peptide length')
+        self.plength_ax.legend()
 
-        labels= ['target', 'decoy']
-        handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
-        self.sa_ax.legend(handles, labels)
         self.sa_canvas.draw()
         self.qs_canvas.draw()
         self.ppm_canvas.draw()
