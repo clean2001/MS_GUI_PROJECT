@@ -230,22 +230,51 @@ def spectrum(
     }
     if annot_kws is not None:
         annotation_kws.update(annot_kws)
-    for mz, intensity, annotation in zip(spec.mz, spec.intensity, annotations):
+
+    ion_max_intensity = {}
+
+    for mz, intensity, annotation in zip(spec.mz, spec.intensity, spec.annotation):
+        ion_type = annotation[0].ion_type
         peak_intensity = intensity / max_intensity
         if mirror_intensity:
             peak_intensity *= -1
 
-        color, zorder = _annotate_ion(
-            mz,
-            peak_intensity,
-            # Use the first annotation in case there are multiple options.
-            annotation[0] if annotation is not None else None,
-            color_ions,
-            annot_fmt,
-            annotation_kws,
-            ax,
-        )
-        ax.plot([mz, mz], [0, peak_intensity], color=color, zorder=zorder)
+        # 이온 타입이 딕셔너리에 없거나 현재 이온의 강도가 최대 강도보다 큰 경우
+        if ion_type not in ion_max_intensity or peak_intensity > ion_max_intensity[ion_type]:
+            # 최대 강도 및 해당 이온 타입의 튜플을 업데이트
+            ion_max_intensity[ion_type] = peak_intensity
+
+            # 그래프에 이온 피크와 주석 추가
+            color, zorder = _annotate_ion(
+                mz,
+                peak_intensity,
+                annotation[0] if annotation is not None else None,
+                color_ions,
+                annot_fmt,
+                annotation_kws,
+                ax,
+            )
+            ax.plot([mz, mz], [0, peak_intensity], color=color, zorder=zorder)
+        else:
+            # 현재 이온의 강도가 최대 강도보다 작은 경우, 검정색 피크만 추가 (주석 없음)
+            ax.plot([mz, mz], [0, peak_intensity], color="black")
+
+    # for mz, intensity, annotation in zip(spec.mz, spec.intensity, annotations):
+    #     peak_intensity = intensity / max_intensity
+    #     if mirror_intensity:
+    #         peak_intensity *= -1
+
+    #     color, zorder = _annotate_ion(
+    #         mz,
+    #         peak_intensity,
+    #         # Use the first annotation in case there are multiple options.
+    #         annotation[0] if annotation is not None else None,
+    #         color_ions,
+    #         annot_fmt,
+    #         annotation_kws,
+    #         ax,
+    #     )
+    #     ax.plot([mz, mz], [0, peak_intensity], color=color, zorder=zorder)
 
     return ax
 
