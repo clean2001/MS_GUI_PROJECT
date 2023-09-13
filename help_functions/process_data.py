@@ -173,20 +173,20 @@ def parse_result(filename: str) -> list:
         data = {
             'spectrum_idx': spectrum_index,
             'File': tokens[0],
-            'Index': tokens[1],
-            'ScanNo': tokens[2],
+            'Index': int(tokens[1]),
+            'ScanNo': int(tokens[2]),
             'Title': tokens[3],
-            'PMZ': tokens[4],
-            'Charge': tokens[5],
+            'PMZ': float(tokens[4]),
+            'Charge': int(tokens[5]),
             'Peptide': tokens[6],
-            'CalcMass': tokens[7],
-            'SA': tokens[8],
-            'QScore': tokens[9],
-            '#Ions': tokens[10],
-            '#Sig': tokens[11],
-            'ppmError': tokens[12],
-            'C13': tokens[13],
-            'ExpRatio': tokens[14],
+            'CalcMass': float(tokens[7]),
+            'SA': float(tokens[8]),
+            'QScore': float(tokens[9]),
+            '#Ions': int(tokens[10]),
+            '#Sig': int(tokens[11]),
+            'ppmError': float(tokens[12]),
+            'C13': int(tokens[13]),
+            'ExpRatio': float(tokens[14]),
             'ProtSites': tokens[15],
         }
 
@@ -203,9 +203,11 @@ def process_queries(quries : list[str]) -> dict[str]:
         rslt[q] = parse_query(q) # {key : value} == {query file name : list[dict]}
     return rslt
 
-def process_results(results : list[str]) -> dict[str]:
+def process_results(results : list[str]):
     rslt = dict()
+    rslt_list = []
     for r in results:
         val = parse_result(r)
         rslt[r] = val
-    return rslt
+        rslt_list += (val)
+    return rslt, rslt_list
