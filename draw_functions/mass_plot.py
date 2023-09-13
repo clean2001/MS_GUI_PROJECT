@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 
-import spectrum_utils.fragment_annotation as fa
+# import spectrum_utils.fragment_annotation as fa
+import draw_functions.annotate as fa
 from spectrum_utils.spectrum import MsmsSpectrum
 # from spectrum_utils.utils import da_to_ppm, ppm_to_da
 
@@ -175,6 +176,97 @@ def annotate_ion_type(
         return ""
 
 
+# def spectrum(
+#     spec: MsmsSpectrum,
+#     *,
+#     color_ions: bool = True,
+#     annot_fmt: Optional[Callable] = functools.partial(
+#         annotate_ion_type, ion_types="by"
+#     ),
+#     annot_kws: Optional[Dict] = None,
+#     mirror_intensity: bool = False,
+#     grid: Union[bool, str] = True,
+#     ax: Optional[plt.Axes] = None,
+# ) -> plt.Axes:
+#     """
+#     Plot an MS/MS spectrum.
+
+#     Parameters
+#     ----------
+#     spec : MsmsSpectrum
+#         The spectrum to be plotted.
+#     color_ions : bool, optional
+#         Flag indicating whether or not to color annotated fragment ions. The
+#         default is True.
+#     annot_fmt : Optional[Callable]
+#         Function to format the peak annotations. See `FragmentAnnotation` for
+#         supported elements. By default, only canonical b and y peptide fragments
+#         are annotated. If `None`, no peaks are annotated.
+#     annot_kws : Optional[Dict], optional
+#         Keyword arguments for `ax.text` to customize peak annotations.
+#     mirror_intensity : bool, optional
+#         Flag indicating whether to flip the intensity axis or not.
+#     grid : Union[bool, str], optional
+#         Draw grid lines or not. Either a boolean to enable/disable both major
+#         and minor grid lines or 'major'/'minor' to enable major or minor grid
+#         lines respectively.
+#     ax : Optional[plt.Axes], optional
+#         Axes instance on which to plot the spectrum. If None the current Axes
+#         instance is used.
+
+#     Returns
+#     -------
+#     plt.Axes
+#         The matplotlib Axes instance on which the spectrum is plotted.
+#     """
+#     if ax is None:
+#         ax = plt.gca()
+
+#     _format_ax(ax, grid)
+#     ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
+#     ax.set_ylim(*(0, 1.15) if not mirror_intensity else (-1.15, 0))
+#     ax.set_ylabel("Intensity")
+
+#     if len(spec.mz) == 0:
+#         return ax
+
+#     ax.set_xlim(*_get_xlim(spec))
+
+#     max_intensity = spec.intensity.max()
+#     annotations = (
+#         spec.annotation
+#         if spec.annotation is not None
+#         else itertools.repeat(None)
+#     )
+#     annotation_kws = {
+#         "horizontalalignment": "left" if not mirror_intensity else "right",
+#         "verticalalignment": "center",
+#         "rotation": 90,
+#         "rotation_mode": "anchor",
+#         "zorder": 5,
+#     }
+#     if annot_kws is not None:
+#         annotation_kws.update(annot_kws)
+#     for mz, intensity, annotation in zip(spec.mz, spec.intensity, annotations):
+#         peak_intensity = intensity / max_intensity
+#         if mirror_intensity:
+#             peak_intensity *= -1
+
+#         color, zorder = _annotate_ion(
+#             mz,
+#             peak_intensity,
+#             # Use the first annotation in case there are multiple options.
+#             annotation[0] if annotation is not None else None,
+#             color_ions,
+#             annot_fmt,
+#             annotation_kws,
+#             ax,
+#         )
+#         ax.plot([mz, mz], [0, peak_intensity], color=color, zorder=zorder)
+
+#     return ax
+
+#  spectrum함수 수정 ver.
 def spectrum(
     spec: MsmsSpectrum,
     *,
@@ -221,15 +313,30 @@ def spectrum(
     if ax is None:
         ax = plt.gca()
 
-    _format_ax(ax, grid)
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0))
-    ax.set_ylim(*(0, 1.15) if not mirror_intensity else (-1.15, 0))
+    ax.set_ylim(*(0, 1) if not mirror_intensity else (-1, 0))
+
+    ax.xaxis.set_minor_locator(mticker.AutoLocator())
+    ax.yaxis.set_minor_locator(mticker.AutoLocator())
+    ax.xaxis.set_minor_locator(mticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(mticker.AutoMinorLocator())
+    if grid in (True, "both", "major"):
+        ax.grid(True, "major", color="#9E9E9E", linewidth=0.2)
+    if grid in (True, "both", "minor"):
+        ax.grid(True, "minor", color="#9E9E9E", linewidth=0.2)
+    ax.set_axisbelow(True)
+
+    ax.tick_params(axis="both", which="both", labelsize="small")
+
+    ax.set_xlabel("m/z", style="italic")
     ax.set_ylabel("Intensity")
 
     if len(spec.mz) == 0:
         return ax
 
-    ax.set_xlim(*_get_xlim(spec))
+    round_mz = 50
+    max_mz = math.ceil(spec.mz[-1] / round_mz + 1) * round_mz
+    ax.set_xlim(0, max_mz)
 
     max_intensity = spec.intensity.max()
     annotations = (
@@ -246,26 +353,39 @@ def spectrum(
     }
     if annot_kws is not None:
         annotation_kws.update(annot_kws)
-    for mz, intensity, annotation in zip(spec.mz, spec.intensity, annotations):
+
+    ion_max_intensity = {}
+
+    for mz, intensity, annotation in zip(spec.mz, spec.intensity, spec.annotation):
+        ion_type = annotation[0].ion_type
         peak_intensity = intensity / max_intensity
         if mirror_intensity:
             peak_intensity *= -1
 
-        color, zorder = _annotate_ion(
-            mz,
-            peak_intensity,
-            # Use the first annotation in case there are multiple options.
-            annotation[0] if annotation is not None else None,
-            color_ions,
-            annot_fmt,
-            annotation_kws,
-            ax,
-        )
-        ax.plot([mz, mz], [0, peak_intensity], color=color, zorder=zorder)
+        # 이온 타입이 딕셔너리에 없거나 현재 이온의 강도가 최대 강도보다 큰 경우
+        if ion_type not in ion_max_intensity or peak_intensity > ion_max_intensity[ion_type]:
+            # 최대 강도 및 해당 이온 타입의 튜플을 업데이트
+            ion_max_intensity[ion_type] = peak_intensity
+
+            # 그래프에 이온 피크와 주석 추가
+            color, zorder = _annotate_ion(
+                mz,
+                peak_intensity,
+                annotation[0] if annotation is not None else None,
+                color_ions,
+                annot_fmt,
+                annotation_kws,
+                ax,
+            )
+            ax.plot([mz, mz], [0, peak_intensity], color=color, zorder=zorder)
+        else:
+            # 현재 이온의 강도가 최대 강도보다 작은 경우, 검정색 피크만 추가 (주석 없음)
+            ax.plot([mz, mz], [0, peak_intensity], color="black")
 
     return ax
 
 
+# mass errors함수 수정 ver.
 def mass_errors(
     spec: MsmsSpectrum,
     *,
@@ -355,7 +475,7 @@ def mass_errors(
         mz_deltas.append(ann[0].mz_delta[0] if is_known_ion else 0.0)
         mz_delta_units.append(ann[0].mz_delta[1] if is_known_ion else None)
 
-        # 이부분에서 intensity를 가져와서 최대값인지 확인합니다.
+        # 이부분에서 intensity를 가져와서 최대값인지 확인
         intensity = spec.intensity[i] if i < len(spec.intensity) else 0.0
         if is_known_ion:
             if ion_type not in max_intensity_by_ion or intensity > max_intensity_by_ion[ion_type]:
@@ -388,7 +508,7 @@ def mass_errors(
     ax.set_xlim(*_get_xlim(spec))
     ax.set_ylabel(f"Mass error ({unit or annotation_unit})")
 
-    # 최대 intensity를 고려하여 적절한 이온만 플롯합니다.
+    # 최대 intensity를 고려하여 적절한 이온만 plot
     for i, mz_delta in enumerate(mz_deltas):
         if mask[i]:
             ion_type = annotations[i][0].ion_type
@@ -401,16 +521,130 @@ def mass_errors(
                     alpha=0.5,
                     edgecolors="none",
                 )
-    # ax.scatter(
-    #     spec.mz[mask],
-    #     mz_deltas[mask],
-    #     s=intensity_scaled[mask],
-    #     c=dot_colors[mask],
-    #     alpha=0.5,
-    #     edgecolors="none",
-    # )
 
     return ax
+
+# def mass_errors(
+#     spec: MsmsSpectrum,
+#     *,
+#     unit: Optional[str] = None,
+#     plot_unknown: bool = True,
+#     color_ions: bool = True,
+#     grid: Union[bool, str] = True,
+#     ax: Optional[plt.Axes] = None,
+# ) -> plt.Axes:
+#     """
+#     Plot mass error bubble plot for a given spectrum.
+
+#     A mass error bubble plot shows the error between observed and theoretical
+#     mass (y-axis) in function of the **m/z** (x-axis) for each peak in the
+#     spectrum. The size of the bubble is proportional to the intensity of the
+#     peak.
+
+#     Parameters
+#     ----------
+#     spec : MsmsSpectrum
+#         The spectrum with mass errors to be plotted.
+#     unit : str, optional
+#         The unit of the mass errors, either 'ppm', 'Da', or None. If None,
+#         the unit that was used for spectrum annotation is used. The default is
+#         None.
+#     plot_unknown : bool, optional
+#         Flag indicating whether or not to plot mass errors for unknown peaks.
+#     color_ions : bool, optional
+#         Flag indicating whether or not to color dots for annotated fragment
+#         ions. The default is True.
+#     grid : Union[bool, str], optional
+#         Draw grid lines or not. Either a boolean to enable/disable both major
+#         and minor grid lines or 'major'/'minor' to enable major or minor grid
+#         lines respectively.
+#     ax : Optional[plt.Axes], optional
+#         Axes instance on which to plot the mass errors. If None the current
+#         Axes instance is used.
+
+#     Returns
+#     -------
+#     plt.Axes
+#         The matplotlib Axes instance on which the mass errors are plotted.
+
+#     Notes
+#     -----
+#     The mass error bubble plot was first introduced in [1]_.
+
+#     References
+#     ----------
+#     .. [1] Barsnes,H., Eidhammer,I. and Martens,L. (2010)
+#        FragmentationAnalyzer: An open-source tool to analyze MS/MS
+#        fragmentation data. PROTEOMICS, 10, 1087–1090.
+#        doi:10.1002/pmic.200900681
+
+#     """
+#     if ax is None:
+#         ax = plt.gca()
+
+#     _format_ax(ax, grid)
+
+#     if len(spec.mz) == 0:
+#         ax.set_ylabel("Mass error")
+#         ax.set_ylim(-1, 1)
+#         return ax
+
+#     annotations = (
+#         spec.annotation
+#         if spec.annotation is not None
+#         else itertools.repeat(None, len(spec.mz))
+#     )
+
+#     known_ions = []
+#     dot_colors = []
+#     mz_deltas = []
+#     mz_delta_units = []
+#     for ann in annotations:
+#         # Use the first annotation in case there are multiple options.
+#         ion_type = ann[0].ion_type[0] if ann is not None else None
+#         is_known_ion = ion_type is not None and ion_type != "?"
+#         known_ions.append(is_known_ion)
+#         dot_colors.append(colors.get(ion_type if color_ions else None))
+#         mz_deltas.append(ann[0].mz_delta[0] if is_known_ion else 0.0)
+#         mz_delta_units.append(ann[0].mz_delta[1] if is_known_ion else None)
+
+#     dot_colors = np.array(dot_colors)
+#     mz_deltas = np.array(mz_deltas)
+#     intensity_scaled = 500 * (spec.intensity / np.max(spec.intensity))
+#     mask = (
+#         np.ones_like(spec.mz, dtype=bool)
+#         if plot_unknown
+#         else np.array(known_ions)
+#     )
+
+#     for known_unit in ["ppm", "Da"]:
+#         # Use `not any` instead of `all` to fail fast
+#         if not any(u and u != known_unit for u in mz_delta_units):
+#             annotation_unit = known_unit
+#             break
+#     else:
+#         raise ValueError("Inconsistent or unknown mass units in annotations.")
+#     if unit == "Da" and annotation_unit == "ppm":
+#         mz_deltas = ppm_to_da(mz_deltas, spec.mz)
+#     elif unit == "ppm" and annotation_unit == "Da":
+#         mz_deltas = da_to_ppm(mz_deltas, spec.mz)
+
+#     y_lim = 1.2 * np.max(np.abs(mz_deltas))
+#     if y_lim > 0.0:
+#         ax.set_ylim(-y_lim, y_lim)
+#     ax.set_xlim(*_get_xlim(spec))
+#     ax.set_ylabel(f"Mass error ({unit or annotation_unit})")
+
+#     ax.scatter(
+#         spec.mz[mask],
+#         mz_deltas[mask],
+#         s=intensity_scaled[mask],
+#         c=dot_colors[mask],
+#         alpha=0.5,
+#         edgecolors="none",
+#     )
+
+#     return ax
 
 
 def mirror(
