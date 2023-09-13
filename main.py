@@ -672,7 +672,6 @@ class MyApp(QMainWindow):
         self.spectrum_list.currentItemChanged.connect(self.chkItemChanged)
         self.column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites' ]
         self.spectrum_list.setHorizontalHeaderLabels(self.column_headers)
-        self.spectrum_list.horizontalHeader().sectionClicked.connect(self.onHeaderClicked)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
         top_sp.addLayout(self.spectrum_list_layout)
@@ -786,9 +785,9 @@ class MyApp(QMainWindow):
             self.peptide_change_text_box.setText(self.top_seq)
 
     def onHeaderClicked(self, logicalIndex):
-        print("index is ", logicalIndex)
-        # self.result_data.sort(key=lambda x: self.result_data[logicalIndex])
-        # self.refilter_spectrums()
+        table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'Protsites']
+        self.result_data_list.sort(key=lambda x: x[table_header_label[logicalIndex]])
+        self.refilter_spectrums()
         
 
     def ui2(self):
@@ -953,47 +952,48 @@ class MyApp(QMainWindow):
     def refilter_spectrums(self):
         idx = 0
         self.spectrum_list.setRowCount(len(self.all_qscore))
-        for i in range(0, len(self.results)):
-            cur_result = self.result_data[self.results[i]]
-            for j in range(0, len(cur_result)):
-                if not self.check_spectrum_item(cur_result[j]):
-                    continue
+        for i in range(0, len(self.result_data_list)):
+            cur_result = self.result_data_list[i]
+            if not self.check_spectrum_item(cur_result):
+                continue
                 
-                qidx = int(cur_result[j]['Index'])
-                seq = cur_result[j]['Peptide']
-                charge = cur_result[j]['Charge']
+            qidx = int(cur_result['Index'])
+            seq = cur_result['Peptide']
+            charge = cur_result['Charge']
 
-                seq = process_sequence.brace_modifications(seq) # 0723
-                seq = process_sequence.remove_modifications(seq)
+            seq = process_sequence.brace_modifications(seq) # 0723
+            seq = process_sequence.remove_modifications(seq)
 
-                charge = self.data[self.filenames[i]][qidx]['charge']
-                if 'TARGET' in self.result_data[self.results[i]][j]['ProtSites']:
-                    match = str(self.result_data[self.results[i]][j]['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
-                else:
-                    match = str(self.result_data[self.results[i]][j]['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
+            # print("qidx: ", qidx)
+            # print("len:  ", len(self.data[self.filenames[i]]))
+            charge = cur_result['Charge']
+            if 'TARGET' in cur_result['ProtSites']:
+                match = str(cur_result['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
+            else:
+                match = str(cur_result['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
 
-                self.spectrum_list.setItem(idx, 0, QTableWidgetItem(self.result_data[self.results[i]][j]['File']))
-                self.spectrum_list.setItem(idx, 1, QTableWidgetItem(self.result_data[self.results[i]][j]['Index']))
-                self.spectrum_list.setItem(idx, 2, QTableWidgetItem(self.result_data[self.results[i]][j]['ScanNo']))
-                self.spectrum_list.setItem(idx, 3, QTableWidgetItem(self.result_data[self.results[i]][j]['Title']))
-                self.spectrum_list.setItem(idx, 4, QTableWidgetItem(self.result_data[self.results[i]][j]['PMZ']))
-                self.spectrum_list.setItem(idx, 5, QTableWidgetItem(self.result_data[self.results[i]][j]['Charge']))
-                self.spectrum_list.setItem(idx, 6, QTableWidgetItem(self.result_data[self.results[i]][j]['Peptide']))
-                self.spectrum_list.setItem(idx, 7, QTableWidgetItem(self.result_data[self.results[i]][j]['CalcMass']))
-                self.spectrum_list.setItem(idx, 8, QTableWidgetItem(self.result_data[self.results[i]][j]['SA']))
-                self.spectrum_list.setItem(idx, 9, QTableWidgetItem(self.result_data[self.results[i]][j]['QScore']))
-                self.spectrum_list.setItem(idx, 10, QTableWidgetItem(self.result_data[self.results[i]][j]['#Ions']))
-                self.spectrum_list.setItem(idx, 11, QTableWidgetItem(self.result_data[self.results[i]][j]['#Sig']))
-                self.spectrum_list.setItem(idx, 12, QTableWidgetItem(self.result_data[self.results[i]][j]['ppmError']))
-                self.spectrum_list.setItem(idx, 13, QTableWidgetItem(self.result_data[self.results[i]][j]['C13']))
-                self.spectrum_list.setItem(idx, 14, QTableWidgetItem(self.result_data[self.results[i]][j]['ExpRatio']))
-                self.spectrum_list.setItem(idx, 15, QTableWidgetItem(match))
-                self.spectrum_list.setRowHeight(idx, 20)
+            self.spectrum_list.setItem(idx, 0, QTableWidgetItem(cur_result['File']))
+            self.spectrum_list.setItem(idx, 1, QTableWidgetItem(str(cur_result['Index'])))
+            self.spectrum_list.setItem(idx, 2, QTableWidgetItem(str(cur_result['ScanNo'])))
+            self.spectrum_list.setItem(idx, 3, QTableWidgetItem(cur_result['Title']))
+            self.spectrum_list.setItem(idx, 4, QTableWidgetItem(str(cur_result['PMZ'])))
+            self.spectrum_list.setItem(idx, 5, QTableWidgetItem(str(cur_result['Charge'])))
+            self.spectrum_list.setItem(idx, 6, QTableWidgetItem(cur_result['Peptide']))
+            self.spectrum_list.setItem(idx, 7, QTableWidgetItem(str(cur_result['CalcMass'])))
+            self.spectrum_list.setItem(idx, 8, QTableWidgetItem(str(cur_result['SA'])))
+            self.spectrum_list.setItem(idx, 9, QTableWidgetItem(str(cur_result['QScore'])))
+            self.spectrum_list.setItem(idx, 10, QTableWidgetItem(str(cur_result['#Ions'])))
+            self.spectrum_list.setItem(idx, 11, QTableWidgetItem(str(cur_result['#Sig'])))
+            self.spectrum_list.setItem(idx, 12, QTableWidgetItem(str(cur_result['ppmError'])))
+            self.spectrum_list.setItem(idx, 13, QTableWidgetItem(str(cur_result['C13'])))
+            self.spectrum_list.setItem(idx, 14, QTableWidgetItem(str(cur_result['ExpRatio'])))
+            self.spectrum_list.setItem(idx, 15, QTableWidgetItem(match))
+            self.spectrum_list.setRowHeight(idx, 20)
 
-                for k in range(0, 16):
-                    self.spectrum_list.item(idx, k).setFlags(Qt.ItemFlag.ItemIsEnabled)
+            for k in range(0, 16):
+                self.spectrum_list.item(idx, k).setFlags(Qt.ItemFlag.ItemIsEnabled)
 
-                idx += 1
+            idx += 1
         
         self.spectrum_list.setRowCount(idx)
         self.top_label.setText(str(idx) +' / ' + str(len(self.all_qscore))+ ' spectra')
@@ -1036,7 +1036,7 @@ class MyApp(QMainWindow):
             self.results = []
             for q in self.filenames:
                 self.results.append(q.split('.')[0]+'_deephos.tsv')
-            self.result_data = process_data.process_results(self.results)
+            self.result_data, self.result_data_list = process_data.process_results(self.results)
 
             self.set_items_in_table()
 
@@ -1058,7 +1058,7 @@ class MyApp(QMainWindow):
         filter_dlg.exec()
 
         # 정보 바꾸기
-        print('main, line 870. filname:', self.filter_info.filename)
+        # print('main, line 870. filname:', self.filter_info.filename)
         self.refilter_spectrums()
         return
         
@@ -1100,20 +1100,20 @@ class MyApp(QMainWindow):
                     match = str(data_item['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
 
                 self.spectrum_list.setItem(rowcnt, 0, QTableWidgetItem(data_item['File']))
-                self.spectrum_list.setItem(rowcnt, 1, QTableWidgetItem(data_item['Index']))
-                self.spectrum_list.setItem(rowcnt, 2, QTableWidgetItem(data_item['ScanNo']))
+                self.spectrum_list.setItem(rowcnt, 1, QTableWidgetItem(str(data_item['Index'])))
+                self.spectrum_list.setItem(rowcnt, 2, QTableWidgetItem(str(data_item['ScanNo'])))
                 self.spectrum_list.setItem(rowcnt, 3, QTableWidgetItem(data_item['Title']))
-                self.spectrum_list.setItem(rowcnt, 4, QTableWidgetItem(data_item['PMZ']))
-                self.spectrum_list.setItem(rowcnt, 5, QTableWidgetItem(data_item['Charge']))
+                self.spectrum_list.setItem(rowcnt, 4, QTableWidgetItem(str(data_item['PMZ'])))
+                self.spectrum_list.setItem(rowcnt, 5, QTableWidgetItem(str(data_item['Charge'])))
                 self.spectrum_list.setItem(rowcnt, 6, QTableWidgetItem(data_item['Peptide']))
-                self.spectrum_list.setItem(rowcnt, 7, QTableWidgetItem(data_item['CalcMass']))
-                self.spectrum_list.setItem(rowcnt, 8, QTableWidgetItem(data_item['SA']))
-                self.spectrum_list.setItem(rowcnt, 9, QTableWidgetItem(data_item['QScore']))
-                self.spectrum_list.setItem(rowcnt, 10, QTableWidgetItem(data_item['#Ions']))
-                self.spectrum_list.setItem(rowcnt, 11, QTableWidgetItem(data_item['#Sig']))
-                self.spectrum_list.setItem(rowcnt, 12, QTableWidgetItem(data_item['ppmError']))
-                self.spectrum_list.setItem(rowcnt, 13, QTableWidgetItem(data_item['C13']))
-                self.spectrum_list.setItem(rowcnt, 14, QTableWidgetItem(data_item['ExpRatio']))
+                self.spectrum_list.setItem(rowcnt, 7, QTableWidgetItem(str(data_item['CalcMass'])))
+                self.spectrum_list.setItem(rowcnt, 8, QTableWidgetItem(str(data_item['SA'])))
+                self.spectrum_list.setItem(rowcnt, 9, QTableWidgetItem(str(data_item['QScore'])))
+                self.spectrum_list.setItem(rowcnt, 10, QTableWidgetItem(str(data_item['#Ions'])))
+                self.spectrum_list.setItem(rowcnt, 11, QTableWidgetItem(str(data_item['#Sig'])))
+                self.spectrum_list.setItem(rowcnt, 12, QTableWidgetItem(str(data_item['ppmError'])))
+                self.spectrum_list.setItem(rowcnt, 13, QTableWidgetItem(str(data_item['C13'])))
+                self.spectrum_list.setItem(rowcnt, 14, QTableWidgetItem(str(data_item['ExpRatio'])))
                 self.spectrum_list.setItem(rowcnt, 15, QTableWidgetItem(match))
                 self.spectrum_list.setRowHeight(rowcnt, 20)
 
@@ -1146,7 +1146,7 @@ class MyApp(QMainWindow):
         self.top_label.setText(str(rowcnt) +' / ' + str(rowcnt)+ ' spectra')
         self.peptide_change_btn.setCheckable(True)
         self.peptide_change_btn.setCheckable(True)
-
+        self.spectrum_list.horizontalHeader().sectionDoubleClicked.connect(self.onHeaderClicked)
 
 
     def make_summary(self):

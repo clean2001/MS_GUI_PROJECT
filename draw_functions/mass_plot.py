@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 
-# import spectrum_utils.fragment_annotation as fa
-import draw_functions.annotate as fa
+import spectrum_utils.fragment_annotation as fa
+# import draw_functions.annotate as fa
 from spectrum_utils.spectrum import MsmsSpectrum
 # from spectrum_utils.utils import da_to_ppm, ppm_to_da
 
