@@ -964,8 +964,6 @@ class MyApp(QMainWindow):
             seq = process_sequence.brace_modifications(seq) # 0723
             seq = process_sequence.remove_modifications(seq)
 
-            # print("qidx: ", qidx)
-            # print("len:  ", len(self.data[self.filenames[i]]))
             charge = cur_result['Charge']
             if 'TARGET' in cur_result['ProtSites']:
                 match = str(cur_result['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
@@ -1058,7 +1056,6 @@ class MyApp(QMainWindow):
         filter_dlg.exec()
 
         # 정보 바꾸기
-        # print('main, line 870. filname:', self.filter_info.filename)
         self.refilter_spectrums()
         return
         

@@ -11,11 +11,9 @@ class ExecuteDeephos(QThread):
     
     def run(self, query_file_list):
         # deephos를 실행해요
-        for i in range(len(query_file_list)):
-            parameter = './deephos/foo' + str(i) + '.params'
-            # print(parameter)
-            os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
-            time.sleep(30)
+        parameter = './deephos/foo.params'
+        # print(parameter)
+        os.system('java -jar deephos/deephos_tp2.jar -i ' + parameter)
 
 
 class InputDialog(QDialog):
@@ -254,22 +252,21 @@ class InputDialog(QDialog):
 
 
 
+        make_decoy = 0 # 임시
 
         # Deephos
         # 파라미터 파일을 만들어요
-        for i in range(len(self.query_file_list)):
-            param_file.make_parameter_file(self.query_file_list[i],
-                                           self.target_lib_file,
-                                           self.decoy_lib_file,
-                                           self.pept_tol_value,
-                                           self.isotope_tol_value_min,
-                                           self.isotope_tol_value_max,
-                                           self.frag_tol_value,
-                                           i)
+        param_file.make_parameter_file("./ddd.devi", self.query_file_list,
+                                        self.target_lib_file,
+                                        self.decoy_lib_file,
+                                        self.pept_tol_value,
+                                        self.isotope_tol_value_min,
+                                        self.isotope_tol_value_max,
+                                        self.frag_tol_value,
+                                        make_decoy)
         # deephos를 실행해요
-        for i in range(len(self.query_file_list)):
-            parameter = './deephos/foo' + str(i) + '.params'
-            os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
+        parameter = './deephos/foo' + str(i) + '.params'
+        os.system('java -jar deephos/deephos_tp2.jar -i ' + parameter)
 
         # ed = ExecuteDeephos()
         # ed.run(self.query_file_list)
