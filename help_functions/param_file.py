@@ -2,9 +2,7 @@
 def make_parameter_file(
     project_file:str, query_file:list, target_lib_file:list, decoy_lib_file:list, pept_tol_value, 
     isotope_tol_value_min, isotope_tol_value_max, frag_tol_value, make_decoy: int):
-    
-    # query_file_paths = '\n'.join([f'Spectra= {query_file}' for query_file in query_file_list])
-    
+   
     params_content = "Project=" + project_file + "\n"
     for query in query_file:
         params_content += "Spectra=" + query + "\n"

@@ -24,8 +24,8 @@ class RunConfigDlg(QDialog):
 
         # library config
         library_layout = QVBoxLayout()
-        library_layout.addWidget(QLabel('Target lib: ' + str(self.myapp.target_lib_file)))
-        library_layout.addWidget(QLabel('Decoy lib: ' + str(self.myapp.decoy_lib_file)))
+        library_layout.addWidget(QLabel('Target lib: ' + str(self.myapp.target_lib_files)))
+        library_layout.addWidget(QLabel('Decoy lib: ' + str(self.myapp.decoy_lib_files)))
 
 
         # peptide tol config
