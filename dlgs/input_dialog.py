@@ -2,6 +2,7 @@ import os
 from PyQt6.QtWidgets import *
 from dlgs.loading_dialog import LoadingDialog
 from PyQt6.QtCore import *
+from PyQt6 import QtGui
 import time
 import help_functions.param_file as param_file
 
@@ -11,71 +12,99 @@ class ExecuteDeephos(QThread):
     
     def run(self, query_file_list):
         # deephos를 실행해요
-        for i in range(len(query_file_list)):
-            parameter = './deephos/foo' + str(i) + '.params'
-            # print(parameter)
-            os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
-            time.sleep(30)
+        parameter = './deephos/foo.params'
+        # print(parameter)
+        os.system('java -jar deephos/deephos_tp2.jar -i ' + parameter)
 
 
 class InputDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("input")
-        self.resize(500, 500)
+        self.setWindowTitle("New Project")
+        self.resize(500, 650)
         
         # 나중에 써야하는 정보들
+        self.project_file_directory = ""
+        self.project_file_name = ""
         self.query_file_list = [] # query 파일들
-        self.target_lib_file = None # target lib의 파일 이름
-        self.decoy_lib_file = None # decoy lib의 파일 이름
+        self.target_lib_files = [] # target lib의 파일 이름
+        self.decoy_lib_files = [] # decoy lib의 파일 이름
         self.pept_tol_value = 10 # default = 10, ppm
         self.isotope_tol_value_min = 0
         self.isotope_tol_value_max = 0
         self.frag_tol_value = 0.02 # default = 0.02, Da
 
+        # Project file
+        self.project_file_layout = QVBoxLayout()
+        self.project_file_dir_layout = QHBoxLayout()
+        self.project_file_inner_layout = QHBoxLayout()
+        self.project_file_dir_text = QLineEdit()
+        self.project_file_dir_button = QPushButton("Browse")
+        self.project_file_dir_button.clicked.connect(self.browse_project_file_dir)
+        self.project_file_text = QLineEdit()
+        self.project_file_layout.addWidget(QLabel("Project File Directory: "))
+        self.project_file_dir_layout.addWidget(self.project_file_dir_text)
+        self.project_file_dir_layout.addWidget(self.project_file_dir_button)
+        self.project_file_layout.addLayout(self.project_file_dir_layout)
+        self.project_file_inner_layout.addWidget(QLabel("Project File name: "))
+        self.project_file_inner_layout.addWidget(self.project_file_text)
+        self.project_file_inner_layout.addWidget(QLabel(".devi"))
+        self.project_file_layout.addLayout(self.project_file_inner_layout)
+
         # queries
         self.query_layout = QVBoxLayout()
         inner_query_layout = QHBoxLayout()
-        addBtn = QPushButton("Add")
-        addBtn.setMaximumWidth(50)
-        removeBtn = QPushButton("Remove")
-        removeBtn.setMaximumWidth(60)
+        query_add_btn = QPushButton("Add")
+        query_add_btn.setMaximumWidth(50)
+        query_remove_btn = QPushButton("Remove")
+        query_remove_btn.setMaximumWidth(60)
         self.query_list = QListWidget()
         inner_query_layout.addWidget(QLabel("Query"))
-        inner_query_layout.addWidget(addBtn)
-        inner_query_layout.addWidget(removeBtn)
-        addBtn.clicked.connect(self.openQuery)
-        removeBtn.clicked.connect(self.removeQuery)
+        inner_query_layout.addWidget(query_add_btn)
+        inner_query_layout.addWidget(query_remove_btn)
+        query_add_btn.clicked.connect(self.open_query)
+        query_remove_btn.clicked.connect(self.remove_query)
         self.query_layout.addLayout(inner_query_layout)
         self.query_layout.addWidget(self.query_list)
-
 
         # Target lib
         self.target_lib_layout = QVBoxLayout()
         target_lib_inner_layout = QHBoxLayout()
-        self.target_lib_label = QLabel("파일을 열어주세요")
-        self.target_lib_browse = QPushButton("Browse")
-        self.target_lib_browse.clicked.connect(self.browse_target_lib)
-        self.target_lib_browse.setMaximumWidth(70)
-        self.target_lib_title = QLineEdit()
-        self.target_lib_title.setReadOnly(True)
-        self.target_lib_layout.addWidget(QLabel("Target Lib"))
-        target_lib_inner_layout.addWidget(self.target_lib_title)
-        target_lib_inner_layout.addWidget(self.target_lib_browse)
+        target_lib_browse_btn = QPushButton("Add")
+        target_lib_browse_btn.setMaximumWidth(50)
+        target_lib_remove_btn = QPushButton("Remove")
+        target_lib_remove_btn.setMaximumWidth(60)
+        self.target_lib_list = QListWidget()
+        self.target_lib_list.setMaximumHeight(100)
+        target_lib_inner_layout.addWidget(QLabel("Target Libraries"))
+        target_lib_inner_layout.addWidget(target_lib_browse_btn)
+        target_lib_inner_layout.addWidget(target_lib_remove_btn)
+        target_lib_browse_btn.clicked.connect(self.open_target_libs)
+        target_lib_remove_btn.clicked.connect(self.remove_target_libs)
         self.target_lib_layout.addLayout(target_lib_inner_layout)
+        self.target_lib_layout.addWidget(self.target_lib_list)
+
+        # Make Decoy
+        self.make_decoy_layout = QVBoxLayout()
+        self.make_decoy_checkbox = QCheckBox('Make Decoy Library', self)
+        self.make_decoy_layout.addWidget(self.make_decoy_checkbox)
 
         # Decoy lib
         self.decoy_lib_layout = QVBoxLayout()
         decoy_lib_inner_layout = QHBoxLayout()
-        self.decoy_lib_title = QLineEdit()
-        self.decoy_lib_title.setReadOnly(True)
-        self.decoy_lib_browse = QPushButton("Browse")
-        self.decoy_lib_browse.clicked.connect(self.browse_decoy_lib)
-        self.decoy_lib_browse.setMaximumWidth(70)
-        self.decoy_lib_layout.addWidget(QLabel("Decoy Lib"))
-        decoy_lib_inner_layout.addWidget(self.decoy_lib_title)
-        decoy_lib_inner_layout.addWidget(self.decoy_lib_browse)
+        decoy_lib_browse_btn = QPushButton("Add")
+        decoy_lib_browse_btn.setMaximumWidth(50)
+        decoy_lib_remove_btn = QPushButton("Remove")
+        decoy_lib_remove_btn.setMaximumWidth(60)
+        self.decoy_lib_list = QListWidget()
+        self.decoy_lib_list.setMaximumHeight(100)
+        decoy_lib_inner_layout.addWidget(QLabel("Decoy Libraries"))
+        decoy_lib_inner_layout.addWidget(decoy_lib_browse_btn)
+        decoy_lib_inner_layout.addWidget(decoy_lib_remove_btn)
+        decoy_lib_browse_btn.clicked.connect(self.open_decoy_libs)
+        decoy_lib_remove_btn.clicked.connect(self.remove_decoy_libs)
         self.decoy_lib_layout.addLayout(decoy_lib_inner_layout)
+        self.decoy_lib_layout.addWidget(self.decoy_lib_list)
 
         # Peptide Tolerance
         self.pept_tol_layout = QHBoxLayout()
@@ -130,9 +159,14 @@ class InputDialog(QDialog):
         
     def initUI(self):
         self.outer_layout = QVBoxLayout()
+        self.outer_layout.addStretch(10)
+        self.outer_layout.addLayout(self.project_file_layout)
+        self.outer_layout.addStretch(10)
         self.outer_layout.addLayout(self.query_layout)
         self.outer_layout.addStretch(10)
         self.outer_layout.addLayout(self.target_lib_layout)
+        self.outer_layout.addStretch(10)
+        self.outer_layout.addLayout(self.make_decoy_layout)
         self.outer_layout.addStretch(10)
         self.outer_layout.addLayout(self.decoy_lib_layout)
         self.outer_layout.addStretch(10)
@@ -150,10 +184,19 @@ class InputDialog(QDialog):
     
         self.setLayout(self.outer_layout)
 
-    def openQuery(self):
+    def browse_project_file_dir(self):
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.FileMode.Directory)
+        self.project_file_directory = dlg.getExistingDirectory()
+
+        if not self.project_file_directory:
+            return
+        
+        self.project_file_dir_text.setText(self.project_file_directory)
+
+    def open_query(self):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
-        # dlg.setNameFilter("*.mgf")
 
         filenames = None
         filenames = dlg.getOpenFileNames()
@@ -163,9 +206,63 @@ class InputDialog(QDialog):
                 continue
             self.query_list.addItem(f)
 
+    def open_target_libs(self):
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.FileMode.AnyFile)
+
+        filenames = None
+        filenames = dlg.getOpenFileNames()
+
+        for f in filenames[0]:
+            if f.split('.')[1] != 'msp':
+                continue
+            self.target_lib_list.addItem(f)
+
+    def open_decoy_libs(self):
+        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
+            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
+            return
+
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.FileMode.AnyFile)
+
+        filenames = None
+        filenames = dlg.getOpenFileNames()
+
+        for f in filenames[0]:
+            if f.split('.')[1] != 'msp':
+                continue
+            self.decoy_lib_list.addItem(f)
+
+    def remove_target_libs(self):
+        selected = self.target_lib_list.selectedItems()
+        files = ''
+        for s in selected:
+            files += str(s.text()) + '\n'
+        
+        reply = QMessageBox().question(self, "Remove", "Are you sure to remove the files below?\n"+files, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.target_lib_list.removeItemWidget(self.target_lib_list.takeItem(self.target_lib_list.currentRow()))
+
+
+    def remove_decoy_libs(self):
+        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
+            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
+            return
+
+        selected = self.decoy_lib_list.selectedItems()
+        files = ''
+        for s in selected:
+            files += str(s.text()) + '\n'
+        
+        reply = QMessageBox().question(self, "Remove", "Are you sure to remove the files below?\n"+files, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.decoy_lib_list.removeItemWidget(self.decoy_lib_list.takeItem(self.decoy_lib_list.currentRow()))
     
 
-    def removeQuery(self):
+    def remove_query(self):
         selected = self.query_list.selectedItems()
         files = ''
         for s in selected:
@@ -175,55 +272,42 @@ class InputDialog(QDialog):
         
         if reply == QMessageBox.StandardButton.Yes:
             self.query_list.removeItemWidget(self.query_list.takeItem(self.query_list.currentRow()))
-    
-        
-    def browse_target_lib(self):
-        dlg = QFileDialog()
-        dlg.setFileMode(QFileDialog.FileMode.AnyFile)
-        dlg.setNameFilter("*.msp") # msp와 어떤 파일이 지원되는지 여쭤봐야겠다.
-        filenames = None
-
-        if dlg.exec():
-            filenames = dlg.selectedFiles()
-
-            if len(filenames):
-                self.target_lib_title.setText(filenames[0])
-                self.target_lib_file = filenames[0]
-
-    
-    def browse_decoy_lib(self):
-        dlg = QFileDialog()
-        dlg.setFileMode(QFileDialog.FileMode.AnyFile)
-        dlg.setNameFilter("*.msp") # msp와 어떤 파일이 지원되는지 여쭤봐야겠다.
-        filenames = None
-
-        if dlg.exec():
-            filenames = dlg.selectedFiles()
-
-            if len(filenames):
-                self.decoy_lib_title.setText(filenames[0])
-                self.decoy_lib_file = filenames[0]
 
 
     def return_infomations(self):
         # query list에 추가
         for i in range(self.query_list.count()):
+            print("line 268")
             self.query_file_list.append(self.query_list.item(i).text())
+        
+        # target list에 추가
+        for i in range(self.target_lib_list.count()):
+            self.target_lib_files.append(self.target_lib_list.item(i).text())
+
+        # decoy list에 추가
+        for i in range(self.decoy_lib_list.count()):
+            self.decoy_lib_files.append(self.decoy_lib_list.item(i).text())
 
         
         print("[debug]", self.query_file_list)
+        # project file name이 없다면?
+        self.project_file_name = self.project_file_text.text()
+        if not self.project_file_name or not self.project_file_directory:
+            err = QMessageBox.warning(self, "No file", "There's no project file.\nPlease write or browse")
+            return
+        
         # query list가 비어져있는지 확인
         if not len(self.query_file_list):
             err = QMessageBox.warning(self, "No file", "There's no Query file.\nPlease import")
             return
 
         # target_lib이 없다면?
-        if not self.target_lib_file:
+        if not self.target_lib_files:
             err = QMessageBox.warning(self, "No file", "There's no target lib file.\nPlease import")
             return
 
         # decoy_lib이 없다면?
-        if not self.decoy_lib_file:
+        if not self.decoy_lib_files:
             err = QMessageBox.warning(self, "No file","There's no decoy lib file.\nPlease import")
             return
         
@@ -254,29 +338,29 @@ class InputDialog(QDialog):
 
 
 
+        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Unchecked:
+            self.make_decoy = 0
+        else:
+            self.make_decoy = 1
+            # 체크가 되면 decoy 파일들을 지우고 클릭이 안되어야함
+            self.decoy_lib_list.clear()
 
+        self.project_file_path = self.project_file_directory + '/' + self.project_file_name + '.devi'
+ 
+        print(self.project_file_path)
         # Deephos
         # 파라미터 파일을 만들어요
-        for i in range(len(self.query_file_list)):
-            param_file.make_parameter_file(self.query_file_list[i],
-                                           self.target_lib_file,
-                                           self.decoy_lib_file,
-                                           self.pept_tol_value,
-                                           self.isotope_tol_value_min,
-                                           self.isotope_tol_value_max,
-                                           self.frag_tol_value,
-                                           i)
+        param_file.make_parameter_file(self.project_file_path, self.query_file_list,
+                                        self.target_lib_files,
+                                        self.decoy_lib_files,
+                                        self.pept_tol_value,
+                                        self.isotope_tol_value_min,
+                                        self.isotope_tol_value_max,
+                                        self.frag_tol_value,
+                                        self.make_decoy)
         # deephos를 실행해요
-        for i in range(len(self.query_file_list)):
-            parameter = './deephos/foo' + str(i) + '.params'
-            os.system('java -jar deephos/deephos_tp.jar -i ' + parameter)
-
-        # ed = ExecuteDeephos()
-        # ed.run(self.query_file_list)
-
-        # loadingDlg = LoadingDialog("Executing Deephos...")
-        # loadingDlg.exec()
-        # loadingDlg.done(0)
+        parameter = './deephos/foo.params'
+        os.system('java -jar deephos/deephos_tp2.jar -i ' + parameter)
         
         self.done(0)
 

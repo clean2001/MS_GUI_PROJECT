@@ -1,5 +1,6 @@
-# 이게 진짜임
 import sys, os
+import time
+import json
 
 import numpy as np
 import pandas as pd
@@ -68,6 +69,9 @@ class MirrorFigureCanvas(FigureCanvas):
 
     def release(self, event):
         self.end = event.xdata
+        if self.end == None or self.start == None:
+            return
+        
         if self.end < self.start:
             tmp = self.start
             self.start = self.end
@@ -97,35 +101,22 @@ class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # load하는 코드를 삭제
-        # with open('./data/target_lib.json') as f:
-        #     self.target_lib = json.load(f) # target lib의 딕셔너리. key: seq_charge / value: offset
-        # with open('./data/decoy_lib.json') as f:
-        #     self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
-
-        self.current_seq='A'
-        self.top_seq = 'A'
-        self.frag_tol = 0.02
-        self.peptide_tol = 10
+        self.current_seq, self.top_seq='A', 'A'
+        self.frag_tol, self.peptide_tol = 0.02, 10
         self.filtering_threshold = 0
-        self.cur_idx = -1
-        self.all_qscore = []
-        self.qidx_to_ridx = dict()
-        self.spectrum_query = None
-        self.spectrum_answer = None
+        self.cur_idx, self.cur_row = -1, 0
+        self.all_qscore, self.filenames, self.results = [], [], []
+        self.spectrum_query, self.spectrum_answer = None, None
         self.is_list_visible = True
-        self.cur_row = 0
-        self.target_lib_file = None
-        self.decoy_lib_file = None
-        self.data = dict() # filename : 파싱된 결과(dict) 리스트
-        self.filenames = []
+        self.target_lib_files, self.decoy_lib_files = None, None
+        self.data,self.qidx_to_ridx = dict(), dict() # filename : 파싱된 결과(dict) 리스트
         self.loc_label = QLabel("") #그래프 내에 현재 마우스 위치 정보 label
         self.max_peptide_mz = 100 # 초기값 100
         self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
-        self.results = []
         self.graph_x_start, self.graph_y_start = -1, -1 ## 그래프의 확대, (x axis 값, -1 -1 이면 기본크기)
         self.c13_isotope_tol_min, self.c13_isotope_tol_max = 0, 0
-
+        self.target_lib, self.decoy_lib = dict(), dict()
+        self.project_file_name = None
         self.top_graph_label, self.bottom_graph_label = QLabel("top: "), QLabel("Bottom: ")
 
 
@@ -136,7 +127,7 @@ class MyApp(QMainWindow):
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
 
         sup.mirror(spectrum_answer, spectrum_answer, ax=self.ax)
-        self.sa_target, self.sa_decoy = [0 for i in range(10)], [0 for i in range(10)]
+        self.sa_target, self.sa_decoy = [0 for i in range(50)], [0 for i in range(50)]
 
 
         self.main_widget = QWidget() # Make main window
@@ -191,13 +182,11 @@ class MyApp(QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(app.quit)
 
-        openFileAction = QAction(QIcon(cur_path), 'Open file', self)
-        openFileAction.setShortcut('Ctrl+O')
-        openFileAction.setStatusTip('Open a file(.mgf)')
-        # openFileAction.triggered.connect(self.openFile)
+        newProjectAction = QAction(QIcon(cur_path), 'New Project', self)
+        newProjectAction.triggered.connect(self.open_input_dlg)
 
-        runAction = QAction(QIcon(cur_path), 'Run', self)
-        runAction.triggered.connect(self.open_input_dlg)
+        openProjectAction = QAction(QIcon(cur_path), 'Open Project', self)
+        openProjectAction.triggered.connect(self.open_project_dlg)
         
         configAction = QAction(QIcon(cur_path), 'View Config', self)
         configAction.triggered.connect(self.open_config_dlg)
@@ -221,15 +210,15 @@ class MyApp(QMainWindow):
         self.menubar = self.menuBar()
         self.menubar.setNativeMenuBar(False)
 
-        filemenu = self.menubar.addMenu('&File')
-        runmenu = self.menubar.addMenu('&Run')
+        runmenu = self.menubar.addMenu('&Open')
+        optionmenu = self.menubar.addMenu('&Option')
         viewmenu = self.menubar.addMenu('&View')
         docmenu = self.menubar.addMenu('&Document')
 
-        filemenu.addAction(openFileAction)
-        filemenu.addAction(exitAction)
-        filemenu.addAction(listAction)
-        runmenu.addAction(runAction)
+        optionmenu.addAction(exitAction)
+        optionmenu.addAction(listAction)
+        runmenu.addAction(newProjectAction)
+        runmenu.addAction(openProjectAction)
         runmenu.addAction(configAction)
         docmenu.addAction(docAction)
         viewmenu.addAction(filteringAction)
@@ -416,13 +405,12 @@ class MyApp(QMainWindow):
         seq = dict['seq']
         seq = process_sequence.brace_modifications(seq) # 0723
         seq = process_sequence.remove_modifications(seq)
-
+        
+        lib_file_name = rdict['LibrarySource']
         if "TARGET" in rdict['ProtSites']:
-            lib = self.target_lib[str(seq)+'_'+str(charge)]
-            lib_file = self.target_lib_file
+            lib = self.target_lib[lib_file_name][str(seq)+'_'+str(charge)]
         else:
-            lib = self.decoy_lib[str(seq)+'_'+str(charge)]
-            lib_file = self.decoy_lib_file
+            lib = self.decoy_lib[lib_file_name][str(seq)+'_'+str(charge)]
 
 
         seq = self.top_seq
@@ -441,7 +429,7 @@ class MyApp(QMainWindow):
         self.spectrum_query.annotate_proforma(seq, self.frag_tol, "Da", ion_types="by")
 
         # 이부분에서 offset으로 라이브러리를 열어서 mz, intensity를 파싱해서 리턴
-        lib_mz, lib_intensity = lib_parser.parse_lib(lib_file, lib['num_peaks'], lib['offset'])
+        lib_mz, lib_intensity = lib_parser.parse_lib(lib_file_name, lib['num_peaks'], lib['offset'])
         
         self.spectrum_answer = sus.MsmsSpectrum(
             dict['title'],
@@ -518,7 +506,7 @@ class MyApp(QMainWindow):
                 draw_terminal_line.draw_cterm_line(c_terms, peptide_seq, s, e, c)
 
         except:
-            
+            print("line 521")
             self.peptide_change_text_box.setText(self.top_seq)
 
             s, e, n, c = 0, 1, 1.0, 1.1
@@ -559,7 +547,7 @@ class MyApp(QMainWindow):
                 c_terms = terminal.make_cterm_list(peptide_seq)
                 draw_terminal_line.draw_cterm_line(c_terms, peptide_seq, s, e, c)
         except:
-
+            print("line 562")
             # 유효하지 않은 펩타이드
             self.top_seq = self.spectrum_list.item(self.cur_row, 6).text() # make_graph 내부를 고치면서 수정한 부분
             self.peptide_change_text_box.setText(self.top_seq)
@@ -591,6 +579,7 @@ class MyApp(QMainWindow):
             query_filename = self.spectrum_list.item(self.cur_row, 0).text()
 
         except:
+            print("line 594")
             return
         
         self.top_seq = self.spectrum_list.item(self.cur_row, 6).text() # make_graph 내부를 고치면서 수정한 부분
@@ -667,10 +656,10 @@ class MyApp(QMainWindow):
         self.graph_outer_layout.addStretch(5)
         self.spectrum_list = QTableWidget() # spectrum list
         self.spectrum_list.setRowCount(0)
-        self.spectrum_list.setColumnCount(16)
+        self.spectrum_list.setColumnCount(17)
         self.spectrum_list.itemClicked.connect(self.chkItemChanged)
         self.spectrum_list.currentItemChanged.connect(self.chkItemChanged)
-        self.column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites' ]
+        self.column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
         self.spectrum_list.setHorizontalHeaderLabels(self.column_headers)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
@@ -785,7 +774,7 @@ class MyApp(QMainWindow):
             self.peptide_change_text_box.setText(self.top_seq)
 
     def onHeaderClicked(self, logicalIndex):
-        table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'Protsites']
+        table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
         self.result_data_list.sort(key=lambda x: x[table_header_label[logicalIndex]])
         self.refilter_spectrums()
         
@@ -944,7 +933,6 @@ class MyApp(QMainWindow):
         if fi.protsites:
             if not fi.protsites in cur['ProtSites']:
                 return False
-
         
         return True
     
@@ -964,13 +952,12 @@ class MyApp(QMainWindow):
             seq = process_sequence.brace_modifications(seq) # 0723
             seq = process_sequence.remove_modifications(seq)
 
-            # print("qidx: ", qidx)
-            # print("len:  ", len(self.data[self.filenames[i]]))
             charge = cur_result['Charge']
+            lib_file_name = cur_result['LibrarySource']
             if 'TARGET' in cur_result['ProtSites']:
-                match = str(cur_result['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
+                match = str(cur_result['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[lib_file_name][str(seq)+'_'+str(charge)]['index'])
             else:
-                match = str(cur_result['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
+                match = str(cur_result['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[lib_file_name][str(seq)+'_'+str(charge)]['index'])
 
             self.spectrum_list.setItem(idx, 0, QTableWidgetItem(cur_result['File']))
             self.spectrum_list.setItem(idx, 1, QTableWidgetItem(str(cur_result['Index'])))
@@ -988,6 +975,8 @@ class MyApp(QMainWindow):
             self.spectrum_list.setItem(idx, 13, QTableWidgetItem(str(cur_result['C13'])))
             self.spectrum_list.setItem(idx, 14, QTableWidgetItem(str(cur_result['ExpRatio'])))
             self.spectrum_list.setItem(idx, 15, QTableWidgetItem(match))
+            self.spectrum_list.setItem(idx, 16, QTableWidgetItem(str(cur_result['LibrarySource'])))
+
             self.spectrum_list.setRowHeight(idx, 20)
 
             for k in range(0, 16):
@@ -999,38 +988,40 @@ class MyApp(QMainWindow):
         self.top_label.setText(str(idx) +' / ' + str(len(self.all_qscore))+ ' spectra')
 
 
-    
     def filter_reset(self):
         self.filter_info.reset_all_values()
         self.set_items_in_table()
         return
 
     def open_input_dlg(self):
+        start = time.time()
         input_dlg = input_dialog.InputDialog()
         input_dlg.exec()
 
         # dialog의 파라미터들을 가져오기
         try:
             # 뭔가 입력이 안된 상태 -> 에러를 띄우지 않고 리턴
-            if not (input_dlg.query_file_list and input_dlg.target_lib_file and input_dlg.decoy_lib_file):
+            if not (input_dlg.query_file_list and input_dlg.target_lib_files and input_dlg.decoy_lib_files):
                 return
             
             self.filenames = input_dlg.query_file_list # 쿼리 파일들
             self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
-            self.target_lib_file = input_dlg.target_lib_file
-            self.decoy_lib_file = input_dlg.decoy_lib_file
+            self.target_lib_files = input_dlg.target_lib_files
+            self.decoy_lib_files = input_dlg.decoy_lib_files
             self.frag_tol = input_dlg.frag_tol_value
             self.peptide_tol = input_dlg.pept_tol_value
             self.c13_isotope_tol_min = input_dlg.isotope_tol_value_min
             self.c13_isotope_tol_max = input_dlg.isotope_tol_value_max
-        
+            project_file_name = input_dlg.project_file_path
         except:
             return
 
         try:
             # library scan
-            self.target_lib = lib_scanner.lib_scanner(self.target_lib_file)
-            self.decoy_lib = lib_scanner.lib_scanner(self.decoy_lib_file)
+            for target_lib_entry in self.target_lib_files:
+                self.target_lib[target_lib_entry] = lib_scanner.lib_scanner(target_lib_entry)
+            for decoy_lib_entry in self.decoy_lib_files:
+                self.decoy_lib[decoy_lib_entry] = lib_scanner.lib_scanner(decoy_lib_entry)
 
             ## 여기다가 deephos를 실행을 시켜놓고 결과가 돌아오면
             self.results = []
@@ -1043,9 +1034,103 @@ class MyApp(QMainWindow):
             self.frag_tol_input.setText(str(self.frag_tol))
             self.make_summary()
 
+            # target, decoy, result 각각 직렬화 하여 저장
+            project_file_name = project_file_name.strip('.devi')
+            target_lib_json_file, decoy_lib_json_file = project_file_name+'_target.json', project_file_name+'_decoy.json'
+            result_json_file, result_list_json_file = project_file_name + '_result.json', project_file_name + '_result_list.json'
+            query_file = project_file_name + '_query.json'
+
+            print('[Debug]: ', target_lib_json_file, decoy_lib_json_file)
+
+            with open(target_lib_json_file, 'w') as f:
+                json.dump(self.target_lib, f)
+
+            with open(decoy_lib_json_file, 'w') as f:
+                json.dump(self.decoy_lib, f)
+
+            with open(result_json_file, 'w') as f:
+                json.dump(self.result_data, f)
+
+            with open(result_list_json_file, 'w') as f:
+                json.dump(self.result_data_list, f)
+
+            with open(query_file, 'w') as f:
+                json.dump(self.data, f)
+
         except Exception as e:
             print('[Debug] error is\n', e)
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
+        
+        end = time.time()
+        print('New Project Execution time: ', end-start)
+
+    def open_devi_project_file(self, devi_file_name : str):
+        '''
+        1. 파일을 읽어서 정보를 알아냄
+        2. target, decoy 직렬화 파일을 읽어옴
+        '''
+
+        (self.project_file_name, self.target_lib_files, self.decoy_lib_files,
+            make_decoy, self.peptide_tol, self.c13_isotope_tol_min,
+            self.c13_isotope_tol_max, self.frag_tol, self.filenames, self.results) = process_data.parse_devi(devi_file_name)
+        
+        try:
+            # library scan
+            # for target_lib_entry in self.target_lib_files:
+            #     self.target_lib[target_lib_entry] = lib_scanner.lib_scanner(target_lib_entry)
+            # for decoy_lib_entry in self.decoy_lib_files:
+            #     self.decoy_lib[decoy_lib_entry] = lib_scanner.lib_scanner(decoy_lib_entry)
+            
+            # 역직렬화
+            proj_name = self.project_file_name.strip('.devi')
+            target_lib_json_file, decoy_lib_json_file = proj_name+'_target.json', proj_name+'_decoy.json'
+            result_json_file, result_data_list_file = proj_name+'_result.json', proj_name+'_result_list.json'
+            query_file = proj_name + '_query.json'
+            with open(target_lib_json_file) as f:
+                self.target_lib = json.load(f) # target lib의 딕셔너리. key: seq_charge / value: offset
+            with open(decoy_lib_json_file) as f:
+                self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
+            with open(result_json_file) as f:
+                self.result_data = json.load(f) 
+            with open(result_data_list_file) as f:
+                self.result_data_list = json.load(f) 
+            with open(result_data_list_file) as f:
+                self.result_data_list = json.load(f) 
+            with open(query_file) as f:
+                self.data = json.load(f) 
+
+
+
+            ## 여기다가 deephos를 실행을 시켜놓고 결과가 돌아오면
+            # self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
+            # self.result_data, self.result_data_list = process_data.process_results(self.results)
+
+            self.set_items_in_table()
+
+            self.frag_tol_input.setText(str(self.frag_tol))
+            self.make_summary()
+
+        except Exception as e:
+            print('[Debug] error is\n', e)
+            QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
+    
+    def open_project_dlg(self):
+        start = time.time()
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.FileMode.AnyFile)
+        dlg.setNameFilter("*.devi") # msp와 어떤 파일이 지원되는지 여쭤봐야겠다.
+        devi_file_name = None
+
+        if dlg.exec():
+            devi_file_name = dlg.selectedFiles()
+
+            if not devi_file_name or not len(devi_file_name):
+                return
+        
+            self.open_devi_project_file(devi_file_name[0]) # 프로젝트 파일을 통해 결과를 화면에 띄우는 함수
+        
+        end = time.time()
+        print('Open Project Execution Time: ', end-start)
     
 
     def open_config_dlg(self):
@@ -1058,7 +1143,6 @@ class MyApp(QMainWindow):
         filter_dlg.exec()
 
         # 정보 바꾸기
-        # print('main, line 870. filname:', self.filter_info.filename)
         self.refilter_spectrums()
         return
         
@@ -1093,11 +1177,11 @@ class MyApp(QMainWindow):
                 seq = process_sequence.brace_modifications(seq) # 0723
                 seq = process_sequence.remove_modifications(seq)
 
-
+                lib_file_name = data_item['LibrarySource']
                 if 'TARGET' in data_item['ProtSites']:
-                    match = str(data_item['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[str(seq)+'_'+str(charge)]['index'])
+                    match = str(data_item['ProtSites'].replace('\n', '')) + "_" + str(self.target_lib[lib_file_name][str(seq)+'_'+str(charge)]['index'])
                 else:
-                    match = str(data_item['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[str(seq)+'_'+str(charge)]['index'])
+                    match = str(data_item['ProtSites'].replace('\n', '')) + "_" + str(self.decoy_lib[lib_file_name][str(seq)+'_'+str(charge)]['index'])
 
                 self.spectrum_list.setItem(rowcnt, 0, QTableWidgetItem(data_item['File']))
                 self.spectrum_list.setItem(rowcnt, 1, QTableWidgetItem(str(data_item['Index'])))
@@ -1115,6 +1199,7 @@ class MyApp(QMainWindow):
                 self.spectrum_list.setItem(rowcnt, 13, QTableWidgetItem(str(data_item['C13'])))
                 self.spectrum_list.setItem(rowcnt, 14, QTableWidgetItem(str(data_item['ExpRatio'])))
                 self.spectrum_list.setItem(rowcnt, 15, QTableWidgetItem(match))
+                self.spectrum_list.setItem(rowcnt, 16, QTableWidgetItem(lib_file_name))
                 self.spectrum_list.setRowHeight(rowcnt, 20)
 
                 for k in range(0, 16):
@@ -1129,7 +1214,7 @@ class MyApp(QMainWindow):
         # colum들의 크기를 조정
         self.spectrum_list.setColumnWidth(1, 60) # index
         self.spectrum_list.setColumnWidth(2, 60) # scanno
-        self.spectrum_list.setColumnWidth(4, 80) # pmzㄴ
+        self.spectrum_list.setColumnWidth(4, 80) # pmz
         self.spectrum_list.setColumnWidth(5, 60) # charge
         self.spectrum_list.setColumnWidth(6, 280) # peptide
         self.spectrum_list.setColumnWidth(7, 80) # calcmass
@@ -1150,8 +1235,8 @@ class MyApp(QMainWindow):
 
 
     def make_summary(self):
-        self.sa_decoy, self.sa_target = [0 for i in range(10)], [0 for i in range(10)]
-        self.qs_decoy, self.qs_target = [0 for i in range(35)], [0 for i in range(35)]
+        self.sa_decoy, self.sa_target = [0 for i in range(50)], [0 for i in range(50)] # binning = 50
+        self.qs_decoy, self.qs_target = [0 for i in range(35)], [0 for i in range(35)] # binning = 35, max QScore = 35로 설정
         self.ppm_decoy_list, self.ppm_target_list = [], []
         self.plength_target = [0 for i in range(61)]
         self.plength_decoy = [0 for i in range(61)]
@@ -1167,8 +1252,6 @@ class MyApp(QMainWindow):
         self.sa_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.sa_ax = self.sa_canvas.figure.subplots()
         self.sa_ax.hist([])
-        # self.sa_ax.set_xlabel('SA')
-        # self.sa_ax.set_ylabel('# of PSMs')
 
         # QScore
         self.qs_canvas = FigureCanvas(Figure(figsize=(4, 3)))
@@ -1200,11 +1283,13 @@ class MyApp(QMainWindow):
         self.summary_layout.addWidget(self.charge_canvas, 1, 0)
         self.summary_layout.addWidget(self.plength_canvas, 1, 1)
         
+        target_cnt, decoy_cnt = 0, 0
         for r in self.results:
             cur_rslts = self.result_data[r]
             for cur_item in cur_rslts:
                 if "TARGET" in cur_item['ProtSites']:
-                    self.sa_target[int(10*float(cur_item['SA']))] += 1
+                    target_cnt += 1
+                    self.sa_target[int(50*float(cur_item['SA']))] += 1
                     self.qs_target[math.trunc(float(cur_item['QScore']))] += 1
                     self.ppm_target_list.append(float(cur_item['ppmError']))
 
@@ -1217,12 +1302,9 @@ class MyApp(QMainWindow):
                         self.plength_target[60] += 1
                     else:
                         self.plength_target[len(cur_item['Peptide'])] += 1
-
-
-                    
-
                 else:
-                    self.sa_decoy[int(10*float(cur_item['SA']))] += 1
+                    decoy_cnt += 1
+                    self.sa_decoy[int(50*float(cur_item['SA']))] += 1
                     self.qs_decoy[math.trunc(float(cur_item['QScore']))] += 1
                     self.ppm_decoy_list.append(float(cur_item['ppmError']))
 
@@ -1239,15 +1321,13 @@ class MyApp(QMainWindow):
 
                 self.all_qscore.append(float(cur_item['QScore']))
 
-                
-
         self.all_qscore.sort()
 
         # summary
         labels= ['target', 'decoy']
         handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
 
-        sa_bins = np.arange(0, 1, 0.1)
+        sa_bins = np.arange(0, 1, 0.02)
         self.sa_ax.plot(sa_bins, self.sa_target, marker='.', linestyle='--', color='#3669CF')
         self.sa_ax.plot(sa_bins, self.sa_decoy, marker='.', linestyle='--', color='#FF9595')
         self.sa_ax.set_title('SA')

@@ -1,5 +1,6 @@
 import sys, json
 import pandas as pd
+import re
 
 
 def parse_file(filename : str) -> list:
@@ -162,10 +163,9 @@ def parse_result(filename: str) -> list:
     
     result = []
 
-    line = f.readline()
-
+    line = f.readline().rstrip()
     while True:
-        line = f.readline()
+        line = f.readline().rstrip()
         if not line:
             break
 
@@ -188,6 +188,7 @@ def parse_result(filename: str) -> list:
             'C13': int(tokens[13]),
             'ExpRatio': float(tokens[14]),
             'ProtSites': tokens[15],
+            'LibrarySource': tokens[16]
         }
 
         spectrum_index += 1
@@ -211,3 +212,46 @@ def process_results(results : list[str]):
         rslt[r] = val
         rslt_list += (val)
     return rslt, rslt_list
+
+
+# project file (.devi)를 파싱
+def parse_devi(devi_file_name : str):
+    f = open(devi_file_name, 'r')
+    target_libraries, decoy_libraries, make_decoy, pept_tolerance, project_file_name = list(), list(), None, None, None
+    min_isotope_tolerance, max_isotope_tolerance, frag_tolerance, quries, results = None, None, None, list(), list()
+
+    while True:
+        line = f.readline()
+        if not line:
+            break
+
+        if len(line) <= 2:
+            continue
+
+        line = line.rstrip()
+        
+        tokens = re.split('[= ]', line) # 구분자 여러 개로 split
+
+        if tokens[0] == 'TargetLib':
+            target_libraries.append(tokens[-1])
+        elif tokens[0] == 'MakeDecoy':
+            make_decoy = int(tokens[-1])
+        elif tokens[0] == 'DecoyLib':
+            decoy_libraries.append(tokens[-1])
+        elif tokens[0] == 'PeptTolerance':
+            pept_tolerance = float(tokens[-1].split('ppm')[0])
+        elif tokens[0] == 'C13Isotope':
+            tokens = tokens[-1].split(',')
+            min_isotope_tolerance, max_isotope_tolerance = float(tokens[0]), float(tokens[1])
+        elif tokens[0] == 'FragTolerance':
+            frag_tolerance = float(tokens[-1].split('da')[0])
+        elif tokens[0] == 'Analysis':
+            quries.append(tokens[-2].strip(','))
+            results.append(tokens[-1])
+        elif tokens[0] == 'Project':
+            project_file_name = tokens[-1]
+        else:
+            continue
+    return (project_file_name, target_libraries, decoy_libraries,
+            make_decoy, pept_tolerance, min_isotope_tolerance,
+            max_isotope_tolerance, frag_tolerance, quries, results)
