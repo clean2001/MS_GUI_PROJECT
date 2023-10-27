@@ -20,7 +20,7 @@ class ExecuteDeephos(QThread):
 class InputDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("input")
+        self.setWindowTitle("New Project")
         self.resize(500, 650)
         
         # 나중에 써야하는 정보들
@@ -37,6 +37,7 @@ class InputDialog(QDialog):
         # Project file
         self.project_file_layout = QVBoxLayout()
         self.project_file_dir_layout = QHBoxLayout()
+        self.project_file_inner_layout = QHBoxLayout()
         self.project_file_dir_text = QLineEdit()
         self.project_file_dir_button = QPushButton("Browse")
         self.project_file_dir_button.clicked.connect(self.browse_project_file_dir)
@@ -45,8 +46,10 @@ class InputDialog(QDialog):
         self.project_file_dir_layout.addWidget(self.project_file_dir_text)
         self.project_file_dir_layout.addWidget(self.project_file_dir_button)
         self.project_file_layout.addLayout(self.project_file_dir_layout)
-        self.project_file_layout.addWidget(QLabel("Project File name: "))
-        self.project_file_layout.addWidget(self.project_file_text)
+        self.project_file_inner_layout.addWidget(QLabel("Project File name: "))
+        self.project_file_inner_layout.addWidget(self.project_file_text)
+        self.project_file_inner_layout.addWidget(QLabel(".devi"))
+        self.project_file_layout.addLayout(self.project_file_inner_layout)
 
         # queries
         self.query_layout = QVBoxLayout()
@@ -84,7 +87,6 @@ class InputDialog(QDialog):
         # Make Decoy
         self.make_decoy_layout = QVBoxLayout()
         self.make_decoy_checkbox = QCheckBox('Make Decoy Library', self)
-        self.make_decoy_checkbox.toggle()
         self.make_decoy_layout.addWidget(self.make_decoy_checkbox)
 
         # Decoy lib
@@ -184,15 +186,17 @@ class InputDialog(QDialog):
 
     def browse_project_file_dir(self):
         dlg = QFileDialog()
-        # my_dir = QtGui.QFileDialog.getExistingDirectory(self)
         dlg.setFileMode(QFileDialog.FileMode.Directory)
         self.project_file_directory = dlg.getExistingDirectory()
+
+        if not self.project_file_directory:
+            return
+        
         self.project_file_dir_text.setText(self.project_file_directory)
 
     def open_query(self):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
-        # dlg.setNameFilter("*.mgf")
 
         filenames = None
         filenames = dlg.getOpenFileNames()
@@ -215,6 +219,10 @@ class InputDialog(QDialog):
             self.target_lib_list.addItem(f)
 
     def open_decoy_libs(self):
+        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
+            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
+            return
+
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
 
@@ -239,6 +247,10 @@ class InputDialog(QDialog):
 
 
     def remove_decoy_libs(self):
+        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
+            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
+            return
+
         selected = self.decoy_lib_list.selectedItems()
         files = ''
         for s in selected:
@@ -327,9 +339,11 @@ class InputDialog(QDialog):
 
 
         if self.make_decoy_checkbox.checkState() == Qt.CheckState.Unchecked:
-            make_decoy = 0
+            self.make_decoy = 0
         else:
-            make_decoy = 1
+            self.make_decoy = 1
+            # 체크가 되면 decoy 파일들을 지우고 클릭이 안되어야함
+            self.decoy_lib_list.clear()
 
         project_file_path = self.project_file_directory + '/' + self.project_file_name + '.devi'
  
@@ -343,7 +357,7 @@ class InputDialog(QDialog):
                                         self.isotope_tol_value_min,
                                         self.isotope_tol_value_max,
                                         self.frag_tol_value,
-                                        make_decoy)
+                                        self.make_decoy)
         # deephos를 실행해요
         parameter = './deephos/foo.params'
         os.system('java -jar deephos/deephos_tp2.jar -i ' + parameter)

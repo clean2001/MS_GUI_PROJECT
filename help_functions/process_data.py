@@ -233,24 +233,23 @@ def parse_devi(devi_file_name : str):
         tokens = re.split('[= ]', line) # 구분자 여러 개로 split
 
         if tokens[0] == 'TargetLib':
-            target_libraries.append(tokens[2])
+            target_libraries.append(tokens[-1])
         elif tokens[0] == 'MakeDecoy':
-            make_decoy = int(tokens[2])
+            make_decoy = int(tokens[-1])
         elif tokens[0] == 'DecoyLib':
-            decoy_libraries.append(tokens[2])
+            decoy_libraries.append(tokens[-1])
         elif tokens[0] == 'PeptTolerance':
-            pept_tolerance = float(tokens[2].split('ppm')[0])
+            pept_tolerance = float(tokens[-1].split('ppm')[0])
         elif tokens[0] == 'C13Isotope':
-            tokens = tokens[2].split(',')
+            tokens = tokens[-1].split(',')
             min_isotope_tolerance, max_isotope_tolerance = float(tokens[0]), float(tokens[1])
         elif tokens[0] == 'FragTolerance':
-            pept_tolerance = float(tokens[2].split('da')[0])
+            frag_tolerance = float(tokens[-1].split('da')[0])
         elif tokens[0] == 'Analysis':
-            quries.append(tokens[2].strip(','))
-            results.append(tokens[3])
+            quries.append(tokens[-2].strip(','))
+            results.append(tokens[-1])
         else:
             continue
-
     return (target_libraries, decoy_libraries,
             make_decoy, pept_tolerance, min_isotope_tolerance,
-            max_isotope_tolerance,frag_tolerance, quries, results)
+            max_isotope_tolerance, frag_tolerance, quries, results)

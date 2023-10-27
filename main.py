@@ -1,5 +1,5 @@
-# 이게 진짜임
 import sys, os
+import time
 
 import numpy as np
 import pandas as pd
@@ -68,6 +68,9 @@ class MirrorFigureCanvas(FigureCanvas):
 
     def release(self, event):
         self.end = event.xdata
+        if self.end == None or self.start == None:
+            return
+        
         if self.end < self.start:
             tmp = self.start
             self.start = self.end
@@ -137,7 +140,7 @@ class MyApp(QMainWindow):
         self.fig,self.ax = plt.subplots(figsize=(15, 9))
 
         sup.mirror(spectrum_answer, spectrum_answer, ax=self.ax)
-        self.sa_target, self.sa_decoy = [0 for i in range(10)], [0 for i in range(10)]
+        self.sa_target, self.sa_decoy = [0 for i in range(50)], [0 for i in range(50)]
 
 
         self.main_widget = QWidget() # Make main window
@@ -192,10 +195,6 @@ class MyApp(QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(app.quit)
 
-        openFileAction = QAction(QIcon(cur_path), 'Open file', self)
-        openFileAction.setShortcut('Ctrl+O')
-        openFileAction.setStatusTip('Open a file(.mgf)')
-
         newProjectAction = QAction(QIcon(cur_path), 'New Project', self)
         newProjectAction.triggered.connect(self.open_input_dlg)
 
@@ -224,14 +223,13 @@ class MyApp(QMainWindow):
         self.menubar = self.menuBar()
         self.menubar.setNativeMenuBar(False)
 
-        filemenu = self.menubar.addMenu('&File')
         runmenu = self.menubar.addMenu('&Open')
+        optionmenu = self.menubar.addMenu('&Option')
         viewmenu = self.menubar.addMenu('&View')
         docmenu = self.menubar.addMenu('&Document')
 
-        filemenu.addAction(openFileAction)
-        filemenu.addAction(exitAction)
-        filemenu.addAction(listAction)
+        optionmenu.addAction(exitAction)
+        optionmenu.addAction(listAction)
         runmenu.addAction(newProjectAction)
         runmenu.addAction(openProjectAction)
         runmenu.addAction(configAction)
@@ -789,7 +787,7 @@ class MyApp(QMainWindow):
             self.peptide_change_text_box.setText(self.top_seq)
 
     def onHeaderClicked(self, logicalIndex):
-        table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'Protsites', 'LibrarySource']
+        table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
         self.result_data_list.sort(key=lambda x: x[table_header_label[logicalIndex]])
         self.refilter_spectrums()
         
@@ -1010,6 +1008,7 @@ class MyApp(QMainWindow):
         return
 
     def open_input_dlg(self):
+        start = time.time()
         input_dlg = input_dialog.InputDialog()
         input_dlg.exec()
 
@@ -1052,6 +1051,9 @@ class MyApp(QMainWindow):
         except Exception as e:
             print('[Debug] error is\n', e)
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
+        
+        end = time.time()
+        print('New Project Execution time: ', end-start)
 
     def open_devi_project_file(self, devi_file_name : str):
         '''
@@ -1084,9 +1086,22 @@ class MyApp(QMainWindow):
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
     
     def open_project_dlg(self):
-        devi_file_name=QFileDialog.getOpenFileName(self)
-        print(devi_file_name[0])
-        self.open_devi_project_file(devi_file_name[0]) # 프로젝트 파일을 통해 결과를 화면에 띄우는 함수
+        start = time.time()
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.FileMode.AnyFile)
+        dlg.setNameFilter("*.devi") # msp와 어떤 파일이 지원되는지 여쭤봐야겠다.
+        devi_file_name = None
+
+        if dlg.exec():
+            devi_file_name = dlg.selectedFiles()
+
+            if not devi_file_name or not len(devi_file_name):
+                return
+        
+            self.open_devi_project_file(devi_file_name[0]) # 프로젝트 파일을 통해 결과를 화면에 띄우는 함수
+        
+        end = time.time()
+        print('Open Project Execution Time: ', end-start)
     
 
     def open_config_dlg(self):
@@ -1191,8 +1206,8 @@ class MyApp(QMainWindow):
 
 
     def make_summary(self):
-        self.sa_decoy, self.sa_target = [0 for i in range(10)], [0 for i in range(10)]
-        self.qs_decoy, self.qs_target = [0 for i in range(35)], [0 for i in range(35)]
+        self.sa_decoy, self.sa_target = [0 for i in range(50)], [0 for i in range(50)] # binning = 50
+        self.qs_decoy, self.qs_target = [0 for i in range(35)], [0 for i in range(35)] # binning = 35, max QScore = 35로 설정
         self.ppm_decoy_list, self.ppm_target_list = [], []
         self.plength_target = [0 for i in range(61)]
         self.plength_decoy = [0 for i in range(61)]
@@ -1208,8 +1223,6 @@ class MyApp(QMainWindow):
         self.sa_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.sa_ax = self.sa_canvas.figure.subplots()
         self.sa_ax.hist([])
-        # self.sa_ax.set_xlabel('SA')
-        # self.sa_ax.set_ylabel('# of PSMs')
 
         # QScore
         self.qs_canvas = FigureCanvas(Figure(figsize=(4, 3)))
@@ -1241,11 +1254,13 @@ class MyApp(QMainWindow):
         self.summary_layout.addWidget(self.charge_canvas, 1, 0)
         self.summary_layout.addWidget(self.plength_canvas, 1, 1)
         
+        target_cnt, decoy_cnt = 0, 0
         for r in self.results:
             cur_rslts = self.result_data[r]
             for cur_item in cur_rslts:
                 if "TARGET" in cur_item['ProtSites']:
-                    self.sa_target[int(10*float(cur_item['SA']))] += 1
+                    target_cnt += 1
+                    self.sa_target[int(50*float(cur_item['SA']))] += 1
                     self.qs_target[math.trunc(float(cur_item['QScore']))] += 1
                     self.ppm_target_list.append(float(cur_item['ppmError']))
 
@@ -1258,12 +1273,9 @@ class MyApp(QMainWindow):
                         self.plength_target[60] += 1
                     else:
                         self.plength_target[len(cur_item['Peptide'])] += 1
-
-
-                    
-
                 else:
-                    self.sa_decoy[int(10*float(cur_item['SA']))] += 1
+                    decoy_cnt += 1
+                    self.sa_decoy[int(50*float(cur_item['SA']))] += 1
                     self.qs_decoy[math.trunc(float(cur_item['QScore']))] += 1
                     self.ppm_decoy_list.append(float(cur_item['ppmError']))
 
@@ -1280,15 +1292,13 @@ class MyApp(QMainWindow):
 
                 self.all_qscore.append(float(cur_item['QScore']))
 
-                
-
         self.all_qscore.sort()
 
         # summary
         labels= ['target', 'decoy']
         handles = [Rectangle((0,0),1,1,color=c) for c in ['#3669CF', '#FF9595']]
 
-        sa_bins = np.arange(0, 1, 0.1)
+        sa_bins = np.arange(0, 1, 0.02)
         self.sa_ax.plot(sa_bins, self.sa_target, marker='.', linestyle='--', color='#3669CF')
         self.sa_ax.plot(sa_bins, self.sa_decoy, marker='.', linestyle='--', color='#FF9595')
         self.sa_ax.set_title('SA')

@@ -201,7 +201,7 @@ class FilterDialog(QDialog):
 def main():
     app = QApplication(sys.argv)
     dialog = FilterDialog()
-    dialog.exec()
+    exit(dialog.exec())
 
 
 if __name__ == "__main__":
