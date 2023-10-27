@@ -345,12 +345,12 @@ class InputDialog(QDialog):
             # 체크가 되면 decoy 파일들을 지우고 클릭이 안되어야함
             self.decoy_lib_list.clear()
 
-        project_file_path = self.project_file_directory + '/' + self.project_file_name + '.devi'
+        self.project_file_path = self.project_file_directory + '/' + self.project_file_name + '.devi'
  
-        print(project_file_path)
+        print(self.project_file_path)
         # Deephos
         # 파라미터 파일을 만들어요
-        param_file.make_parameter_file(project_file_path, self.query_file_list,
+        param_file.make_parameter_file(self.project_file_path, self.query_file_list,
                                         self.target_lib_files,
                                         self.decoy_lib_files,
                                         self.pept_tol_value,
@@ -361,13 +361,6 @@ class InputDialog(QDialog):
         # deephos를 실행해요
         parameter = './deephos/foo.params'
         os.system('java -jar deephos/deephos_tp2.jar -i ' + parameter)
-
-        # ed = ExecuteDeephos()
-        # ed.run(self.query_file_list)
-
-        # loadingDlg = LoadingDialog("Executing Deephos...")
-        # loadingDlg.exec()
-        # loadingDlg.done(0)
         
         self.done(0)
 

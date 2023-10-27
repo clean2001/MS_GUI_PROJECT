@@ -1,5 +1,6 @@
 import sys, os
 import time
+import json
 
 import numpy as np
 import pandas as pd
@@ -100,36 +101,22 @@ class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # load하는 코드를 삭제
-        # with open('./data/target_lib.json') as f:
-        #     self.target_lib = json.load(f) # target lib의 딕셔너리. key: seq_charge / value: offset
-        # with open('./data/decoy_lib.json') as f:
-        #     self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
-
-        self.current_seq='A'
-        self.top_seq = 'A'
-        self.frag_tol = 0.02
-        self.peptide_tol = 10
+        self.current_seq, self.top_seq='A', 'A'
+        self.frag_tol, self.peptide_tol = 0.02, 10
         self.filtering_threshold = 0
-        self.cur_idx = -1
-        self.all_qscore = []
-        self.qidx_to_ridx = dict()
-        self.spectrum_query = None
-        self.spectrum_answer = None
+        self.cur_idx, self.cur_row = -1, 0
+        self.all_qscore, self.filenames, self.results = [], [], []
+        self.spectrum_query, self.spectrum_answer = None, None
         self.is_list_visible = True
-        self.cur_row = 0
-        self.target_lib_files = None
-        self.decoy_lib_files = None
-        self.data = dict() # filename : 파싱된 결과(dict) 리스트
-        self.filenames = []
+        self.target_lib_files, self.decoy_lib_files = None, None
+        self.data,self.qidx_to_ridx = dict(), dict() # filename : 파싱된 결과(dict) 리스트
         self.loc_label = QLabel("") #그래프 내에 현재 마우스 위치 정보 label
         self.max_peptide_mz = 100 # 초기값 100
         self.filter_info = FilterInfo(self) # filtering 정보 (싱클톤 인스턴스)
-        self.results = []
         self.graph_x_start, self.graph_y_start = -1, -1 ## 그래프의 확대, (x axis 값, -1 -1 이면 기본크기)
         self.c13_isotope_tol_min, self.c13_isotope_tol_max = 0, 0
         self.target_lib, self.decoy_lib = dict(), dict()
-
+        self.project_file_name = None
         self.top_graph_label, self.bottom_graph_label = QLabel("top: "), QLabel("Bottom: ")
 
 
@@ -1001,7 +988,6 @@ class MyApp(QMainWindow):
         self.top_label.setText(str(idx) +' / ' + str(len(self.all_qscore))+ ' spectra')
 
 
-    
     def filter_reset(self):
         self.filter_info.reset_all_values()
         self.set_items_in_table()
@@ -1026,7 +1012,7 @@ class MyApp(QMainWindow):
             self.peptide_tol = input_dlg.pept_tol_value
             self.c13_isotope_tol_min = input_dlg.isotope_tol_value_min
             self.c13_isotope_tol_max = input_dlg.isotope_tol_value_max
-        
+            project_file_name = input_dlg.project_file_path
         except:
             return
 
@@ -1048,6 +1034,29 @@ class MyApp(QMainWindow):
             self.frag_tol_input.setText(str(self.frag_tol))
             self.make_summary()
 
+            # target, decoy, result 각각 직렬화 하여 저장
+            project_file_name = project_file_name.strip('.devi')
+            target_lib_json_file, decoy_lib_json_file = project_file_name+'_target.json', project_file_name+'_decoy.json'
+            result_json_file, result_list_json_file = project_file_name + '_result.json', project_file_name + '_result_list.json'
+            query_file = project_file_name + '_query.json'
+
+            print('[Debug]: ', target_lib_json_file, decoy_lib_json_file)
+
+            with open(target_lib_json_file, 'w') as f:
+                json.dump(self.target_lib, f)
+
+            with open(decoy_lib_json_file, 'w') as f:
+                json.dump(self.decoy_lib, f)
+
+            with open(result_json_file, 'w') as f:
+                json.dump(self.result_data, f)
+
+            with open(result_list_json_file, 'w') as f:
+                json.dump(self.result_data_list, f)
+
+            with open(query_file, 'w') as f:
+                json.dump(self.data, f)
+
         except Exception as e:
             print('[Debug] error is\n', e)
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
@@ -1058,23 +1067,43 @@ class MyApp(QMainWindow):
     def open_devi_project_file(self, devi_file_name : str):
         '''
         1. 파일을 읽어서 정보를 알아냄
-        2. 파일을 
-
+        2. target, decoy 직렬화 파일을 읽어옴
         '''
-        (self.target_lib_files, self.decoy_lib_files,
+
+        (self.project_file_name, self.target_lib_files, self.decoy_lib_files,
             make_decoy, self.peptide_tol, self.c13_isotope_tol_min,
             self.c13_isotope_tol_max, self.frag_tol, self.filenames, self.results) = process_data.parse_devi(devi_file_name)
         
         try:
             # library scan
-            for target_lib_entry in self.target_lib_files:
-                self.target_lib[target_lib_entry] = lib_scanner.lib_scanner(target_lib_entry)
-            for decoy_lib_entry in self.decoy_lib_files:
-                self.decoy_lib[decoy_lib_entry] = lib_scanner.lib_scanner(decoy_lib_entry)
+            # for target_lib_entry in self.target_lib_files:
+            #     self.target_lib[target_lib_entry] = lib_scanner.lib_scanner(target_lib_entry)
+            # for decoy_lib_entry in self.decoy_lib_files:
+            #     self.decoy_lib[decoy_lib_entry] = lib_scanner.lib_scanner(decoy_lib_entry)
+            
+            # 역직렬화
+            proj_name = self.project_file_name.strip('.devi')
+            target_lib_json_file, decoy_lib_json_file = proj_name+'_target.json', proj_name+'_decoy.json'
+            result_json_file, result_data_list_file = proj_name+'_result.json', proj_name+'_result_list.json'
+            query_file = proj_name + '_query.json'
+            with open(target_lib_json_file) as f:
+                self.target_lib = json.load(f) # target lib의 딕셔너리. key: seq_charge / value: offset
+            with open(decoy_lib_json_file) as f:
+                self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
+            with open(result_json_file) as f:
+                self.result_data = json.load(f) 
+            with open(result_data_list_file) as f:
+                self.result_data_list = json.load(f) 
+            with open(result_data_list_file) as f:
+                self.result_data_list = json.load(f) 
+            with open(query_file) as f:
+                self.data = json.load(f) 
+
+
 
             ## 여기다가 deephos를 실행을 시켜놓고 결과가 돌아오면
-            self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
-            self.result_data, self.result_data_list = process_data.process_results(self.results)
+            # self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
+            # self.result_data, self.result_data_list = process_data.process_results(self.results)
 
             self.set_items_in_table()
 

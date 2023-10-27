@@ -217,7 +217,7 @@ def process_results(results : list[str]):
 # project file (.devi)를 파싱
 def parse_devi(devi_file_name : str):
     f = open(devi_file_name, 'r')
-    target_libraries, decoy_libraries, make_decoy, pept_tolerance = list(), list(), None, None
+    target_libraries, decoy_libraries, make_decoy, pept_tolerance, project_file_name = list(), list(), None, None, None
     min_isotope_tolerance, max_isotope_tolerance, frag_tolerance, quries, results = None, None, None, list(), list()
 
     while True:
@@ -248,8 +248,10 @@ def parse_devi(devi_file_name : str):
         elif tokens[0] == 'Analysis':
             quries.append(tokens[-2].strip(','))
             results.append(tokens[-1])
+        elif tokens[0] == 'Project':
+            project_file_name = tokens[-1]
         else:
             continue
-    return (target_libraries, decoy_libraries,
+    return (project_file_name, target_libraries, decoy_libraries,
             make_decoy, pept_tolerance, min_isotope_tolerance,
             max_isotope_tolerance, frag_tolerance, quries, results)
