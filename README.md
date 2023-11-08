@@ -82,3 +82,20 @@ spectrum-utils            0.4.2
 tzdata                    2023.3
 zipp                      3.16.2
 ```
+
+---
+
+### Developers
+
+<figure>
+    <table>
+      <tr>
+        <td><a href="https://github.com/clean2001">Kim Sejeong</a></td>
+        <td><a href="https://github.com/kkang0">Kang Jeongyoon</a></td>
+      </tr>
+      <tr>
+        <td><img src="https://avatars.githubusercontent.com/u/64718002?v=4" width="180px"/></td>
+        <td><img src="https://avatars.githubusercontent.com/u/124678039?v=4" width="180px"/></td>
+      </tr>
+    </table>
+</figure>
