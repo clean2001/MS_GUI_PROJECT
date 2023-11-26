@@ -192,7 +192,7 @@ class MyApp(QMainWindow):
         configAction.triggered.connect(self.open_config_dlg)
 
         docAction = QAction(QIcon(cur_path), 'Document', self)
-        docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
+        docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#devi-gui'))
 
         # 리스트 단축키
         listAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Hide/Show List', self)
@@ -210,18 +210,18 @@ class MyApp(QMainWindow):
         self.menubar = self.menuBar()
         self.menubar.setNativeMenuBar(False)
 
-        runmenu = self.menubar.addMenu('&Open')
-        optionmenu = self.menubar.addMenu('&Option')
+        filemenu = self.menubar.addMenu('&File')
         viewmenu = self.menubar.addMenu('&View')
         docmenu = self.menubar.addMenu('&Document')
 
-        optionmenu.addAction(exitAction)
-        optionmenu.addAction(listAction)
-        runmenu.addAction(newProjectAction)
-        runmenu.addAction(openProjectAction)
-        runmenu.addAction(configAction)
-        docmenu.addAction(docAction)
+        filemenu.addAction(newProjectAction)
+        filemenu.addAction(openProjectAction)
+        filemenu.addAction(configAction)
+        filemenu.addAction(exitAction)
         viewmenu.addAction(filteringAction)
+        viewmenu.addAction(listAction)
+        docmenu.addAction(docAction)
+
         ##
 
         self.initUI()
@@ -638,6 +638,7 @@ class MyApp(QMainWindow):
         self.graph_main_layout = QVBoxLayout() # 캔버스와 툴바가 들어가는 부분, 바뀌는 부분
         self.spectrum_list_layout = QVBoxLayout() # 파일을 열었을 때 바뀌는 부분
         self.terminal_btn_layout = QHBoxLayout()
+        match_info_layout = QHBoxLayout()
         filter_hbox = QHBoxLayout()
 
         top_sp = QVBoxLayout()
@@ -681,12 +682,21 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.frag_tol_input)
         self.terminal_btn_layout.addWidget(self.frag_tol_btn)
         bottom_sp.addLayout(self.terminal_btn_layout)
+
+        # 매치에 대한 정보를 표시
+        self.match_info_query_file_name, self.match_info_scan_no, self.match_info_pmz, self.match_info_charge, self.match_info_sa_score, self.match_info_qscore = QLabel(''), QLabel(''), QLabel(''), QLabel(''), QLabel(''), QLabel('')
+        match_info_layout.addWidget(self.match_info_query_file_name)
+        match_info_layout.addWidget(self.match_info_scan_no)
+        match_info_layout.addWidget(self.match_info_pmz)
+        match_info_layout.addWidget(self.match_info_charge)
+        match_info_layout.addWidget(self.match_info_sa_score)
+        match_info_layout.addWidget(self.match_info_qscore)
+
+        bottom_sp.addLayout(match_info_layout)
         
         self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
         self.canvas.setMinimumHeight(200) # 잠시 없앰
-        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
-        # self.graph_main_layout.addWidget(self.toolbar)
         bottom_sp.addLayout(self.graph_main_layout)
 
         main = QWidget()
@@ -704,14 +714,12 @@ class MyApp(QMainWindow):
         self.splitter.setOrientation(Qt.Orientation.Vertical)
         self.graph_outer_layout.addWidget(self.splitter)
         self.splitter.setSizes([218, 445])
-        # sp.setFrameShape(QFrame.Shape.Panel)
+
         self.graph_outer_layout.addWidget(self.loc_label)
 
         # 더블클릭하면 home으로 돌아감
 
         main.setLayout(self.graph_outer_layout)
-
-
         return main
     
     def graph_event(self) :
@@ -739,9 +747,9 @@ class MyApp(QMainWindow):
             self.c_btn.setCheckable(True)
             self.mass_error_btn.setCheckable(True)
             self.switch_btn.setCheckable(True)
-
         else:
             return
+
         query_filename = self.spectrum_list.item(self.cur_row, 0).text()
         result_filename = query_filename.split('.')[0] + '_deephos.tsv'
         self.currenst_seq = process_sequence.brace_modifications(self.result_data[result_filename][int(self.qidx_to_ridx[query_filename + '_' + str(qidx)])]['Peptide'])
@@ -772,6 +780,15 @@ class MyApp(QMainWindow):
             self.max_peptide_mz = n_terms[-1]
 
             self.peptide_change_text_box.setText(self.top_seq)
+
+            # 매치 정보를 표시
+            self.match_info_query_file_name, self.match_info_scan_no, self.match_info_pmz, self.match_info_charge, self.match_info_sa_score, self.match_info_qscore = QLabel('ddddddddd'), QLabel(''), QLabel(''), QLabel(''), QLabel(''), QLabel('')
+            # match_info_layout.addWidget(self.match_info_query_file_name)
+            # match_info_layout.addWidget(self.match_info_query_scan_no)
+            # match_info_layout.addWidget(self.match_info_pmz)
+            # match_info_layout.addWidget(self.match_info_charge)
+            # match_info_layout.addWidget(self.match_info_sa_score)
+            # match_info_layout.addWidget(self.match_info_qscore)
 
     def onHeaderClicked(self, logicalIndex):
         table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
@@ -1115,23 +1132,23 @@ class MyApp(QMainWindow):
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
     
     def open_project_dlg(self):
-        start = time.time()
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
-        dlg.setNameFilter("*.devi") # msp와 어떤 파일이 지원되는지 여쭤봐야겠다.
+        dlg.setNameFilter("*.devi")
         devi_file_name = None
 
         if dlg.exec():
             devi_file_name = dlg.selectedFiles()
+            
+            # 디렉토리 선택 에러 처리
+            if os.path.isdir(devi_file_name[0]):
+                return
 
             if not devi_file_name or not len(devi_file_name):
                 return
         
             self.open_devi_project_file(devi_file_name[0]) # 프로젝트 파일을 통해 결과를 화면에 띄우는 함수
-        
-        end = time.time()
-        print('Open Project Execution Time: ', end-start)
-    
+            
 
     def open_config_dlg(self):
         config_dlg = run_config_dialog.RunConfigDlg(self)
