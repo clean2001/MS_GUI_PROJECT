@@ -119,7 +119,16 @@ class InputDialog(QDialog):
 
         # Make decoy layout
         self.make_decoy_layout = QVBoxLayout()
-        self.make_decoy_layout.addWidget(QLabel('tmp'))
+        self.decoy_type_combobox = QComboBox(self)
+        self.decoy_type_combobox.addItem('forward')
+        self.decoy_type_combobox.addItem('reverse')
+        self.decoy_type_combobox.addItem('shuffle')
+
+        self.make_decoy_layout.addStretch(1)
+        self.make_decoy_layout.addWidget(QLabel('Select an automatic decoy type'))
+        self.make_decoy_layout.addStretch(1)
+        self.make_decoy_layout.addWidget(self.decoy_type_combobox)
+        self.make_decoy_layout.addStretch(5)
 
         # decoy tab
         self.decoy_tab_widget = QTabWidget()
@@ -133,7 +142,7 @@ class InputDialog(QDialog):
         self.make_decoy_tab.setLayout(self.make_decoy_layout)
 
         self.decoy_tab_widget.addTab(self.import_decoy_tab, 'import decoy')
-        self.decoy_tab_widget.addTab(self.make_decoy_tab, 'make decoy')
+        self.decoy_tab_widget.addTab(self.make_decoy_tab, 'automatic decoy')
 
         self.decoy_tab_widget.setCurrentIndex(0)
         self.decoy_tab_widget.setStyleSheet('''QTabBar::tab{width: 0; \
@@ -259,10 +268,6 @@ class InputDialog(QDialog):
         
 
     def open_decoy_libs(self):
-        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
-            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
-            return
-
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
 
@@ -287,10 +292,6 @@ class InputDialog(QDialog):
 
 
     def remove_decoy_libs(self):
-        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
-            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
-            return
-
         selected = self.decoy_lib_list.selectedItems()
         files = ''
         for s in selected:
@@ -378,8 +379,8 @@ class InputDialog(QDialog):
 
 
 
-        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Unchecked:
-            self.make_decoy = 0
+        if self.decoy_tab_widget.currentIndex() == 0:
+            self.make_decoy = 1
         else:
             self.make_decoy = 1
             # 체크가 되면 decoy 파일들을 지우고 클릭이 안되어야함

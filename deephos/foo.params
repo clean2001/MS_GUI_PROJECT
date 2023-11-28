@@ -1,7 +1,7 @@
-Project=/Users/sejeong/Documents/project/MS_GUI_PROJECT/data/devi_files/10.29_test.devi
+Project=/Users/sejeong/Documents/project/MS_GUI_PROJECT/data/devi_files/kkk.devi
 Spectra=/Users/sejeong/Documents/project/MS_GUI_PROJECT/data/mgf/b1906_293T_proteinID_01A_QE3_122212.mgf
 TargetLib=/Users/sejeong/Documents/project/MS_GUI_PROJECT/data/speclib/human_hcd_semitryp_byfilt.msp
-MakeDecoy=0
+MakeDecoy=1
 DecoyLib=/Users/sejeong/Documents/project/MS_GUI_PROJECT/data/speclib/nist_innerRev_swap_decoy.msp
 PeptTolerance=10
 C13Isotope=0,0

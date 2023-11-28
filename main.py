@@ -233,10 +233,12 @@ class MyApp(QMainWindow):
     def apply_style(self):
         self.n_btn.setObjectName('n_btn')
         self.c_btn.setObjectName('c_btn')
-
-        with open('./qstyle/style.qss', 'r') as f:
-            style = f.read()
-        app.setStyleSheet(style)
+        try:
+            with open('./qstyle/style.qss', 'r') as f:
+                style = f.read()
+            app.setStyleSheet(style)
+        except:
+            print("err")
 
     def Warning_event(self, warning_msg) :
         QMessageBox.warning(self,'Erorr!',warning_msg)
@@ -271,6 +273,9 @@ class MyApp(QMainWindow):
         self.n_btn.setMaximumWidth(50)
         self.c_btn.setMaximumWidth(50)
 
+        # 색 적용 중
+        # qp = QPalette()
+        # qp.setColor(QPalette.ColorRole.Light, Qt.GlobalColor.white)
 
     def button1(self):
         self.right_widget.setCurrentIndex(0)
