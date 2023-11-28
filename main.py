@@ -118,6 +118,8 @@ class MyApp(QMainWindow):
         self.target_lib, self.decoy_lib = dict(), dict()
         self.project_file_name = None
         self.top_graph_label, self.bottom_graph_label = QLabel("top: "), QLabel("Bottom: ")
+        self.match_info_layout = QHBoxLayout()
+
 
 
         spectrum_query = sus.MsmsSpectrum('', 0, 0, [], [])
@@ -192,7 +194,7 @@ class MyApp(QMainWindow):
         configAction.triggered.connect(self.open_config_dlg)
 
         docAction = QAction(QIcon(cur_path), 'Document', self)
-        docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#spectrum-library-search-program'))
+        docAction.triggered.connect(lambda: webbrowser.open('https://github.com/clean2001/MS_GUI_PROJECT#devi-gui'))
 
         # 리스트 단축키
         listAction = QAction(QIcon(cur_path +'ui\\image\\exit.png'), 'Hide/Show List', self)
@@ -210,18 +212,18 @@ class MyApp(QMainWindow):
         self.menubar = self.menuBar()
         self.menubar.setNativeMenuBar(False)
 
-        runmenu = self.menubar.addMenu('&Open')
-        optionmenu = self.menubar.addMenu('&Option')
+        filemenu = self.menubar.addMenu('&File')
         viewmenu = self.menubar.addMenu('&View')
         docmenu = self.menubar.addMenu('&Document')
 
-        optionmenu.addAction(exitAction)
-        optionmenu.addAction(listAction)
-        runmenu.addAction(newProjectAction)
-        runmenu.addAction(openProjectAction)
-        runmenu.addAction(configAction)
-        docmenu.addAction(docAction)
+        filemenu.addAction(newProjectAction)
+        filemenu.addAction(openProjectAction)
+        filemenu.addAction(configAction)
+        filemenu.addAction(exitAction)
         viewmenu.addAction(filteringAction)
+        viewmenu.addAction(listAction)
+        docmenu.addAction(docAction)
+
         ##
 
         self.initUI()
@@ -231,10 +233,12 @@ class MyApp(QMainWindow):
     def apply_style(self):
         self.n_btn.setObjectName('n_btn')
         self.c_btn.setObjectName('c_btn')
-
-        with open('./qstyle/style.qss', 'r') as f:
-            style = f.read()
-        app.setStyleSheet(style)
+        try:
+            with open('./qstyle/style.qss', 'r') as f:
+                style = f.read()
+            app.setStyleSheet(style)
+        except:
+            print("err")
 
     def Warning_event(self, warning_msg) :
         QMessageBox.warning(self,'Erorr!',warning_msg)
@@ -269,6 +273,9 @@ class MyApp(QMainWindow):
         self.n_btn.setMaximumWidth(50)
         self.c_btn.setMaximumWidth(50)
 
+        # 색 적용 중
+        # qp = QPalette()
+        # qp.setColor(QPalette.ColorRole.Light, Qt.GlobalColor.white)
 
     def button1(self):
         self.right_widget.setCurrentIndex(0)
@@ -681,12 +688,28 @@ class MyApp(QMainWindow):
         self.terminal_btn_layout.addWidget(self.frag_tol_input)
         self.terminal_btn_layout.addWidget(self.frag_tol_btn)
         bottom_sp.addLayout(self.terminal_btn_layout)
+
+        # 매치에 대한 정보를 표시
+        self.match_info_query_file_name, self.match_info_scan_no, self.match_info_pmz, self.match_info_charge, self.match_info_sa_score, self.match_info_qscore = QLabel(''), QLabel(''), QLabel(''), QLabel(''), QLabel(''), QLabel('')
+        self.match_info_layout.addWidget(self.match_info_query_file_name)
+        self.match_info_layout.addStretch(1)
+        self.match_info_layout.addWidget(self.match_info_scan_no)
+        self.match_info_layout.addStretch(1)
+        self.match_info_layout.addWidget(self.match_info_pmz)
+        self.match_info_layout.addStretch(1)
+        self.match_info_layout.addWidget(self.match_info_charge)
+        self.match_info_layout.addStretch(1)
+        self.match_info_layout.addWidget(self.match_info_sa_score)
+        self.match_info_layout.addStretch(1)
+        self.match_info_layout.addWidget(self.match_info_qscore)
+        self.match_info_layout.addStretch(1)
+
+
+        bottom_sp.addLayout(self.match_info_layout)
         
         self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
         self.canvas.setMinimumHeight(200) # 잠시 없앰
-        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
         self.graph_main_layout.addWidget(self.canvas)
-        # self.graph_main_layout.addWidget(self.toolbar)
         bottom_sp.addLayout(self.graph_main_layout)
 
         main = QWidget()
@@ -704,14 +727,12 @@ class MyApp(QMainWindow):
         self.splitter.setOrientation(Qt.Orientation.Vertical)
         self.graph_outer_layout.addWidget(self.splitter)
         self.splitter.setSizes([218, 445])
-        # sp.setFrameShape(QFrame.Shape.Panel)
+
         self.graph_outer_layout.addWidget(self.loc_label)
 
         # 더블클릭하면 home으로 돌아감
 
         main.setLayout(self.graph_outer_layout)
-
-
         return main
     
     def graph_event(self) :
@@ -739,9 +760,9 @@ class MyApp(QMainWindow):
             self.c_btn.setCheckable(True)
             self.mass_error_btn.setCheckable(True)
             self.switch_btn.setCheckable(True)
-
         else:
             return
+
         query_filename = self.spectrum_list.item(self.cur_row, 0).text()
         result_filename = query_filename.split('.')[0] + '_deephos.tsv'
         self.currenst_seq = process_sequence.brace_modifications(self.result_data[result_filename][int(self.qidx_to_ridx[query_filename + '_' + str(qidx)])]['Peptide'])
@@ -772,6 +793,9 @@ class MyApp(QMainWindow):
             self.max_peptide_mz = n_terms[-1]
 
             self.peptide_change_text_box.setText(self.top_seq)
+
+            # 매치 정보를 표시
+            self.set_match_info()
 
     def onHeaderClicked(self, logicalIndex):
         table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
@@ -940,6 +964,9 @@ class MyApp(QMainWindow):
     def refilter_spectrums(self):
         idx = 0
         self.spectrum_list.setRowCount(len(self.all_qscore))
+        if not len(self.all_qscore):
+            return
+        
         for i in range(0, len(self.result_data_list)):
             cur_result = self.result_data_list[i]
             if not self.check_spectrum_item(cur_result):
@@ -1115,23 +1142,23 @@ class MyApp(QMainWindow):
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
     
     def open_project_dlg(self):
-        start = time.time()
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
-        dlg.setNameFilter("*.devi") # msp와 어떤 파일이 지원되는지 여쭤봐야겠다.
+        dlg.setNameFilter("*.devi")
         devi_file_name = None
 
         if dlg.exec():
             devi_file_name = dlg.selectedFiles()
+            
+            # 디렉토리 선택 에러 처리
+            if os.path.isdir(devi_file_name[0]):
+                return
 
             if not devi_file_name or not len(devi_file_name):
                 return
         
             self.open_devi_project_file(devi_file_name[0]) # 프로젝트 파일을 통해 결과를 화면에 띄우는 함수
-        
-        end = time.time()
-        print('Open Project Execution Time: ', end-start)
-    
+            
 
     def open_config_dlg(self):
         config_dlg = run_config_dialog.RunConfigDlg(self)
@@ -1231,7 +1258,7 @@ class MyApp(QMainWindow):
         self.top_label.setText(str(rowcnt) +' / ' + str(rowcnt)+ ' spectra')
         self.peptide_change_btn.setCheckable(True)
         self.peptide_change_btn.setCheckable(True)
-        self.spectrum_list.horizontalHeader().sectionDoubleClicked.connect(self.onHeaderClicked)
+        self.spectrum_list.horizontalHeader().sectionClicked.connect(self.onHeaderClicked) # 클릭으로 변경
 
 
     def make_summary(self):
@@ -1375,6 +1402,16 @@ class MyApp(QMainWindow):
         self.ppm_canvas.draw()
         self.charge_canvas.draw()
         self.plength_canvas.draw()
+
+    # 
+    def set_match_info(self):
+        self.match_info_query_file_name.setText(self.spectrum_list.item(self.cur_row, 0).text().split('/')[-1])
+        self.match_info_scan_no.setText('scanNo: ' + self.spectrum_list.item(self.cur_row, 2).text())
+        self.match_info_pmz.setText('PMZ: ' + self.spectrum_list.item(self.cur_row, 4).text())
+        self.match_info_charge.setText('charge: '+ self.spectrum_list.item(self.cur_row, 5).text())
+        self.match_info_sa_score.setText('SA Score: ' + self.spectrum_list.item(self.cur_row, 8).text())
+        self.match_info_qscore.setText('QScore: ' + self.spectrum_list.item(self.cur_row, 9).text())
+
 
 
 if __name__ == "__main__":

@@ -85,12 +85,23 @@ class InputDialog(QDialog):
         self.target_lib_layout.addWidget(self.target_lib_list)
 
         # Make Decoy
-        self.make_decoy_layout = QVBoxLayout()
-        self.make_decoy_checkbox = QCheckBox('Make Decoy Library', self)
-        self.make_decoy_layout.addWidget(self.make_decoy_checkbox)
+        self.decoy_option_layout = QHBoxLayout()
+
+        self.import_decoy_radio = QRadioButton("import decoy libraries",self)
+        self.make_decoy_radio = QRadioButton("make a decoy library",self)
+        self.import_decoy_radio.clicked.connect(self.check_import_decoy)
+        self.make_decoy_radio.clicked.connect(self.check_make_decoy)
+
+        self.decoy_option_layout.addWidget(self.import_decoy_radio)
+        self.decoy_option_layout.addWidget(self.make_decoy_radio)
+        self.import_decoy_radio.setChecked(True)
+
+        # Decoy
+        self.decoy_lib_layout = QVBoxLayout()
+
 
         # Decoy lib
-        self.decoy_lib_layout = QVBoxLayout()
+        self.import_decoy_layout = QVBoxLayout()
         decoy_lib_inner_layout = QHBoxLayout()
         decoy_lib_browse_btn = QPushButton("Add")
         decoy_lib_browse_btn.setMaximumWidth(50)
@@ -103,8 +114,39 @@ class InputDialog(QDialog):
         decoy_lib_inner_layout.addWidget(decoy_lib_remove_btn)
         decoy_lib_browse_btn.clicked.connect(self.open_decoy_libs)
         decoy_lib_remove_btn.clicked.connect(self.remove_decoy_libs)
-        self.decoy_lib_layout.addLayout(decoy_lib_inner_layout)
-        self.decoy_lib_layout.addWidget(self.decoy_lib_list)
+        self.import_decoy_layout.addLayout(decoy_lib_inner_layout)
+        self.import_decoy_layout.addWidget(self.decoy_lib_list)
+
+        # Make decoy layout
+        self.make_decoy_layout = QVBoxLayout()
+        self.decoy_type_combobox = QComboBox(self)
+        self.decoy_type_combobox.addItem('forward')
+        self.decoy_type_combobox.addItem('reverse')
+        self.decoy_type_combobox.addItem('shuffle')
+
+        self.make_decoy_layout.addStretch(1)
+        self.make_decoy_layout.addWidget(QLabel('Select an automatic decoy type'))
+        self.make_decoy_layout.addStretch(1)
+        self.make_decoy_layout.addWidget(self.decoy_type_combobox)
+        self.make_decoy_layout.addStretch(5)
+
+        # decoy tab
+        self.decoy_tab_widget = QTabWidget()
+        self.decoy_tab_widget.tabBar().setObjectName("decoy_tab")
+        self.decoy_lib_layout.addWidget(self.decoy_tab_widget)
+
+        self.import_decoy_tab = QWidget()
+        self.make_decoy_tab = QWidget()
+
+        self.import_decoy_tab.setLayout(self.import_decoy_layout)
+        self.make_decoy_tab.setLayout(self.make_decoy_layout)
+
+        self.decoy_tab_widget.addTab(self.import_decoy_tab, 'import decoy')
+        self.decoy_tab_widget.addTab(self.make_decoy_tab, 'automatic decoy')
+
+        self.decoy_tab_widget.setCurrentIndex(0)
+        self.decoy_tab_widget.setStyleSheet('''QTabBar::tab{width: 0; \
+        height: 0; margin: 0; padding: 0; border: none;}''')
 
         # Peptide Tolerance
         self.pept_tol_layout = QHBoxLayout()
@@ -166,7 +208,7 @@ class InputDialog(QDialog):
         self.outer_layout.addStretch(10)
         self.outer_layout.addLayout(self.target_lib_layout)
         self.outer_layout.addStretch(10)
-        self.outer_layout.addLayout(self.make_decoy_layout)
+        self.outer_layout.addLayout(self.decoy_option_layout)
         self.outer_layout.addStretch(10)
         self.outer_layout.addLayout(self.decoy_lib_layout)
         self.outer_layout.addStretch(10)
@@ -218,11 +260,14 @@ class InputDialog(QDialog):
                 continue
             self.target_lib_list.addItem(f)
 
-    def open_decoy_libs(self):
-        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
-            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
-            return
+    def check_make_decoy(self):
+        self.decoy_tab_widget.setCurrentIndex(1)        
 
+    def check_import_decoy(self):
+        self.decoy_tab_widget.setCurrentIndex(0)        
+        
+
+    def open_decoy_libs(self):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.FileMode.AnyFile)
 
@@ -247,10 +292,6 @@ class InputDialog(QDialog):
 
 
     def remove_decoy_libs(self):
-        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Checked:
-            QMessageBox.warning(self,'Erorr!', 'If you check "make decoy", you can\'t import decoy libraries')
-            return
-
         selected = self.decoy_lib_list.selectedItems()
         files = ''
         for s in selected:
@@ -338,8 +379,8 @@ class InputDialog(QDialog):
 
 
 
-        if self.make_decoy_checkbox.checkState() == Qt.CheckState.Unchecked:
-            self.make_decoy = 0
+        if self.decoy_tab_widget.currentIndex() == 0:
+            self.make_decoy = 1
         else:
             self.make_decoy = 1
             # 체크가 되면 decoy 파일들을 지우고 클릭이 안되어야함
