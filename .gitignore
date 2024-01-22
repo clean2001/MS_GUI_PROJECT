@@ -6,6 +6,8 @@ node_modules
 main.spec
 dist
 
+.DS_Store
+
 
 ./lib
 lib

@@ -30,6 +30,7 @@ import help_functions.lib_parser as lib_parser
 import help_functions.process_sequence as process_sequence
 import help_functions.filtering_list as filtering_list
 import control_exception
+import help_functions.control_table as control_table
 import draw_functions.mass_error as mass_error
 from draw_functions import draw_terminal_line
 from dlgs import (input_dialog, filtering_dialog, run_config_dialog)
@@ -119,6 +120,13 @@ class MyApp(QMainWindow):
         self.project_file_name = None
         self.top_graph_label, self.bottom_graph_label = QLabel("top: "), QLabel("Bottom: ")
         self.match_info_layout = QHBoxLayout()
+        self.column_headers_origin = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
+
+
+        # table 오름차순 여부 초기화
+        self.is_ascending = []
+        for i in range(len(self.column_headers_origin)):
+            self.is_ascending.append(True)
 
 
 
@@ -483,9 +491,9 @@ class MyApp(QMainWindow):
                 obj.deleteLater()
 
         self.canvas = MirrorFigureCanvas(self.fig, self) # mirror plot
-        # self.toolbar = NavigationToolbar(self.canvas, self) # tool bar
+        
         self.graph_main_layout.addWidget(self.canvas)
-        # self.graph_main_layout.addWidget(self.toolbar)
+
         if self.graph_x_start != -1 and self.graph_x_end != -1:
             plt.xlim([self.graph_x_start, self.graph_x_end])
         
@@ -586,7 +594,6 @@ class MyApp(QMainWindow):
             query_filename = self.spectrum_list.item(self.cur_row, 0).text()
 
         except:
-            print("line 594")
             return
         
         self.top_seq = self.spectrum_list.item(self.cur_row, 6).text() # make_graph 내부를 고치면서 수정한 부분
@@ -666,8 +673,10 @@ class MyApp(QMainWindow):
         self.spectrum_list.setColumnCount(17)
         self.spectrum_list.itemClicked.connect(self.chkItemChanged)
         self.spectrum_list.currentItemChanged.connect(self.chkItemChanged)
-        self.column_headers = ['FileName', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
-        self.spectrum_list.setHorizontalHeaderLabels(self.column_headers)
+        
+        # headers
+        self.column_headers_with_direction = control_table.add_direction_to_table(self.column_headers_origin, self.is_ascending)
+        self.spectrum_list.setHorizontalHeaderLabels(self.column_headers_with_direction)
 
         self.spectrum_list_layout.addWidget(self.spectrum_list)
         top_sp.addLayout(self.spectrum_list_layout)
@@ -799,7 +808,16 @@ class MyApp(QMainWindow):
 
     def onHeaderClicked(self, logicalIndex):
         table_header_label = ['File', 'Index', 'ScanNo', 'Title', 'PMZ', 'Charge', 'Peptide', 'CalcMass', 'SA', 'QScore', '#Ions', '#Sig', 'ppmError', 'C13', 'ExpRatio', 'ProtSites', 'LibrarySource']
-        self.result_data_list.sort(key=lambda x: x[table_header_label[logicalIndex]])
+
+        if self.is_ascending[logicalIndex]: # ascending order
+            self.result_data_list.sort(key=lambda x: x[table_header_label[logicalIndex]])
+        else:
+            self.result_data_list.sort(key=lambda x: x[table_header_label[logicalIndex]], reverse=True)
+
+        self.is_ascending[logicalIndex] = not self.is_ascending[logicalIndex] # 반전
+        self.column_headers_with_direction = control_table.add_direction_to_table(self.column_headers_origin, self.is_ascending)
+        self.spectrum_list.setHorizontalHeaderLabels(self.column_headers_with_direction)
+
         self.refilter_spectrums()
         
 
@@ -814,15 +832,12 @@ class MyApp(QMainWindow):
         self.sa_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.sa_ax = self.sa_canvas.figure.subplots()
         self.sa_ax.hist([])
-        # self.sa_ax.set_xlabel('SA')
-        # self.sa_ax.set_ylabel('# of PSMs')
+
 
         # QScore
         self.qs_canvas = FigureCanvas(Figure(figsize=(4, 3)))
         self.qs_ax = self.qs_canvas.figure.subplots()
         self.qs_ax.hist([])
-        # self.qs_ax.set_xlabel('QScore')
-        # self.qs_ax.set_ylabel('# of PSMs')
 
         # ppm error
         self.ppm_canvas = FigureCanvas(Figure(figsize=(4, 3)))
@@ -841,7 +856,6 @@ class MyApp(QMainWindow):
         self.plength_ax = self.plength_canvas.figure.subplots()
         self.plength_ax.hist([])
         self.plength_ax.set_ylabel('# of spectra')
-        # self.plength_ax.set_xlabel('peptide length')
 
 
         self.summary_layout.addWidget(self.sa_canvas, 0, 0)
@@ -1021,7 +1035,7 @@ class MyApp(QMainWindow):
         return
 
     def open_input_dlg(self):
-        start = time.time()
+        # start = time.time()
         input_dlg = input_dialog.InputDialog()
         input_dlg.exec()
 
@@ -1062,12 +1076,21 @@ class MyApp(QMainWindow):
             self.make_summary()
 
             # target, decoy, result 각각 직렬화 하여 저장
-            project_file_name = project_file_name.strip('.devi')
-            target_lib_json_file, decoy_lib_json_file = project_file_name+'_target.json', project_file_name+'_decoy.json'
-            result_json_file, result_list_json_file = project_file_name + '_result.json', project_file_name + '_result_list.json'
-            query_file = project_file_name + '_query.json'
+            project_directory_name = project_file_name.strip('.devi') # ~~~/test/hi
+            project_file_name = project_file_name.split('/')[-1].strip('.devi') # hi
+            project_directory_full_path = project_directory_name
 
-            print('[Debug]: ', target_lib_json_file, decoy_lib_json_file)
+
+            # 디렉토리가 없는 경우
+            if not os.path.isdir(project_directory_full_path):
+                os.mkdir(project_directory_full_path)
+
+            target_lib_json_file =  project_directory_full_path + '/' + project_file_name +'_target.json'
+            print("[Debug] " + target_lib_json_file)
+            decoy_lib_json_file = project_directory_full_path + '/' + project_file_name + '_decoy.json'
+            result_json_file = project_directory_full_path + '/' + project_file_name + '_result.json'
+            result_list_json_file = project_directory_full_path + '/' + project_file_name + '_result_list.json'
+            query_file = project_directory_full_path + '/' + project_file_name + 'query.json'
 
             with open(target_lib_json_file, 'w') as f:
                 json.dump(self.target_lib, f)
@@ -1085,11 +1108,10 @@ class MyApp(QMainWindow):
                 json.dump(self.data, f)
 
         except Exception as e:
-            print('[Debug] error is\n', e)
             QMessageBox.warning(self,'Error','Something went wrong😵‍💫')
         
-        end = time.time()
-        print('New Project Execution time: ', end-start)
+        # end = time.time()
+        # print('New Project Execution time: ', end-start)
 
     def open_devi_project_file(self, devi_file_name : str):
         '''
@@ -1102,35 +1124,31 @@ class MyApp(QMainWindow):
             self.c13_isotope_tol_max, self.frag_tol, self.filenames, self.results) = process_data.parse_devi(devi_file_name)
         
         try:
-            # library scan
-            # for target_lib_entry in self.target_lib_files:
-            #     self.target_lib[target_lib_entry] = lib_scanner.lib_scanner(target_lib_entry)
-            # for decoy_lib_entry in self.decoy_lib_files:
-            #     self.decoy_lib[decoy_lib_entry] = lib_scanner.lib_scanner(decoy_lib_entry)
+
+            # target, decoy, result 역직렬화
+            project_directory_name = self.project_file_name.strip('.devi') # ~~~/test/hi
+            project_file_name = self.project_file_name.split('/')[-1].strip('.devi') # hi
+            project_directory_full_path = project_directory_name
+
+
+            target_lib_json_file =  project_directory_full_path + '/' + project_file_name +'_target.json'
+            print("[Debug] " + target_lib_json_file)
+            decoy_lib_json_file = project_directory_full_path + '/' + project_file_name + '_decoy.json'
+            result_json_file = project_directory_full_path + '/' + project_file_name + '_result.json'
+            result_list_json_file = project_directory_full_path + '/' + project_file_name + '_result_list.json'
+            query_file = project_directory_full_path + '/' + project_file_name + 'query.json'
+
             
-            # 역직렬화
-            proj_name = self.project_file_name.strip('.devi')
-            target_lib_json_file, decoy_lib_json_file = proj_name+'_target.json', proj_name+'_decoy.json'
-            result_json_file, result_data_list_file = proj_name+'_result.json', proj_name+'_result_list.json'
-            query_file = proj_name + '_query.json'
             with open(target_lib_json_file) as f:
                 self.target_lib = json.load(f) # target lib의 딕셔너리. key: seq_charge / value: offset
             with open(decoy_lib_json_file) as f:
                 self.decoy_lib = json.load(f) # decoy lib의 딕셔너리. key: seq_charge / value: offset
             with open(result_json_file) as f:
                 self.result_data = json.load(f) 
-            with open(result_data_list_file) as f:
-                self.result_data_list = json.load(f) 
-            with open(result_data_list_file) as f:
+            with open(result_list_json_file) as f:
                 self.result_data_list = json.load(f) 
             with open(query_file) as f:
                 self.data = json.load(f) 
-
-
-
-            ## 여기다가 deephos를 실행을 시켜놓고 결과가 돌아오면
-            # self.data = process_data.process_queries(self.filenames) # data: dict[filename] = {data1[idx][content], data2[][], ...}
-            # self.result_data, self.result_data_list = process_data.process_results(self.results)
 
             self.set_items_in_table()
 
@@ -1185,7 +1203,6 @@ class MyApp(QMainWindow):
         for r in self.results:
             qnum += len(self.result_data[r])
         self.spectrum_list.setRowCount(qnum)
-        # self.spectrum_list.setColumnCount(16)
         
         rowcnt = 0
         for i, r in enumerate(self.results):
@@ -1252,7 +1269,7 @@ class MyApp(QMainWindow):
         self.spectrum_list.setColumnWidth(12, 70) # ppmerror
         self.spectrum_list.setColumnWidth(13, 60) # C13
         self.spectrum_list.setColumnWidth(14, 60) # expratio
-        self.spectrum_list.setColumnWidth(15, 120) # protsites
+        self.spectrum_list.setColumnWidth(15, 250) # protsites
 
 
         self.top_label.setText(str(rowcnt) +' / ' + str(rowcnt)+ ' spectra')
